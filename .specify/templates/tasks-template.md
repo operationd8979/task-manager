@@ -21,10 +21,17 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+Single React Native codebase (bare CLI workflow). Layer boundaries are enforced by
+directory — see Principle II in `.specify/memory/constitution.md`.
+
+- **Composition root**: `src/app/` (navigation, providers)
+- **Feature code**: `src/features/[feature-name]/{screens,components,hooks}/`
+- **Shared UI**: `src/components/` — used by 2+ features
+- **Theme tokens**: `src/theme/` — the only place color/spacing/radius values may be defined
+- **Logic layers**: `src/hooks/`, `src/services/`, `src/domain/`, `src/lib/`
+- **Tests**: `__tests__/` at root for app-level; co-located `__tests__/` per module
+- **Native**: `android/`, `ios/` — touch only when a feature needs native config
+- Adjust against the Structure Decision in plan.md before writing task paths
 
 <!--
   ============================================================================
@@ -49,9 +56,10 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure per implementation plan
-- [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T001 Create the `src/` layer structure per plan.md (app, features, components, theme, hooks, services, domain, lib, types)
+- [ ] T002 Reduce `App.tsx` to a thin shell mounting `src/app/`
+- [ ] T003 [P] Verify ESLint (`@react-native`) and Prettier run clean via `npm run lint`
+- [ ] T004 [P] Confirm `tsc --noEmit` passes with `strict: true`
 
 ---
 
@@ -63,12 +71,13 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T005 Define theme tokens in `src/theme/` — semantic colors, typography, spacing, radius, elevation — with complete light AND dark palettes (Principle III)
+- [ ] T006 Implement `ThemeProvider` + `useTheme()` in `src/app/providers/` wired to OS color scheme
+- [ ] T007 [P] Set up navigation in `src/app/navigation/` — bottom tabs + stack, typed route params (Principle I)
+- [ ] T008 [P] Build shared state primitives in `src/components/`: `Skeleton`, `EmptyState`, `ErrorState` with retry (Principle IV)
+- [ ] T009 [P] Create base entities in `src/domain/` that all stories depend on
+- [ ] T010 Configure error handling and logging that never records sensitive data (Security Constraints)
+- [ ] T011 [P] Add a cleanup-safe async hook in `src/hooks/` (abortable request + unmount teardown) for reuse (Principle VII)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -84,17 +93,19 @@ Examples of foundational tasks (adjust based on your project):
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T012 [P] [US1] Unit test for [domain rule] in src/domain/__tests__/[name].test.ts
+- [ ] T013 [P] [US1] Component test for [screen] in src/features/[feature]/__tests__/[Screen].test.tsx
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
-- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+- [ ] T014 [P] [US1] Create [Entity1] type + rules in src/domain/[entity1].ts
+- [ ] T015 [P] [US1] Create [Entity2] type + rules in src/domain/[entity2].ts
+- [ ] T016 [US1] Implement [Service] in src/services/[service].ts (depends on T014, T015)
+- [ ] T017 [US1] Implement use[Feature] hook in src/features/[feature]/hooks/ — owns loading/success/empty/error/retry (Principle IV)
+- [ ] T018 [US1] Build [Screen] in src/features/[feature]/screens/ using theme tokens only (Principle III)
+- [ ] T019 [US1] Render all five async states via the shared Skeleton/EmptyState/ErrorState components
+- [ ] T020 [US1] Add accessibility roles/labels and verify 44×44 pt touch targets (Principle V)
+- [ ] T021 [US1] Verify unmount teardown: listeners, timers, in-flight requests, animations (Principle VII)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -108,15 +119,16 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T022 [P] [US2] Unit test for [domain rule] in src/domain/__tests__/[name].test.ts
+- [ ] T023 [P] [US2] Component test for [screen] in src/features/[feature]/__tests__/[Screen].test.tsx
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
-- [ ] T021 [US2] Implement [Service] in src/services/[service].py
-- [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T023 [US2] Integrate with User Story 1 components (if needed)
+- [ ] T024 [P] [US2] Create [Entity] type + rules in src/domain/[entity].ts
+- [ ] T025 [US2] Implement [Service] in src/services/[service].ts
+- [ ] T026 [US2] Implement use[Feature] hook with full async state coverage in src/features/[feature]/hooks/
+- [ ] T027 [US2] Build [Screen] in src/features/[feature]/screens/ with theming + accessibility
+- [ ] T028 [US2] Promote any component now used by US1 and US2 into src/components/ (Principle II)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -130,14 +142,14 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T029 [P] [US3] Unit test for [domain rule] in src/domain/__tests__/[name].test.ts
+- [ ] T030 [P] [US3] Component test for [screen] in src/features/[feature]/__tests__/[Screen].test.tsx
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
-- [ ] T027 [US3] Implement [Service] in src/services/[service].py
-- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T031 [P] [US3] Create [Entity] type + rules in src/domain/[entity].ts
+- [ ] T032 [US3] Implement [Service] in src/services/[service].ts
+- [ ] T033 [US3] Build [Screen] + hook in src/features/[feature]/ with full state, theming, accessibility
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -147,15 +159,30 @@ Examples of foundational tasks (adjust based on your project):
 
 ---
 
-## Phase N: Polish & Cross-Cutting Concerns
+## Phase N: Compliance Verification & Polish
 
-**Purpose**: Improvements that affect multiple user stories
+**Purpose**: Verify constitution compliance across stories and clean up
 
-- [ ] TXXX [P] Documentation updates in docs/
-- [ ] TXXX Code cleanup and refactoring
-- [ ] TXXX Performance optimization across all stories
-- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
-- [ ] TXXX Security hardening
+**⚠️ Note**: Theming, async states, accessibility, and cleanup are NOT polish items —
+the constitution treats a feature missing them as incomplete, so they belong in each
+story's own tasks. This phase VERIFIES them; it does not introduce them.
+
+### Compliance verification (mandatory)
+
+- [ ] TXXX Audit for hardcoded colors/spacing/radius — zero literals outside `src/theme/` (Principle III)
+- [ ] TXXX Verify every screen renders correctly in BOTH light and dark mode (Principle III)
+- [ ] TXXX Verify every async path shows loading/success/empty/error/retry; no blank screens (Principle IV)
+- [ ] TXXX Screen-reader pass + OS font scaling pass on every new screen (Principle V)
+- [ ] TXXX Verify lists are virtualized and scrolling holds 60 FPS on a low-end device (Principle VI)
+- [ ] TXXX Verify unmount teardown on every new screen — no leaked listeners, timers, requests, animations (Principle VII)
+- [ ] TXXX Confirm no `any`, no magic numbers/strings, no dead code; `npm run lint` and `tsc --noEmit` clean (Principle VIII)
+- [ ] TXXX Confirm no secrets in source and no sensitive data in logs (Security Constraints)
+
+### Polish
+
+- [ ] TXXX [P] Documentation updates
+- [ ] TXXX Extract any logic duplicated across stories (Principle II)
+- [ ] TXXX [P] Additional unit tests (if requested)
 - [ ] TXXX Run quickstart.md validation
 
 ---
@@ -180,9 +207,11 @@ Examples of foundational tasks (adjust based on your project):
 ### Within Each User Story
 
 - Tests (if included) MUST be written and FAIL before implementation
-- Models before services
-- Services before endpoints
-- Core implementation before integration
+- Domain types and rules before services
+- Services before hooks
+- Hooks before screens (screens compose, they do not hold business logic)
+- Theme tokens exist before any component that consumes them
+- A story is not complete until its states, accessibility, and cleanup tasks are done
 - Story complete before moving to next priority
 
 ### Parallel Opportunities
@@ -200,12 +229,12 @@ Examples of foundational tasks (adjust based on your project):
 
 ```bash
 # Launch all tests for User Story 1 together (if tests requested):
-Task: "Contract test for [endpoint] in tests/contract/test_[name].py"
-Task: "Integration test for [user journey] in tests/integration/test_[name].py"
+Task: "Unit test for [domain rule] in src/domain/__tests__/[name].test.ts"
+Task: "Component test for [screen] in src/features/[feature]/__tests__/[Screen].test.tsx"
 
-# Launch all models for User Story 1 together:
-Task: "Create [Entity1] model in src/models/[entity1].py"
-Task: "Create [Entity2] model in src/models/[entity2].py"
+# Launch all domain entities for User Story 1 together:
+Task: "Create [Entity1] type + rules in src/domain/[entity1].ts"
+Task: "Create [Entity2] type + rules in src/domain/[entity2].ts"
 ```
 
 ---

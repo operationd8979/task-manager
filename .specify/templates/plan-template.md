@@ -13,34 +13,64 @@
 ## Technical Context
 
 <!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
+  The values below are the project's ACTUAL stack, verified from package.json and
+  tsconfig.json. Do not replace them with placeholders. Only override a line when
+  this feature genuinely deviates, and record the deviation in Complexity Tracking.
+  Fields marked NEEDS CLARIFICATION must be resolved during Phase 0 research.
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.8 (`strict: true`, inherited from
+`@react-native/typescript-config`), React 19.2.3
 
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+**Primary Dependencies**: React Native 0.86.2 (bare CLI workflow, not Expo),
+`react-native-safe-area-context` ^5.5.2. Any additional runtime dependency MUST be
+justified here against Principle VI (bundle size).
 
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+**Storage**: [NEEDS CLARIFICATION if the feature persists data — no storage library is
+installed yet. Sensitive values require platform secure storage per Security &
+Data Handling Constraints; plain async storage is not acceptable for tokens/PII]
 
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
+**Testing**: Jest 29 with `@react-native/jest-preset`, `react-test-renderer` 19.2.3.
+Tests live in `__tests__/` at the root for app-level specs and in co-located
+`__tests__/` folders for module-level specs.
 
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Target Platform**: iOS and Android via bare React Native. Native projects are
+committed at `ios/` and `android/`.
 
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]
+**Project Type**: Mobile application (single React Native codebase, no backend in
+this repository)
 
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
+**Performance Goals**: 60 FPS animations and scrolling on a low-end device;
+no blocking work on the JS thread (Principle VI)
 
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
+**Constraints**: Offline-friendly where feasible; light and dark theme both complete;
+touch targets ≥ 44×44 pt; navigation depth ≤ 3 levels (Principles I, III, V)
 
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Scale/Scope**: [number of screens / entities this feature adds]
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Every gate below is derived from `.specify/memory/constitution.md` v1.0.0. Mark each
+PASS, or FAIL with a row in Complexity Tracking. An unjustified FAIL blocks the plan.
+
+| # | Principle | Gate | Status |
+|---|-----------|------|--------|
+| I | Native Mobile Experience First | Primary task completes in 1–2 interactions; navigation depth ≤ 3; selection preferred over typing; defaults preselected; native gestures used where they fit | [PASS/FAIL] |
+| II | Generic, Reusable Component Architecture | Shared patterns placed in `src/components/`; no business logic in view components; imports flow UI → hooks → domain → data only | [PASS/FAIL] |
+| III | Centralized Theming (NON-NEGOTIABLE) | Zero hardcoded colors/spacing/radius literals; all values from `src/theme/`; light and dark both complete | [PASS/FAIL] |
+| IV | Complete Async State Coverage (NON-NEGOTIABLE) | Every async path defines loading (skeleton), success, empty, error, retry; no blank screens; no silent catch | [PASS/FAIL] |
+| V | Accessibility by Default | Roles/labels on interactive elements; targets ≥ 44×44 pt; layout survives OS font scaling; WCAG AA contrast both themes | [PASS/FAIL] |
+| VI | Performance on Low-End Devices | Lists virtualized; re-renders bounded; no JS-thread blocking; requests deduped/cached; new dependencies justified | [PASS/FAIL] |
+| VII | Deterministic Resource & State Lifecycle | Unmount clears listeners, timers, in-flight requests, subscriptions, animations; single source of truth per state | [PASS/FAIL] |
+| VIII | Type-Safe, Testable Code | No `any`; no magic numbers/strings; business logic testable without a renderer | [PASS/FAIL] |
+
+**Security check**: no secrets in source; no sensitive data in logs/analytics; client
+validation treated as UX only. [PASS/FAIL]
+
+**Delivery baselines**: forms and lists in this feature meet the Mandatory Delivery
+Baselines section of the constitution. [PASS/FAIL/N-A]
 
 ## Project Structure
 
@@ -57,51 +87,42 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+
 <!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
+  ACTION REQUIRED: Expand the tree below with the REAL files this feature adds or
+  changes. Keep the layer boundaries: a file's directory determines what it may
+  import (Principle II). Do not invent parallel structures.
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+├── app/                     # Composition root: providers, navigation, entry wiring
+│   ├── navigation/          # Stack + bottom tab navigators, route types
+│   └── providers/           # Theme, safe area, query/state providers
+├── features/
+│   └── [feature-name]/      # One folder per feature; the feature's public API is index.ts
+│       ├── screens/         # Screen components (composition only, no business logic)
+│       ├── components/      # Components private to this feature
+│       ├── hooks/           # Feature state and side effects
+│       └── index.ts
+├── components/              # Shared generic UI, reused by 2+ features
+├── theme/                   # Single source of truth: color, typography, spacing, radius tokens
+├── hooks/                   # Shared hooks
+├── services/                # Data access: API clients, storage adapters
+├── domain/                  # Entities and business rules; renderer-free, unit-testable
+├── lib/                     # Framework-agnostic utilities
+└── types/                   # Shared type declarations
 
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+__tests__/                   # App-level tests (existing: App.test.tsx)
+android/                     # Native Android project (bare workflow, committed)
+ios/                         # Native iOS project (bare workflow, committed)
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Single React Native codebase. The app currently has only
+`App.tsx` at the root; `src/` is introduced by the first feature that needs it and
+MUST follow the layering above. `App.tsx` stays a thin shell that mounts
+`src/app/`. No backend lives in this repository — if this feature needs one,
+record it as an external dependency in Technical Context.
 
 ## Complexity Tracking
 
@@ -109,5 +130,5 @@ directories captured above]
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| [e.g., new state management dependency] | [current need] | [why local state + context insufficient] |
+| [e.g., hardcoded color in a native module bridge] | [specific problem] | [why a theme token cannot reach it] |
