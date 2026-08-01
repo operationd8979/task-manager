@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 /**
- * Sync agent skills shipped by @chipmobilesdk/* packages into .claude/skills/.
+ * Sync agent skills shipped by installed npm packages into .claude/skills/.
  *
  * Why this exists: agent harnesses discover skills in .claude/skills/ only —
  * they do not scan node_modules. This script bridges that gap after npm install,
  * so an installed package's skill is available without vendoring its docs.
  *
+ * Scope: defaults to @chipmobilesdk, so a fork works with no configuration. Override
+ * only if a project consumes skill-bearing packages from another org:
+ *   {
+ *     "agentSkills": { "scopes": ["@chipmobilesdk", "@other-org"] }
+ *   }
+ * An explicit empty list disables the sync.
+ *
  * Contract with packages:
- *   <package>/skills/<skill-name>/SKILL.md   (+ optional references/, scripts/)
+ *   <package>/skills/sdk-<name>/SKILL.md   (+ optional references/)
  *   "skills" must be listed in the package's package.json "files" array.
  *
  * Guarantees:
@@ -17,15 +24,23 @@
  *   - Never fails the install: soft errors warn and exit 0.
  */
 
-import {readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, statSync} from 'node:fs';
+import {readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync, existsSync} from 'node:fs';
 import {join, dirname, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SCOPE = '@chipmobilesdk';
+const DEFAULT_SCOPES = ['@chipmobilesdk'];
 const SKILL_PREFIX = 'sdk-';
 const SKILLS_DIR = join(ROOT, '.claude', 'skills');
 const MANIFEST = join(SKILLS_DIR, `${SKILL_PREFIX}manifest.json`);
+
+function readJson(path) {
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return null;
+  }
+}
 
 /** Recursively copy a directory. */
 function copyDir(src, dest) {
@@ -72,16 +87,34 @@ function stampVersion(markdown, packageName, version) {
   return front + body;
 }
 
-function readJson(path) {
-  try {
-    return JSON.parse(readFileSync(path, 'utf8'));
-  } catch {
-    return null;
+/** Scopes to scan: DEFAULT_SCOPES unless package.json overrides via "agentSkills.scopes". */
+function configuredScopes() {
+  const pkg = readJson(join(ROOT, 'package.json'));
+  if (!pkg) {
+    return {scopes: [], reason: 'no package.json yet — create the app first (see README)'};
   }
+
+  const override = pkg.agentSkills?.scopes;
+  if (override === undefined) {
+    return {scopes: DEFAULT_SCOPES, reason: null};
+  }
+  if (!Array.isArray(override)) {
+    console.warn('[sdk-skills] "agentSkills.scopes" must be an array; using defaults');
+    return {scopes: DEFAULT_SCOPES, reason: null};
+  }
+  if (override.length === 0) {
+    return {scopes: [], reason: '"agentSkills.scopes" is empty — sync disabled for this project'};
+  }
+
+  const valid = override.filter(s => typeof s === 'string' && s.startsWith('@'));
+  if (valid.length !== override.length) {
+    console.warn('[sdk-skills] ignoring non-scope entries in agentSkills.scopes (must start with "@")');
+  }
+  return {scopes: valid, reason: null};
 }
 
-function findScopedPackages() {
-  const scopeDir = join(ROOT, 'node_modules', SCOPE);
+function findPackagesInScope(scope) {
+  const scopeDir = join(ROOT, 'node_modules', scope);
   if (!existsSync(scopeDir)) {
     return [];
   }
@@ -91,70 +124,73 @@ function findScopedPackages() {
     .filter(dir => existsSync(join(dir, 'package.json')));
 }
 
-function main() {
-  const synced = [];
-  const skipped = [];
-
-  for (const pkgDir of findScopedPackages()) {
-    const pkg = readJson(join(pkgDir, 'package.json'));
-    if (!pkg) {
-      continue;
-    }
-    const skillsRoot = join(pkgDir, 'skills');
-    if (!existsSync(skillsRoot)) {
-      skipped.push(`${pkg.name}@${pkg.version} (ships no skills/)`);
-      continue;
-    }
-
-    for (const entry of readdirSync(skillsRoot, {withFileTypes: true})) {
-      if (!entry.isDirectory()) {
-        continue;
-      }
-      const srcSkill = join(skillsRoot, entry.name);
-      const srcManifest = join(srcSkill, 'SKILL.md');
-      if (!existsSync(srcManifest)) {
-        skipped.push(`${pkg.name} → ${entry.name} (no SKILL.md)`);
-        continue;
-      }
-      if (!entry.name.startsWith(SKILL_PREFIX)) {
-        skipped.push(`${pkg.name} → ${entry.name} (name must start with "${SKILL_PREFIX}")`);
-        continue;
-      }
-
-      const destSkill = join(SKILLS_DIR, entry.name);
-      rmSync(destSkill, {recursive: true, force: true});
-      copyDir(srcSkill, destSkill);
-
-      const destManifest = join(destSkill, 'SKILL.md');
-      writeFileSync(
-        destManifest,
-        stampVersion(readFileSync(destManifest, 'utf8'), pkg.name, pkg.version),
-      );
-
-      synced.push({skill: entry.name, package: pkg.name, version: pkg.version});
-    }
+/** Why this skill directory cannot be synced, or null if it is usable. */
+function rejectReason(srcSkill, name, alreadyClaimed) {
+  if (!existsSync(join(srcSkill, 'SKILL.md'))) {
+    return 'no SKILL.md';
   }
-
-  // Prune skills from packages that are no longer installed.
-  const keep = new Set(synced.map(s => s.skill));
-  if (existsSync(SKILLS_DIR)) {
-    for (const entry of readdirSync(SKILLS_DIR, {withFileTypes: true})) {
-      if (entry.isDirectory() && entry.name.startsWith(SKILL_PREFIX) && !keep.has(entry.name)) {
-        rmSync(join(SKILLS_DIR, entry.name), {recursive: true, force: true});
-        skipped.push(`pruned ${entry.name} (package no longer installed)`);
-      }
-    }
+  if (!name.startsWith(SKILL_PREFIX)) {
+    return `name must start with "${SKILL_PREFIX}"`;
   }
+  if (alreadyClaimed) {
+    return `name already claimed by ${alreadyClaimed.package}`;
+  }
+  return null;
+}
 
-  mkdirSync(SKILLS_DIR, {recursive: true});
+/** Copy one skill into .claude/skills/ and stamp it with the installed version. */
+function installSkill(srcSkill, name, pkg) {
+  const destSkill = join(SKILLS_DIR, name);
+  rmSync(destSkill, {recursive: true, force: true});
+  copyDir(srcSkill, destSkill);
+
+  const destManifest = join(destSkill, 'SKILL.md');
   writeFileSync(
-    MANIFEST,
-    JSON.stringify({generatedAt: new Date().toISOString(), scope: SCOPE, skills: synced}, null, 2) + '\n',
+    destManifest,
+    stampVersion(readFileSync(destManifest, 'utf8'), pkg.name, pkg.version),
   );
+  return {skill: name, package: pkg.name, version: pkg.version};
+}
 
+/** Sync every skill shipped by one installed package. */
+function syncPackage(pkgDir, synced, skipped) {
+  const pkg = readJson(join(pkgDir, 'package.json'));
+  const skillsRoot = join(pkgDir, 'skills');
+  if (!pkg || !existsSync(skillsRoot)) {
+    return;
+  }
+
+  for (const entry of readdirSync(skillsRoot, {withFileTypes: true})) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const srcSkill = join(skillsRoot, entry.name);
+    const reason = rejectReason(srcSkill, entry.name, synced.find(s => s.skill === entry.name));
+    if (reason) {
+      skipped.push(`${pkg.name} → ${entry.name} (${reason})`);
+    } else {
+      synced.push(installSkill(srcSkill, entry.name, pkg));
+    }
+  }
+}
+
+/** Remove synced skills whose package is no longer installed. */
+function pruneStale(keep, skipped) {
+  if (!existsSync(SKILLS_DIR)) {
+    return;
+  }
+  for (const entry of readdirSync(SKILLS_DIR, {withFileTypes: true})) {
+    if (entry.isDirectory() && entry.name.startsWith(SKILL_PREFIX) && !keep.has(entry.name)) {
+      rmSync(join(SKILLS_DIR, entry.name), {recursive: true, force: true});
+      skipped.push(`pruned ${entry.name} (package no longer installed)`);
+    }
+  }
+}
+
+function report(scopes, synced, skipped) {
   const label = relative(ROOT, SKILLS_DIR).replace(/\\/g, '/');
   if (synced.length === 0) {
-    console.log(`[sdk-skills] no ${SCOPE} skills found; ${label} unchanged`);
+    console.log(`[sdk-skills] no skills found in ${scopes.join(', ')}; ${label} unchanged`);
   } else {
     console.log(`[sdk-skills] synced ${synced.length} skill(s) into ${label}:`);
     for (const s of synced) {
@@ -164,6 +200,31 @@ function main() {
   for (const note of skipped) {
     console.log(`[sdk-skills] skip: ${note}`);
   }
+}
+
+function main() {
+  const {scopes, reason} = configuredScopes();
+  if (scopes.length === 0) {
+    console.log(`[sdk-skills] skipped: ${reason}`);
+    return;
+  }
+
+  const synced = [];
+  const skipped = [];
+  for (const scope of scopes) {
+    for (const pkgDir of findPackagesInScope(scope)) {
+      syncPackage(pkgDir, synced, skipped);
+    }
+  }
+
+  pruneStale(new Set(synced.map(s => s.skill)), skipped);
+
+  mkdirSync(SKILLS_DIR, {recursive: true});
+  writeFileSync(
+    MANIFEST,
+    JSON.stringify({generatedAt: new Date().toISOString(), scopes, skills: synced}, null, 2) + '\n',
+  );
+  report(scopes, synced, skipped);
 }
 
 try {

@@ -9,14 +9,22 @@ A React Native application. **Derive the stack from `package.json` and `tsconfig
 rather than assuming versions** — nothing in this file is version-pinned, deliberately,
 so it stays correct as the app upgrades.
 
+If those files do not exist yet, this repository is still the un-initialised boilerplate:
+the agent/spec system is present but the application has not been created. See `README.md`
+for the bootstrap steps before planning any feature.
+
 Binding engineering rules live in `.specify/memory/constitution.md`; read it before
 planning a feature, not before every edit.
 
 # SDK packages (@chipmobilesdk/*)
 
-This app consumes first-party SDK packages. **Each package ships its own agent skill**,
+This app consumes first-party SDK packages that **ship their own agent skill**,
 versioned with the package. After `npm install`, `scripts/sync-sdk-skills.mjs` copies
 them into `.claude/skills/sdk-*/` and stamps the installed version into each one.
+
+`@chipmobilesdk` is the default scope and needs no configuration. A project that also
+consumes skill-bearing packages from another org overrides this in `package.json` under
+`agentSkills.scopes`; check there before assuming the default applies.
 
 ## Rules
 
@@ -48,5 +56,6 @@ Adding a package therefore costs one line of always-on context, not a document.
 
 ## Commands
 
+- `node scripts/bootstrap-agent-system.mjs` — one-time wiring after the app is created
 - `npm run sync:skills` — re-sync SDK skills (also runs automatically on `postinstall`)
 - `cat .claude/skills/sdk-manifest.json` — which skills are installed, at which versions
