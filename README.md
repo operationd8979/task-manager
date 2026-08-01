@@ -1,4 +1,28 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+This is a [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+
+# Agent & specification system
+
+This repository is set up for spec-driven development with coding agents. Four layers,
+each with one job:
+
+| Layer | Location | Holds |
+|---|---|---|
+| Engineering standards | `.specify/memory/constitution.md` | Binding principles every feature must satisfy. Amendments are versioned. |
+| Agent routing | `AGENTS.md` | How an agent should navigate this repo and load context. Deliberately small — it is always in context. |
+| Spec workflow | `.specify/templates/` | Templates for `/speckit-specify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-checklist`. |
+| Package knowledge | `.claude/skills/sdk-*/` | Skills shipped by installed SDK packages, synced on `npm install` and versioned with each package. Generated — never edited by hand. |
+
+Nothing here is pinned to a specific dependency version. Agents derive the stack from
+`package.json` and `tsconfig.json`, so the setup stays correct as the app upgrades and
+can be reused as a starting point for a new application.
+
+Useful commands:
+
+```sh
+npm run sync:skills   # re-sync SDK package skills (also runs on postinstall)
+```
+
+Start with `AGENTS.md`, then read the constitution before planning a feature.
 
 # Getting Started
 

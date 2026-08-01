@@ -6,7 +6,9 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
+    "postinstall": "node scripts/sync-sdk-skills.mjs",
     "start": "react-native start",
+    "sync:skills": "node scripts/sync-sdk-skills.mjs",
     "test": "jest"
   },
   "dependencies": {

@@ -57,8 +57,8 @@ directory — see Principle II in `.specify/memory/constitution.md`.
 **Purpose**: Project initialization and basic structure
 
 - [ ] T001 Create the `src/` layer structure per plan.md (app, features, components, theme, hooks, services, domain, lib, types)
-- [ ] T002 Reduce `App.tsx` to a thin shell mounting `src/app/`
-- [ ] T003 [P] Verify ESLint (`@react-native`) and Prettier run clean via `npm run lint`
+- [ ] T002 Reduce the root app entry (`App.tsx`) to a thin shell mounting `src/app/`
+- [ ] T003 [P] Verify the repo's configured linter and formatter run clean
 - [ ] T004 [P] Confirm `tsc --noEmit` passes with `strict: true`
 
 ---

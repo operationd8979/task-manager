@@ -23,12 +23,12 @@ Added sections:
 Removed sections: none
 
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md — UPDATED. Technical Context prefilled with the
-     verified stack (React Native 0.86.2 bare CLI, React 19.2.3, TypeScript 5.8 strict,
-     Jest 29 + @react-native/jest-preset). "Constitution Check" replaced with a hard
-     8-principle gate table plus security and delivery-baseline gates. Project Structure
-     replaced: the generic single/web/mobile options (which assumed separate native
-     ios/ and android/ source trees) now describe the real single-codebase src/ layering.
+  ✅ .specify/templates/plan-template.md — UPDATED. Technical Context now instructs the
+     planner to DERIVE the stack from package.json/tsconfig.json rather than carry
+     versions forward. "Constitution Check" replaced with a hard 8-principle gate table
+     plus security and delivery-baseline gates. Project Structure replaced: the generic
+     single/web/mobile options (which assumed separate native ios/ and android/ source
+     trees) now describe React Native's single-codebase src/ layering.
   ✅ .specify/templates/tasks-template.md — UPDATED. Path Conventions rewritten for the
      React Native layer structure. Setup and Foundational phases now seed theme tokens,
      navigation, shared state components, and cleanup-safe async hooks. Sample tasks
@@ -43,18 +43,19 @@ Templates requiring updates:
   ✅ .specify/extensions/*/commands/*.md — reviewed; no agent-specific or outdated references.
   ✅ CLAUDE.md — generic SPECKIT block, no principle references to update.
 
-Known stack gaps (resolve during the first feature's Phase 0 research):
-  - No navigation library installed; Principle I requires bottom tabs + stack.
-  - No storage library installed; Security Constraints require platform secure storage
-    for tokens and personal data.
-  - Only runtime dependency beyond React Native core is react-native-safe-area-context.
+Adoption checklist (run once per project that inherits this constitution, during the
+first feature's Phase 0 research). These principles require capabilities that a bare
+React Native app does not ship with — confirm each is installed or explicitly deferred:
+  - Navigation library — Principle I requires bottom tabs + stack.
+  - Secure storage — Security Constraints forbid tokens/PII in plain async storage.
+  - Any dependency added to satisfy the above is justified in the plan's Technical Context.
 
 Deferred TODOs: none
 -->
 
-# Task Manager Constitution
+# Mobile Application Constitution
 
-Binding standards for this React Native mobile application. These rules apply to every feature,
+Binding standards for this React Native application. These rules apply to every feature,
 screen, and component unless a specification explicitly overrides them and records the
 justification in that specification's Complexity Tracking table.
 

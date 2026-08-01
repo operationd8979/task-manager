@@ -13,32 +13,33 @@
 ## Technical Context
 
 <!--
-  The values below are the project's ACTUAL stack, verified from package.json and
-  tsconfig.json. Do not replace them with placeholders. Only override a line when
-  this feature genuinely deviates, and record the deviation in Complexity Tracking.
-  Fields marked NEEDS CLARIFICATION must be resolved during Phase 0 research.
+  ACTION REQUIRED: DERIVE these values, do not copy them forward from a previous plan
+  and do not guess. Read the repository's package.json, tsconfig.json and lockfile and
+  record what is actually installed, with versions. A value that cannot be established
+  from the repo is NEEDS CLARIFICATION and must be resolved in Phase 0 research.
+
+  The lines below state which file answers each field.
 -->
 
-**Language/Version**: TypeScript 5.8 (`strict: true`, inherited from
-`@react-native/typescript-config`), React 19.2.3
+**Language/Version**: [TypeScript version from package.json devDependencies; confirm
+`strict` is on via tsconfig.json and its `extends` base. React version from dependencies]
 
-**Primary Dependencies**: React Native 0.86.2 (bare CLI workflow, not Expo),
-`react-native-safe-area-context` ^5.5.2. Any additional runtime dependency MUST be
-justified here against Principle VI (bundle size).
+**Primary Dependencies**: [React Native version and workflow — bare CLI vs Expo — from
+package.json; then the runtime dependencies this feature relies on. Any dependency this
+feature ADDS must be justified here against Principle VI (bundle size)]
 
-**Storage**: [NEEDS CLARIFICATION if the feature persists data — no storage library is
-installed yet. Sensitive values require platform secure storage per Security &
-Data Handling Constraints; plain async storage is not acceptable for tokens/PII]
+**Storage**: [The installed persistence library, or NEEDS CLARIFICATION if the feature
+persists data and none is installed. Sensitive values require platform secure storage per
+Security & Data Handling Constraints; plain async storage is not acceptable for tokens/PII]
 
-**Testing**: Jest 29 with `@react-native/jest-preset`, `react-test-renderer` 19.2.3.
-Tests live in `__tests__/` at the root for app-level specs and in co-located
-`__tests__/` folders for module-level specs.
+**Testing**: [Test runner and preset from package.json and its config file; where tests
+live in this repo]
 
-**Target Platform**: iOS and Android via bare React Native. Native projects are
-committed at `ios/` and `android/`.
+**Target Platform**: [iOS/Android minimum versions. Note whether native projects are
+committed (bare) or generated (managed)]
 
-**Project Type**: Mobile application (single React Native codebase, no backend in
-this repository)
+**Project Type**: Mobile application — single React Native codebase. [State whether a
+backend lives in this repository or is an external dependency]
 
 **Performance Goals**: 60 FPS animations and scrolling on a low-end device;
 no blocking work on the JS thread (Principle VI)
@@ -113,16 +114,17 @@ src/
 ├── lib/                     # Framework-agnostic utilities
 └── types/                   # Shared type declarations
 
-__tests__/                   # App-level tests (existing: App.test.tsx)
-android/                     # Native Android project (bare workflow, committed)
-ios/                         # Native iOS project (bare workflow, committed)
+__tests__/                   # App-level tests
+android/                     # Native Android project (present in bare workflow)
+ios/                         # Native iOS project (present in bare workflow)
 ```
 
-**Structure Decision**: Single React Native codebase. The app currently has only
-`App.tsx` at the root; `src/` is introduced by the first feature that needs it and
-MUST follow the layering above. `App.tsx` stays a thin shell that mounts
-`src/app/`. No backend lives in this repository — if this feature needs one,
-record it as an external dependency in Technical Context.
+**Structure Decision**: Single React Native codebase. [State which of the directories
+above already exist in this repository and which this feature creates — check before
+writing.] `src/` is introduced by the first feature that needs it and MUST follow the
+layering above; the root app entry stays a thin shell that mounts `src/app/`.
+[State whether a backend lives in this repository; if this feature needs one and it
+does not, record it as an external dependency in Technical Context.]
 
 ## Complexity Tracking
 
