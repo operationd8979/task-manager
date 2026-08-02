@@ -11,7 +11,7 @@ project that uses a different design vocabulary changes the config, not the skil
    `FR-###` / `US-#` / `SC-###`. An artifact that restates a requirement creates a second
    copy that will silently drift.
 2. **Record conflicts, never resolve them silently.** Where the design departs from the
-   spec or the constitution, the departure belongs in `open-decisions.md` with a
+   spec or the constitution, the departure belongs in `decisions.md` with a
    recommendation — not applied quietly and not dropped.
 
 ---
@@ -58,7 +58,7 @@ project that uses a different design vocabulary changes the config, not the skil
 - Interaction notes: gestures, non-gesture equivalents for every gesture, motion budget,
   haptics, performance rules, and content/voice rules.
 
-## `open-decisions.md`
+## `decisions.md`
 
 Every entry uses the same shape, because the point of the file is to be decidable:
 

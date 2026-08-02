@@ -41,7 +41,7 @@ creep and must be justified here or removed.
 ## 5. Conflicts between spec and design
 
 Recorded, not resolved. Each conflict must resolve into either a spec amendment or a
-design change before planning. See `open-decisions.md` for the recommendation on each.
+design change before planning. See `decisions.md` for the recommendation on each.
 
 | ID | Spec says | Design does | Impact | Decision ref |
 |---|---|---|---|---|

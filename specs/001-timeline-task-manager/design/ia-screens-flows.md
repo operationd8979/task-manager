@@ -57,14 +57,14 @@ xuất, không có bảng.
 
 | ID | Màn hình | Dạng | Cấp | Vào từ | Hành động chính | Trạng thái phải có |
 |---|---|---|---|---|---|---|
-| **S-01** | Timeline | Màn hình gốc | 1 | Mở app | Tick trạng thái · Tạo mới | Đang tải · Có dữ liệu · Rỗng · Lỗi đọc · Banner quyền bị từ chối |
-| **S-02** | Chọn ngày | Bottom sheet · lịch tháng | 2 | Chạm tiêu đề ngày | Chọn ngày · Về hôm nay | Có chấm ngày bận · Ngày đang chọn · Ngoài tháng |
+| **S-01** | Timeline | Màn hình gốc | 1 | Mở app | Tick trạng thái · Tạo mới · **Vuốt ngang đổi ngày** | Đang tải · Có dữ liệu · Rỗng · Lỗi đọc · Banner quyền bị từ chối · Vừa xóa còn hoàn tác |
+| **S-02** | Chọn ngày | Bottom sheet · lịch tháng | 2 | Chạm tiêu đề ngày | Chọn ngày · Về hôm nay | Đang đếm ngày bận · Có chấm ngày bận · Lỗi đếm · Tháng rỗng · Ngày đang chọn · Ngoài tháng |
 | **S-03** | Tạo / sửa công việc | Bottom sheet toàn chiều cao | 2 | Nút tạo · Chạm dòng | Lưu | Tạo mới · Đang sửa · Đang lưu · Lỗi từng trường · Lưu thất bại · Chưa lưu khi thoát |
 | **S-04** | Thiết lập lặp lại | Bottom sheet | 3 | Hàng "Lặp lại" trong form | Xong | Không lặp · Có lặp · Chưa chọn thứ nào (lỗi) · Xem trước bằng lời |
-| **S-05** | Chọn phạm vi áp dụng | Bottom sheet **chặn** | 2 | Sau mọi thao tác ghi lên một buổi lặp | Chỉ lần này · Toàn bộ chuỗi | Sửa · Đổi giờ · Di chuyển · Xóa — mỗi loại một bộ lời khác nhau |
+| **S-05** | Chọn phạm vi áp dụng | Bottom sheet **chặn** | 2 | Sau khi sửa nội dung, di chuyển hoặc xóa một buổi lặp — **không** khi tick trạng thái (FR-026a) | Chỉ lần này · Toàn bộ chuỗi | Đang đếm số buổi (khóa lựa chọn) · Đếm xong · Không đếm được · Sửa · Đổi giờ · Di chuyển · Xóa |
 | **S-06** | Thao tác dòng | Bottom sheet ⋯ | 2 | Nút ⋯ trên dòng | Đổi giờ · Di chuyển · Sửa · Xóa | Việc thường · Buổi của chuỗi (đổi nhãn xóa thành "Bỏ qua buổi này") |
 | **S-07** | Đổi giờ / Di chuyển | Bottom sheet | 3 | Từ S-06 hoặc sau khi kéo-thả | Áp dụng | Chip giờ hay dùng · Bộ chọn giờ · Bộ chọn ngày (chỉ ở đây mới đổi được ngày) |
-| **S-08** | Cài đặt | Màn hình đẩy ngang | 2 | Nút CĐ trên thanh ngày | Cấp quyền · Đổi mặc định | Quyền đã cấp / bị từ chối / nhắc có thể trễ |
+| **S-08** | Cài đặt | Màn hình đẩy ngang | 2 | Nút CĐ trên thanh ngày | Cấp quyền · Đổi mặc định · **Đổi chế độ hiển thị** | Đang tải · Lỗi đọc theo hàng · Đang lưu tùy chọn · Quyền đã cấp / bị từ chối / nhắc có thể trễ |
 | **S-09** | Xác nhận phá hủy | Bottom sheet | 3 | Xóa công việc · Xóa toàn bộ dữ liệu · Thoát khi chưa lưu | Xác nhận | Xóa 1 việc · Xóa tất cả · Chưa lưu (3 lựa chọn) |
 
 Đối chiếu với `spec.md` §11: S-01↔SCR-001, S-03↔SCR-002, S-04↔SCR-003, S-05↔SCR-004,
@@ -87,9 +87,8 @@ Mở app (về hôm nay)
 ```
 
 Không hỏi phạm vi khi tick. Trạng thái luôn thuộc về buổi cụ thể; hỏi mỗi lần sẽ biến thao
-tác thường nhất thành hai bước và người dùng sẽ bấm bừa. **Đây là quyết định D-01 ở
-[open-decisions.md](./open-decisions.md), cần chốt trước khi plan** — nó mâu thuẫn với
-`spec.md` FR-026 ở dạng chữ.
+tác thường nhất thành hai bước và người dùng sẽ bấm bừa. **Đã chốt** — FR-026a nói rõ đổi
+trạng thái không hỏi phạm vi; xem [D-01](./decisions.md).
 
 ### F-2 · Tạo công việc thường — **2 thao tác tới bản lưu được**
 *Vài lần mỗi ngày.*
@@ -162,9 +161,54 @@ Từ chối quyền **không bao giờ** chặn việc lưu công việc. App ti
 ```
 
 Xóa toàn bộ dữ liệu trong Cài đặt là **ngoại lệ duy nhất** dùng hộp thoại xác nhận có chữ, vì
-không có hoàn tác và không có bản sao ở bất cứ đâu.
+không có hoàn tác và không có bản sao ở bất cứ đâu (FR-011b).
 
-> Lưu ý mâu thuẫn cần plan xử lý: `spec.md` FR-011 nói "MUST yêu cầu xác nhận trước khi xóa"
-> công việc thông thường. Design thay hộp thoại xác nhận bằng **toast + Hoàn tác 5 giây** —
-> mạnh hơn về khả năng phục hồi, nhẹ hơn về thao tác. Xem D-03 ở
-> [open-decisions.md](./open-decisions.md).
+**Đã chốt** — FR-011 nay quy định xóa ngay không chặn bằng xác nhận, và FR-011a đặt ba điều
+kiện cho hành động hoàn tác: sống ≥5 giây, không bị nuốt khi đổi ngày hay mở màn hình khác,
+và khôi phục cả nhắc nhở. Xem [D-03](./decisions.md).
+
+---
+
+### F-7 · Chuyển ngày bằng vuốt ngang — **1 cử chỉ**
+*Nhiều lần mỗi ngày.*
+
+```
+Vuốt sang trái/phải ở bất kỳ đâu trên timeline
+  → Thanh ngày hiện ngày đích trong lúc vuốt
+  → [Qua ngưỡng 64pt hoặc đủ vận tốc?]
+     ├ Có  → Timeline chuyển sang ngày đó
+     └ Không → Nội dung trượt về chỗ cũ, không đổi gì
+```
+
+Lối thay thế không cần cử chỉ đã có sẵn: nút `‹ ›` trên thanh ngày (FR-003) — nên cử chỉ này
+không tạo thêm gánh nặng tiếp cận nào. Vuốt bắt đầu trong vùng chạm tay cầm ⣿ thuộc về thao
+tác kéo đổi giờ, không chuyển ngày (FR-003c).
+
+---
+
+### F-8 · Thiết lập một công việc lặp lại — **4 thao tác kể từ timeline**
+*Vài lần mỗi tháng — hiếm, nhưng mỗi lần thay thế hàng chục lần nhập tay.*
+
+```
+Chạm CÔNG VIỆC MỚI → gõ tên          (2 thao tác, chung với F-2)
+  → Chạm hàng "Lặp lại: Không lặp ›"  → sheet cấp 3 mở
+  → [Chọn thế nào?]
+     ├ Preset: T2–T6 / Cuối tuần / Hằng ngày   → 1 chạm
+     └ Chọn từng thứ trong 7 nút 44×44         → 1–7 chạm
+  → Xem trước bằng lời cập nhật ngay:
+    "Sẽ tạo buổi vào T2, T3, T4, T5, T6 lúc 09:00, từ 03/08, không có ngày kết thúc."
+  → XONG → quay về form, hàng Lặp lại hiện tóm tắt
+  → Lưu
+```
+
+**Ngân sách**: 4 thao tác tới bản lưu được nếu dùng preset, vượt ngưỡng 1–2 của Constitution I.
+Vượt có chủ đích và đã được bù bằng ba thứ: preset gộp 5 lần chạm thành 1, ngày bắt đầu mặc
+định là ngày đang xem, và giờ mặc định lấy từ form nên không phải nhập lại. Cắt thêm nữa sẽ
+phải bỏ xem trước bằng lời — mà đó chính là chỗ người dùng phát hiện mình chọn sai thứ
+(FR-024).
+
+**Điểm hỏng thường gặp**: người dùng gạt sang "Lặp theo thứ" rồi bấm XONG mà chưa chọn thứ
+nào. Sheet không được im lặng nuốt thao tác — xem trạng thái "Có lặp, chưa chọn thứ nào"
+trong [ux-ui-spec §3](./ux-ui-spec.md).
+
+Phục vụ US-4 · FR-020, FR-021, FR-022, FR-024.

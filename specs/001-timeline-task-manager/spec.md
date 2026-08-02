@@ -18,6 +18,14 @@
 - Q: Ngôn ngữ giao diện và hạ tầng chuỗi cho phiên bản đầu tiên? → A: Giao diện chỉ tiếng Việt, nhưng mọi chuỗi hiển thị nằm trong một danh mục tập trung để thêm ngôn ngữ sau mà không phải sửa từng màn hình.
 - Q: Ứng dụng ghi nhận lỗi kỹ thuật như thế nào để có thể chẩn đoán sự cố? → A: Nhật ký lỗi cục bộ có giới hạn dung lượng và tự xoay vòng, không chứa tên hay ghi chú công việc, không bao giờ gửi ra khỏi thiết bị, và không dùng analytics hay crash reporting của bên thứ ba.
 
+### Session 2026-08-02
+
+- Q: Khi người dùng tick trạng thái hoàn thành trên một lần xuất hiện của công việc lặp lại, hệ thống có hỏi phạm vi áp dụng không? → A: Không hỏi. Đổi trạng thái luôn áp dụng cho đúng lần xuất hiện đó, không bao giờ cho toàn chuỗi.
+- Q: Xóa một công việc thông thường: hỏi xác nhận trước, hay xóa ngay kèm Hoàn tác? → A: Xóa ngay, kèm thông báo có hành động Hoàn tác sống ít nhất 5 giây và không bị mất khi người dùng đổi ngày hoặc mở màn hình khác. Xóa toàn bộ dữ liệu vẫn giữ bước xác nhận.
+- Q: Vuốt ngang trên dòng công việc để xóa hoặc thao tác nhanh: giữ hay bỏ? → A: Cử chỉ vuốt ngang được dành cho việc chuyển ngày, áp dụng trên toàn bộ timeline kể cả khi vuốt đè lên một dòng. Không có thao tác nào trên dòng được kích hoạt bằng vuốt ngang.
+- Q: Với chuỗi lặp không có ngày kết thúc, số buổi bị ảnh hưởng được đếm tới đâu khi hỏi phạm vi áp dụng? → A: Đếm trong 365 ngày kể từ ngày đang thao tác, và nói rõ rằng các buổi sau mốc đó cũng bị ảnh hưởng.
+- Q: Chế độ sáng/tối theo cài đặt hệ thống, hay người dùng đổi được trong ứng dụng? → A: Cài đặt có mục chọn ba giá trị — Tự động (theo hệ thống), Sáng, Tối — mặc định là Tự động, và lựa chọn được lưu lại.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Lập kế hoạch công việc trong ngày (Priority: P1)
@@ -35,8 +43,9 @@ Người dùng mở ứng dụng và thấy ngay timeline công việc của hô
 3. **Given** người dùng để trống tên công việc, **When** bấm lưu, **Then** ứng dụng chặn lưu và hiển thị thông báo lỗi ngay tại trường tên.
 4. **Given** người dùng nhập giờ kết thúc sớm hơn hoặc bằng giờ bắt đầu, **When** bấm lưu, **Then** ứng dụng chặn lưu và hiển thị lỗi giải thích ràng buộc.
 5. **Given** ngày được chọn không có công việc nào, **When** timeline hiển thị, **Then** ứng dụng hiển thị trạng thái rỗng kèm hành động tạo công việc mới.
-6. **Given** người dùng đang xem ngày hôm nay, **When** chuyển sang ngày trước hoặc ngày sau, **Then** timeline hiển thị đúng dữ liệu của ngày mới được chọn.
-7. **Given** người dùng đã tạo công việc, **When** đóng hẳn ứng dụng và mở lại, **Then** công việc vẫn còn với đầy đủ thông tin đã nhập.
+6. **Given** người dùng đang xem ngày hôm nay, **When** chuyển sang ngày trước hoặc ngày sau bằng nút điều hướng hoặc bằng thao tác vuốt ngang, **Then** timeline hiển thị đúng dữ liệu của ngày mới được chọn.
+7. **Given** người dùng vuốt ngang bắt đầu từ vị trí nằm đè lên một công việc, **When** kết thúc thao tác vuốt, **Then** timeline chuyển ngày và công việc đó không bị thay đổi gì.
+8. **Given** người dùng đã tạo công việc, **When** đóng hẳn ứng dụng và mở lại, **Then** công việc vẫn còn với đầy đủ thông tin đã nhập.
 
 ---
 
@@ -60,11 +69,11 @@ Người dùng đánh dấu một công việc là hoàn thành ngay trên timel
 
 ### User Story 3 - Điều chỉnh kế hoạch khi lịch thay đổi (Priority: P3)
 
-Người dùng chỉnh sửa nội dung công việc, dời công việc sang khung giờ khác trong cùng ngày, sang một ngày khác, hoặc cả hai. Người dùng cũng có thể xóa công việc không còn cần thiết, với một bước xác nhận trước khi xóa.
+Người dùng chỉnh sửa nội dung công việc, dời công việc sang khung giờ khác trong cùng ngày, sang một ngày khác, hoặc cả hai. Người dùng cũng có thể xóa công việc không còn cần thiết, và lấy lại được ngay nếu xóa nhầm.
 
 **Why this priority**: Kế hoạch trong ngày thay đổi liên tục. Nếu không dời được công việc, người dùng buộc phải xóa và tạo lại, làm mất ghi chú và trạng thái.
 
-**Independent Test**: Tạo một công việc lúc 09:00 hôm nay, dời sang 15:00 ngày mai, xác nhận công việc biến mất khỏi timeline hôm nay và xuất hiện đúng chỗ ở ngày mai; sau đó xóa nó và xác nhận nó không còn ở bất kỳ ngày nào.
+**Independent Test**: Tạo một công việc lúc 09:00 hôm nay, dời sang 15:00 ngày mai, kiểm tra công việc biến mất khỏi timeline hôm nay và xuất hiện đúng chỗ ở ngày mai; xóa nó rồi dùng hành động hoàn tác và kiểm tra nó quay lại nguyên vẹn; xóa lại và để hành động hoàn tác hết hạn, rồi kiểm tra nó không còn ở bất kỳ ngày nào.
 
 **Acceptance Scenarios**:
 
@@ -72,8 +81,8 @@ Người dùng chỉnh sửa nội dung công việc, dời công việc sang kh
 2. **Given** người dùng chọn hành động di chuyển trên một công việc, **When** chọn ngày và giờ mới rồi xác nhận, **Then** công việc biến mất khỏi vị trí cũ và xuất hiện tại vị trí mới.
 3. **Given** người dùng đang xem timeline của một ngày, **When** kéo một công việc thả vào khung giờ khác trong cùng ngày đó, **Then** công việc nhận giờ mới, thay đổi được lưu ngay, và timeline sắp xếp lại theo giờ.
 4. **Given** người dùng dùng trình đọc màn hình, **When** cần đổi giờ của một công việc, **Then** hành động "Di chuyển" cho kết quả giống hệt thao tác kéo-thả mà không cần cử chỉ.
-5. **Given** người dùng chọn xóa một công việc thông thường, **When** hộp thoại xác nhận hiển thị và người dùng xác nhận, **Then** công việc bị xóa khỏi dữ liệu trên thiết bị và không còn trên timeline.
-6. **Given** người dùng chọn xóa nhưng hủy ở bước xác nhận, **When** quay lại timeline, **Then** công việc vẫn còn nguyên.
+5. **Given** người dùng chọn xóa một công việc thông thường, **When** xác nhận thao tác xóa, **Then** công việc bị xóa khỏi dữ liệu trên thiết bị và không còn trên timeline, đồng thời hành động hoàn tác được cung cấp.
+6. **Given** người dùng vừa xóa một công việc, **When** dùng hành động hoàn tác trong vòng 5 giây, kể cả sau khi đã chuyển sang ngày khác, **Then** công việc được khôi phục nguyên vẹn cùng nhắc nhở của nó.
 7. **Given** form tạo hoặc sửa đang có dữ liệu chưa lưu, **When** người dùng thoát form, **Then** ứng dụng cảnh báo về thay đổi chưa lưu trước khi đóng.
 
 ---
@@ -140,7 +149,7 @@ Người dùng bật nhắc nhở cho một công việc và chọn mốc nhắc
 
 ### User Story 7 - Kiểm soát cài đặt và dữ liệu cá nhân (Priority: P7)
 
-Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ thống khi cần, chọn ngày bắt đầu tuần, đọc thông tin cho biết dữ liệu chỉ nằm trên thiết bị, và có thể xóa toàn bộ dữ liệu khi muốn bắt đầu lại.
+Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ thống khi cần, chọn ngày bắt đầu tuần, chọn chế độ hiển thị sáng/tối, đọc thông tin cho biết dữ liệu chỉ nằm trên thiết bị, và có thể xóa toàn bộ dữ liệu khi muốn bắt đầu lại.
 
 **Why this priority**: Là lớp hoàn thiện cần cho niềm tin của người dùng và cho yêu cầu quyền riêng tư, nhưng không chặn bất kỳ luồng công việc chính nào.
 
@@ -153,6 +162,8 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 3. **Given** người dùng đổi mốc nhắc mặc định thành trước 10 phút, **When** tạo một công việc mới và bật nhắc nhở, **Then** công việc mới nhận mốc trước 10 phút, còn các công việc đã tạo trước đó giữ nguyên mốc nhắc cũ.
 4. **Given** người dùng chọn xóa toàn bộ dữ liệu, **When** xác nhận ở bước cảnh báo, **Then** mọi công việc, quy tắc lặp, điều chỉnh riêng và nhắc nhở đã đặt đều bị xóa.
 5. **Given** người dùng gỡ ứng dụng rồi cài lại, **When** mở ứng dụng, **Then** không có công việc nào được khôi phục tự động.
+6. **Given** người dùng chọn chế độ hiển thị Tối, **When** đóng và mở lại ứng dụng, **Then** ứng dụng vẫn ở chế độ Tối bất kể hệ thống đang ở chế độ nào.
+7. **Given** người dùng để chế độ hiển thị ở Tự động, **When** hệ thống chuyển sáng/tối trong lúc ứng dụng đang mở, **Then** ứng dụng đổi theo ngay mà không cần khởi động lại.
 
 ---
 
@@ -171,6 +182,8 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 - **Thiết bị khởi động lại**: Công việc vẫn còn; các nhắc nhở tương lai được khôi phục sau khi khởi động lại hoặc chậm nhất khi ứng dụng được mở lại.
 - **Lỗi đọc hoặc ghi dữ liệu trên thiết bị**: Người dùng nhận thông báo dễ hiểu kèm hành động thử lại; ứng dụng không hiển thị mã lỗi kỹ thuật và không mất dữ liệu đã lưu trước đó.
 - **Lỗi khi đặt nhắc nhở**: Việc lưu công việc vẫn thành công; ứng dụng báo riêng rằng nhắc nhở chưa được đặt.
+- **Đóng ứng dụng trong lúc hành động hoàn tác còn hiệu lực**: Việc xóa đã được ghi xuống thiết bị ngay khi thực hiện, nên nó là vĩnh viễn; hành động hoàn tác không được khôi phục ở lần mở sau và ứng dụng không hiển thị tàn dư nào của thao tác đó.
+- **Vuốt ngang khi một lớp tạm thời đang mở**: Cử chỉ chuyển ngày chỉ áp dụng cho timeline; lớp đang mở giữ nguyên cử chỉ của nó và không chuyển ngày phía sau.
 
 ## Requirements *(mandatory)*
 
@@ -181,6 +194,9 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 - **FR-001**: Hệ thống MUST hiển thị công việc của ngày được chọn dưới dạng timeline, sắp xếp theo giờ bắt đầu tăng dần, gồm cả công việc thông thường và lần xuất hiện của công việc lặp lại.
 - **FR-002**: Mỗi mục trên timeline MUST hiển thị tối thiểu: tên công việc, giờ bắt đầu, giờ kết thúc hoặc thời lượng, trạng thái, dấu hiệu lặp lại nếu có, và dấu hiệu nhắc nhở nếu đang bật.
 - **FR-003**: Người dùng MUST có thể xem ngày hôm nay, chuyển sang ngày trước, chuyển sang ngày sau, chọn một ngày cụ thể từ lịch, và quay nhanh về hôm nay.
+- **FR-003a**: Người dùng MUST có thể chuyển sang ngày trước hoặc ngày sau bằng thao tác vuốt ngang. Thao tác này MUST hoạt động trên toàn bộ vùng timeline, kể cả khi bắt đầu trên một công việc, để cử chỉ vuốt ngang chỉ mang đúng một ý nghĩa duy nhất trong màn hình.
+- **FR-003b**: Vuốt ngang MUST KHÔNG kích hoạt bất kỳ hành động nào của riêng một công việc. Mọi hành động trên một công việc MUST được truy cập qua một điều khiển hiện hữu trên dòng, không qua cử chỉ.
+- **FR-003c**: Khi vuốt ngang bắt đầu trong vùng chạm của điều khiển kéo-thả đổi giờ, thao tác kéo-thả MUST được ưu tiên và MUST KHÔNG chuyển ngày.
 - **FR-004**: Timeline MUST tự cập nhật ngay sau khi công việc được tạo, sửa, xóa, di chuyển hoặc đổi trạng thái.
 - **FR-005**: Khi ngày được chọn không có công việc nào, hệ thống MUST hiển thị trạng thái rỗng có nội dung giải thích và cho phép tạo công việc trực tiếp từ đó.
 - **FR-006**: Hệ thống MUST hiển thị đầy đủ các công việc có thời gian trùng hoặc chồng nhau mà không ẩn hoặc gộp mất công việc nào.
@@ -191,7 +207,9 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 - **FR-008**: Khi tạo công việc mới, hệ thống MUST đặt giá trị mặc định: trạng thái là đang thực hiện, không lặp lại, nhắc nhở tắt.
 - **FR-009**: Hệ thống MUST từ chối lưu công việc khi tên trống, khi giờ kết thúc sớm hơn hoặc bằng giờ bắt đầu, hoặc khi ngày/giờ không hợp lệ, và MUST hiển thị lỗi ngay tại trường tương ứng.
 - **FR-010**: Người dùng MUST có thể chỉnh sửa tên, ghi chú, ngày, giờ bắt đầu, giờ kết thúc, trạng thái, nhắc nhở và quy tắc lặp lại của một công việc.
-- **FR-011**: Người dùng MUST có thể xóa công việc thông thường, và hệ thống MUST yêu cầu xác nhận trước khi xóa.
+- **FR-011**: Người dùng MUST có thể xóa công việc thông thường. Hệ thống MUST thực hiện xóa ngay mà không chặn bằng bước xác nhận, và MUST cung cấp hành động hoàn tác thay cho việc xác nhận trước.
+- **FR-011a**: Hành động hoàn tác MUST khả dụng ít nhất 5 giây kể từ khi xóa, MUST KHÔNG biến mất khi người dùng chuyển ngày hoặc mở màn hình khác trong khoảng đó, và khi được dùng MUST khôi phục công việc cùng mọi nhắc nhở của nó về đúng trạng thái trước khi xóa.
+- **FR-011b**: Xóa toàn bộ dữ liệu trong Cài đặt MUST vẫn yêu cầu bước xác nhận, vì thao tác đó không có hoàn tác (xem FR-054).
 - **FR-012**: Sau khi xóa, hệ thống MUST loại công việc khỏi timeline, xóa dữ liệu của nó khỏi thiết bị, và hủy nhắc nhở liên quan.
 - **FR-013**: Hệ thống MUST cảnh báo người dùng khi họ rời khỏi form tạo hoặc sửa mà còn thay đổi chưa lưu.
 
@@ -221,7 +239,10 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 
 #### Điều chỉnh riêng từng lần xuất hiện
 
-- **FR-026**: Khi người dùng chỉnh sửa, di chuyển hoặc xóa một lần xuất hiện của công việc lặp lại, hệ thống MUST yêu cầu chọn phạm vi áp dụng gồm "Chỉ lần này", "Toàn bộ chuỗi" và "Hủy".
+- **FR-026**: Khi người dùng chỉnh sửa nội dung, di chuyển hoặc xóa một lần xuất hiện của công việc lặp lại, hệ thống MUST yêu cầu chọn phạm vi áp dụng gồm "Chỉ lần này", "Toàn bộ chuỗi" và "Hủy".
+- **FR-026a**: Đổi trạng thái của một lần xuất hiện MUST KHÔNG hỏi phạm vi áp dụng. Thao tác này luôn được ghi nhận cho đúng lần xuất hiện đó, tương đương phạm vi "Chỉ lần này".
+- **FR-026b**: Khi hỏi phạm vi áp dụng, hệ thống MUST cho biết số lần xuất hiện bị ảnh hưởng bởi mỗi lựa chọn, để người dùng hiểu hậu quả trước khi chọn.
+- **FR-026c**: Số lần xuất hiện bị ảnh hưởng MUST được đếm trong 365 ngày kể từ ngày đang thao tác. Khi quy tắc lặp không có ngày kết thúc, hệ thống MUST nói rõ rằng các lần xuất hiện sau mốc đó cũng bị ảnh hưởng, thay vì trình bày con số đếm được như thể đó là toàn bộ.
 - **FR-027**: Khi chọn "Chỉ lần này", hệ thống MUST chỉ ghi nhận điều chỉnh riêng cho lần xuất hiện đó và MUST KHÔNG thay đổi quy tắc lặp lại.
 - **FR-028**: Một lần xuất hiện MUST có tối đa một điều chỉnh riêng, xác định duy nhất bởi cặp quy tắc lặp lại và ngày xuất hiện.
 - **FR-029**: Điều chỉnh riêng MUST có thể thay đổi giờ bắt đầu, giờ kết thúc, tên, ghi chú, trạng thái, cấu hình nhắc nhở, hoặc đánh dấu lần xuất hiện đó bị bỏ qua.
@@ -274,6 +295,8 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 - **FR-051**: Người dùng MUST có thể xem trạng thái quyền thông báo và trạng thái quyền đặt nhắc nhở đúng thời điểm, và mở cài đặt hệ thống tương ứng từ trong ứng dụng.
 - **FR-052**: Người dùng MUST có thể chọn ngày bắt đầu tuần, và lựa chọn này MUST được áp dụng cho bộ chọn ngày và được lưu lại.
 - **FR-052a**: Người dùng MUST có thể chọn mốc nhắc mặc định trong Cài đặt. Thay đổi này MUST chỉ áp dụng cho công việc tạo mới về sau và MUST KHÔNG sửa mốc nhắc của công việc hay quy tắc lặp đã tồn tại.
+- **FR-052b**: Người dùng MUST có thể chọn chế độ hiển thị trong Cài đặt với đúng ba giá trị: Tự động (theo cài đặt sáng/tối của hệ thống), Sáng, và Tối. Giá trị mặc định MUST là Tự động.
+- **FR-052c**: Lựa chọn chế độ hiển thị MUST được lưu lại và áp dụng ngay khi thay đổi, MUST giữ nguyên sau khi mở lại ứng dụng, và khi ở chế độ Tự động MUST đi theo thay đổi của hệ thống trong lúc ứng dụng đang chạy.
 - **FR-053**: Ứng dụng MUST hiển thị thông tin cho người dùng biết dữ liệu chỉ được lưu trên thiết bị.
 - **FR-054**: Người dùng MUST có thể xóa toàn bộ dữ liệu sau một bước xác nhận, và thao tác này MUST xóa mọi công việc, quy tắc lặp, điều chỉnh riêng và nhắc nhở đã đặt.
 
@@ -296,7 +319,7 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 - **Lần xuất hiện (Occurrence)**: Một buổi cụ thể của quy tắc lặp lại tại một ngày. Được suy ra từ quy tắc lặp lại kết hợp với điều chỉnh riêng nếu có, không được lưu sẵn cho mọi ngày trong tương lai.
 - **Điều chỉnh riêng (Override)**: Thay đổi chỉ áp dụng cho đúng một lần xuất hiện, xác định duy nhất bởi cặp quy tắc lặp lại và ngày xuất hiện. Có thể ghi đè tên, ghi chú, giờ bắt đầu, giờ kết thúc, trạng thái, cấu hình nhắc nhở, hoặc đánh dấu lần xuất hiện bị bỏ qua.
 - **Nhắc nhở đã đặt (Scheduled Reminder)**: Lời nhắc gắn với một công việc hoặc một lần xuất hiện, có định danh ổn định để có thể hủy và đặt lại nhiều lần cho cùng một kết quả. Đây là dữ liệu dẫn xuất, luôn có thể tái tạo từ công việc và quy tắc lặp lại.
-- **Cài đặt ứng dụng (App Setting)**: Cặp khóa–giá trị lưu tùy chọn của người dùng, ví dụ ngày bắt đầu tuần và thời điểm nhắc mặc định.
+- **Cài đặt ứng dụng (App Setting)**: Cặp khóa–giá trị lưu tùy chọn của người dùng, ví dụ ngày bắt đầu tuần, thời điểm nhắc mặc định, và chế độ hiển thị sáng/tối.
 
 ## Success Criteria *(mandatory)*
 
@@ -333,6 +356,7 @@ Những nội dung sau nằm ngoài phạm vi phiên bản đầu tiên:
 - Phạm vi chỉnh sửa "Lần này và các lần sau" cho công việc lặp lại.
 - Nhắc nhở lặp lại nhiều lần cho cùng một công việc, hoặc mốc nhắc tùy ý ngoài danh sách đã quy định.
 - Kéo và thả để chuyển công việc sang một ngày khác (kéo-thả chỉ áp dụng trong phạm vi một ngày).
+- Thao tác nhanh trên một công việc bằng cách vuốt ngang trên dòng — cử chỉ vuốt ngang đã được dành cho việc chuyển ngày (FR-003a).
 - Quy tắc lặp lại theo chu kỳ khác ngày trong tuần, ví dụ theo ngày trong tháng hoặc cách N ngày.
 - Phân loại công việc bằng nhãn, dự án, mức ưu tiên, hoặc tìm kiếm toàn cục.
 
@@ -367,4 +391,5 @@ Những giả định sau được chọn làm mặc định hợp lý vì tài 
 - [design/ia-screens-flows.md](./design/ia-screens-flows.md) — cây màn hình, 9 màn hình (S-01…S-09), 6 luồng người dùng kèm ngân sách thao tác.
 - [design/wireframes.md](./design/wireframes.md) — 6 wireframe 390×812 kèm chiều cao tối thiểu.
 - [design/ux-ui-spec.md](./design/ux-ui-spec.md) — giải phẫu dòng công việc, thang chữ, ma trận trạng thái bắt buộc, spec thành phần, ghi chú tương tác.
-- [design/open-decisions.md](./design/open-decisions.md) — **6 quyết định cần chốt trước khi lập kế hoạch**; ba trong số đó (D-01, D-02, D-03) mâu thuẫn với câu chữ hiện tại của FR-026, FR-011 và Constitution, và làm đổi luồng người dùng.
+- [design/decisions.md](./design/decisions.md) — 6 quyết định thiết kế. Năm quyết định đã chốt trong phiên làm rõ ngày 2026-08-02 và đã được ghi vào bản đặc tả này (FR-003a/b/c, FR-011/011a/011b, FR-026/026a/026b/026c, FR-052b/052c); quyết định về bộ biểu tượng được hoãn sang giai đoạn lập kế hoạch.
+- [design/traceability.md](./design/traceability.md) — ma trận truy vết yêu cầu ↔ màn hình ↔ luồng, phủ 80/80 yêu cầu. Mục 5 ghi hai chỗ lệch có chủ đích so với hiến pháp dự án, cần đưa vào bảng Complexity Tracking khi lập kế hoạch.

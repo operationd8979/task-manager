@@ -244,7 +244,7 @@ const base = createUnistylesConfig(
       },
     },
   },
-  { adaptiveThemes: true }, // theo cài đặt sáng/tối của hệ thống
+  { adaptiveThemes: true }, // trạng thái khởi động = "Tự động" (FR-052b mặc định)
 );
 
 const themes = {
@@ -265,8 +265,43 @@ StyleSheet.configure({ ...base, themes });
 > `index.js`, trước cả `App`.
 
 > `adaptiveThemes: true` và `initialTheme` **không dùng chung được** — gói sẽ ném lỗi khi
-> validate. Chọn đúng một. Design không nói tới nút đổi chủ đề trong app, nên `adaptiveThemes`
-> là lựa chọn khớp nhất; xem [open-decisions.md](./open-decisions.md) D-04.
+> validate. Đây là tùy chọn lúc *cấu hình*; việc đổi chế độ lúc *chạy* đi qua đường khác,
+> xem ngay bên dưới.
+
+### Chế độ hiển thị ba giá trị (FR-052b, FR-052c)
+
+Cài đặt có mục chọn **Tự động | Sáng | Tối**, mặc định Tự động. `createUnistylesConfig`
+chỉ nhận đúng một chiến lược khởi động, nên ba giá trị được thực hiện bằng cách khởi động
+ở `adaptiveThemes: true` rồi áp lựa chọn đã lưu khi đọc xong:
+
+```ts
+// src/theme/mode.ts
+import { UnistylesRuntime } from 'react-native-unistyles';
+
+export type DisplayMode = 'auto' | 'light' | 'dark';
+
+export function applyDisplayMode(mode: DisplayMode): void {
+  if (mode === 'auto') {
+    UnistylesRuntime.setAdaptiveThemes(true);
+    return;
+  }
+  // Phải tắt adaptive trước, nếu không hệ thống sẽ ghi đè lựa chọn thủ công.
+  UnistylesRuntime.setAdaptiveThemes(false);
+  UnistylesRuntime.setTheme(mode);
+}
+```
+
+Ba ràng buộc dễ bỏ sót:
+
+1. **Đọc lựa chọn đã lưu là thao tác bất đồng bộ.** Giữa lúc app khởi động và lúc
+   `applyDisplayMode` chạy, giao diện đang ở chế độ hệ thống. Nếu người dùng chọn Sáng mà
+   máy đang ở chế độ tối, sẽ có một nhịp nháy tối→sáng. Đọc lựa chọn **trước** khi hiển thị
+   màn hình đầu tiên, hoặc chấp nhận nháy và ghi rõ trong plan.
+2. **`setAdaptiveThemes(false)` phải gọi trước `setTheme`** — thứ tự ngược lại sẽ bị
+   chế độ hệ thống ghi đè ngay lần đổi kế tiếp.
+3. Ở chế độ Tự động, FR-052c yêu cầu đổi theo hệ thống **trong lúc app đang chạy**, không
+   phải chỉ lúc khởi động. `adaptiveThemes` lo phần này; đừng tự nghe sự kiện đổi màu nền
+   hệ thống rồi gọi `setTheme` — hai cơ chế sẽ giẫm chân nhau.
 
 ## 6. Việc phải làm trước khi code
 
@@ -275,7 +310,7 @@ StyleSheet.configure({ ...base, themes });
 | 1 | Thêm `react-native-unistyles` vào `dependencies` của `package.json` | `package-lock.json` đánh dấu nó `"peer": true` — npm tự kéo về vì `@chipmobilesdk/rn-theme` khai `peerDependencies: { "react-native-unistyles": ">=3.2" }`. App **chưa khai báo** nó, dù đây là thứ app trực tiếp `import`. Cả `StyleSheet.configure` lẫn `declare module` ở mục 5 đều phụ thuộc vào nó. |
 | 2 | Thêm `tinycolor2` + `@types/tinycolor2` vào `dependencies` nếu dùng mã ở mục 5 | Nó là dependency **của gói theme**, không phải của app. Dựa vào cây phụ thuộc phẳng là mượn ké, sẽ vỡ khi gói theme đổi phiên bản. Cách khác: viết cứng 9 hex đã tính sẵn ở bảng mục 3 vào `tokens.ts` và bỏ `tinycolor2` — vẫn đúng Constitution III vì hex chỉ nằm trong `src/theme/`. |
 | 3 | *(ngoài phạm vi theme, nhưng chặn Phase 1)* `@chipmobilesdk/rn-local-db` cần 4 peer: `@op-engineering/op-sqlite` ✅ 17.1.3, `@dr.pogodin/react-native-fs` ✅ 2.39.2, `react-native-quick-crypto` ❌ **chưa cài**, `react` / `react-native` ✅ | Tầng lưu trữ không chạy được nếu thiếu. Cả ba gói đang có cũng ở trạng thái peer không khai báo, giống mục 1. |
-| 4 | Chốt [open-decisions.md](./open-decisions.md) | Bốn trong sáu quyết định làm đổi luồng, không chỉ đổi hình. |
+| 4 | Đọc [decisions.md](./decisions.md) | 5/6 quyết định đã chốt và đã vào spec; D-06 (bộ icon) hoãn tới Phase 1. Đừng lật lại cái đã chốt — mỗi mục ghi kèm lý do. |
 
 `strict` đã bật sẵn: `tsconfig.json` kế thừa `@react-native/typescript-config`, trong đó
 `"strict": true`. Không cần làm gì thêm cho Constitution VIII ở mức cấu hình.

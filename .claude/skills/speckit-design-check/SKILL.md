@@ -115,7 +115,7 @@ token maps to a package token, is an explicit override of one, or has a document
 mechanism for tokens the package cannot hold. A design token with no home is HIGH: it
 becomes a hardcoded value in a component during implementation.
 
-**H. Unresolved decisions** — every `D-##` in `open-decisions.md` is either resolved, or
+**H. Unresolved decisions** — every `D-##` in `decisions.md` is either resolved, or
 explicitly deferred with the deferral recorded. Decisions that change a user flow and are
 still open are CRITICAL — planning cannot order tasks around an undecided flow. Decisions
 that change only appearance are MEDIUM and may be deferred to implementation.

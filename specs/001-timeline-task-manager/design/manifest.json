@@ -10,20 +10,22 @@
       "Design Artifacts.dc.html",
       "artifacts/theme.ts",
       "Timeline App.dc.html"
-    ]
+    ],
+    "last_verified_at": "2026-08-02T07:16:24.113Z",
+    "divergence": "Repo is AHEAD of the Claude Design project. The 2026-08-02 update was applied in place from the /speckit-clarify decisions (D-01..D-05); the upstream project was verified unchanged and does not contain them. Re-importing verbatim from source would regress these artifacts. Reconcile upstream before treating it as authoritative again."
   },
   "spec_hash_at_brief": null,
-  "spec_hash_at_import": "4022a420a7c4c2e5e70b6cab027338f93bee6c3c0c24cf761bd14c1763b75296",
+  "spec_hash_at_import": "b3df03ef09df27ce854798c166c6cd8b0a7a996b5e548f720d70bce589ee6865",
   "brief_generated_at": null,
-  "imported_at": "2026-08-02T06:20:06.466Z",
-  "notes": "Imported before the design extension existed; brief.md was never generated for this feature. Regenerate with /speckit-design-brief only if the spec changes.",
+  "imported_at": "2026-08-02T07:25:14.803Z",
+  "notes": "No brief.md exists for this feature: the design predates the design extension. Regenerate with /speckit-design-brief before the next external design round.",
   "artifacts": {
-    "README.md": "239fd93b0cd7a3282159fe03b910932ac48dc1f6befa3212d2cb516d6f7e3e28",
-    "design-system.md": "0727840b2bdfdfe344a78a29b4c50b064dae5ef4d3f82a541502faaaab6bd01d",
-    "ia-screens-flows.md": "e3cf2a654a838a0cdcfa68a7718e1f34ac0f6175ae7a2f08c2af502f0efd70c4",
-    "wireframes.md": "ddf57461da47affb42cbc77d103de46e65c3d892c34de2abd4eaeb3dd1572a55",
-    "ux-ui-spec.md": "6c6d63ce7842d4fb45c2fe905da1cae1c59ca1d2d0c18b684629b48082f9c2fb",
-    "open-decisions.md": "bfb6b131aff135d2d4c49e9dcf6017d1cb6bd12451f99f56889283aca59811f4",
-    "traceability.md": "24e170a7a1dff2f835a6d6a62690c813b6ff8e4c900cb0b7bf2c394c01e8b6fd"
+    "README.md": "0dd7ebdae5159a36c7da31fb0647eafbbf2b9f53e473595faf561afc7a7e00ec",
+    "design-system.md": "c94d495393fc3322d6488520a67ea1ddd1c20052eafe42300d8c93ea1fa9ed41",
+    "ia-screens-flows.md": "c560fba4dbf259c97abe5c0842d5844a08fbf48ab12fbf3020ecea1eca649449",
+    "wireframes.md": "16830c6d8dca0103cef1ab15138234260fca5ab2c30b196bdb1ee92568288f9d",
+    "ux-ui-spec.md": "1116110f326c2d517d270856cfd3d52ddc0d909afb9c7a8b27b1e21b35620f85",
+    "decisions.md": "7a5149a6e718436486230b114bb173bce54cb766e6f3912ed49334fe1a1fbb9e",
+    "traceability.md": "11fe2411810a29dbf128ed0d370d33e1fc1c50c289c8e333495d35dc70bc2b97"
   }
 }

@@ -62,6 +62,36 @@ Quá 3 giây vẫn đang tải thì thêm dòng "vẫn đang đọc dữ liệu"
 
 ---
 
+## W-07 · Chọn ngày — sheet lịch tháng
+
+```
+        (timeline mờ phía sau)
+
+┌──────────────────────────────────────────────┐
+│ Tháng 8, 2026            ‹  ›        ×   52pt│  ← tiêu đề dính
+├──────────────────────────────────────────────┤
+│ T2 T3 T4 T5 T6 T7 CN — nhãn cột          32pt│  ← thứ tự theo FR-052
+│                                              │
+│  ●  ●  ·  ●  ·  ·  ·   ô ngày 44×44          │
+│  ·  ●  ●  ·  ●  ·  ·   chấm = có công việc   │
+│  ·  ·  [12] ●  ·  ·  · ô viền 2px = đang chọn│
+│  ●  ·  ·  ·  ·  ·  ·                     ~300│
+│  ·  ·  ·  ·  ·  ·  ·   ngoài tháng: mờ 40%   │
+├──────────────────────────────────────────────┤
+│ VỀ HÔM NAY                               52pt│
+└──────────────────────────────────────────────┘
+```
+
+**Chấm ngày bận là lớp riêng, tải sau lưới.** Ô ngày dùng được ngay từ khi sheet mở; chấm
+hiện dần khi đếm xong. Đây là lý do màn hình này cần trạng thái riêng trong ma trận: nếu đợi
+đếm xong mới cho chọn ngày, thao tác thường gặp nhất của sheet bị chặn bởi thứ chỉ mang tính
+trang trí.
+
+Lỗi đếm **không** chặn việc chọn ngày — chỉ mất chấm, kèm dòng "Chưa đếm được ngày bận" +
+THỬ LẠI. Tháng không có công việc nào là trạng thái hợp lệ, không hiện thông báo rỗng.
+
+---
+
 ## W-03 · Form tạo / sửa
 
 ```
@@ -102,8 +132,8 @@ không cần cuộn). Hàng "Lặp lại" là lối duy nhất xuống cấp 3.
 │    giữ nguyên"              nền accentSoft 36│
 ├──────────────────────────────────────────────┤
 │ TOÀN BỘ CHUỖI — mô tả hậu quả            60pt │
-│ ↳ "Ảnh hưởng 122 buổi · 2 buổi đã chỉnh      │
-│    riêng vẫn được giữ"      nền accentSoft 36│
+│ ↳ "Ảnh hưởng 122 buổi trong 12 tháng tới,    │
+│    và mọi buổi sau đó"      nền accentSoft 36│
 ├──────────────────────────────────────────────┤
 │ HỦY — KHÔNG THAY ĐỔI GÌ                  52pt │
 └──────────────────────────────────────────────┘
@@ -112,8 +142,10 @@ không cần cuộn). Hàng "Lặp lại" là lối duy nhất xuống cấp 3.
 **Dòng đếm số buổi bị ảnh hưởng là thứ khiến người dùng hiểu hậu quả — mạnh hơn mọi câu cảnh
 báo.** Sheet này không vuốt xuống được, không chạm nền để đóng được; chỉ có ba lối ra rõ ràng.
 
-Cách tính số buổi cho chuỗi không có ngày kết thúc: xem D-05 ở
-[open-decisions.md](./open-decisions.md).
+Cửa sổ đếm là **365 ngày** kể từ ngày đang thao tác (FR-026c, D-05). Với chuỗi có ngày kết
+thúc nằm trong cửa sổ, câu chữ bỏ vế "và mọi buổi sau đó". Phép đếm là thao tác tính toán:
+trong lúc đếm, hai khối lựa chọn **khóa** và dòng đếm là skeleton — không cho chọn khi chưa
+biết hậu quả. Xem [ux-ui-spec §3](./ux-ui-spec.md).
 
 ---
 
@@ -156,6 +188,9 @@ người dùng phát hiện mình chọn sai — đặt nó ngay trên nút XONG
 │   "nhắc có thể trễ"        nền accentSoft 76 │
 │ Mốc nhắc mặc định — chip 0/5/10/15/30/60     │
 │   "chỉ áp dụng cho việc tạo mới"         96pt│
+├──────────────────────────────────────────────┤
+│ HIỂN THỊ                                     │
+│ Chế độ — segmented: Tự động|Sáng|Tối     76pt│  ← FR-052b, mặc định Tự động
 │ Ngày bắt đầu tuần — Thứ Hai | Chủ Nhật   76pt│
 ├──────────────────────────────────────────────┤
 │ DỮ LIỆU                                      │
@@ -169,3 +204,11 @@ người dùng phát hiện mình chọn sai — đặt nó ngay trên nút XONG
 Trạng thái quyền là **nhãn có chữ** (✓ Đã cấp / ⚠ Chưa cấp), không phải chấm màu
 (Constitution V: không phân biệt chỉ bằng màu). Xóa dữ liệu nằm cuối, viền đỏ, **không phải
 nút đặc** — nút đặc màu accent dành cho hành động chính, không dành cho hành động phá hủy.
+
+Hàng **Chế độ** là segmented ba lựa chọn, mỗi lựa chọn cao 44pt. "Tự động" phải có dòng phụ
+nói rõ nó theo cài đặt máy, nếu không người dùng không đoán được nó khác gì Sáng/Tối. Đổi
+chế độ áp dụng **ngay**, không cần thoát màn hình (FR-052c).
+
+Màn hình này đọc dữ liệu (tùy chọn đã lưu, trạng thái hai quyền, số mục đang lưu) nên phải
+có trạng thái đang tải và lỗi đọc theo từng hàng — xem [ux-ui-spec §3](./ux-ui-spec.md) cấp
+"Cài đặt".

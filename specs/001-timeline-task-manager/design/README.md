@@ -10,11 +10,11 @@ Bộ tài liệu này là bản chuyển thể sang Markdown để `/speckit.pla
 | File | Nội dung | Dùng ở giai đoạn |
 |---|---|---|
 | [design-system.md](./design-system.md) | 3 màu thương hiệu, bảng token ngữ nghĩa đã kiểm tương phản, cách nối vào `@chipmobilesdk/rn-theme`, mã thiết lập, các khoảng lệch với mặc định của SDK | Plan — Technical Context, Phase 1 |
-| [ia-screens-flows.md](./ia-screens-flows.md) | Cây màn hình, nguyên tắc IA, mô hình dữ liệu mà UI phải phản ánh, bảng 9 màn hình, 6 luồng người dùng kèm ngân sách thao tác | Plan — thiết kế màn hình, Tasks — chia theo user story |
-| [wireframes.md](./wireframes.md) | 6 wireframe lo-fi 390×812 theo khối, kèm chiều cao tối thiểu tính bằng pt | Tasks — dựng màn hình |
-| [ux-ui-spec.md](./ux-ui-spec.md) | Giải phẫu dòng công việc, thang chữ, số đo vùng chạm, ma trận trạng thái bắt buộc, spec 6 thành phần, ghi chú tương tác | Plan + Tasks — mọi màn hình |
-| [open-decisions.md](./open-decisions.md) | Quyết định còn bỏ ngỏ, kèm khuyến nghị và cái giá phải trả nếu chọn khác | Cần chốt **trước** khi chạy `/speckit.plan` |
-| [traceability.md](./traceability.md) | Ma trận requirement ↔ màn hình ↔ luồng, phần chưa được phủ, và 4 xung đột giữa spec và design | Gate trước plan — **file sinh tự động, không sửa tay** |
+| [ia-screens-flows.md](./ia-screens-flows.md) | Cây màn hình, nguyên tắc IA, mô hình dữ liệu mà UI phải phản ánh, bảng 9 màn hình, 8 luồng người dùng kèm ngân sách thao tác | Plan — thiết kế màn hình, Tasks — chia theo user story |
+| [wireframes.md](./wireframes.md) | 7 wireframe lo-fi 390×812 theo khối, kèm chiều cao tối thiểu tính bằng pt | Tasks — dựng màn hình |
+| [ux-ui-spec.md](./ux-ui-spec.md) | Giải phẫu dòng công việc, thang chữ, số đo vùng chạm, ma trận trạng thái 24 dòng phủ cả 9 màn hình, spec 6 thành phần, ghi chú tương tác | Plan + Tasks — mọi màn hình |
+| [decisions.md](./decisions.md) | 6 quyết định thiết kế: 5 đã chốt kèm lý do và hệ quả, 1 hoãn tới Phase 1 | Đọc trước khi plan — đừng lật lại cái đã chốt |
+| [traceability.md](./traceability.md) | Ma trận requirement ↔ màn hình ↔ luồng (80/80), success criteria ràng buộc UI, và trạng thái 4 xung đột spec/design | Gate trước plan — **file sinh tự động, không sửa tay** |
 | `manifest.json` | Provenance: nguồn Claude Design, hash từng artifact, hash spec lúc import | Dùng để phát hiện design lỗi thời — **file sinh tự động** |
 
 Hai file cuối do extension `design` quản lý. Kiểm tra bằng `/speckit-design-check`; chi
@@ -28,8 +28,9 @@ tiết cơ chế ở [.specify/extensions/design/README.md](../../../.specify/ex
 - [design-validation-prompt.md](../design-validation-prompt.md) là prompt đã dùng để sinh ra
   bộ artifact này. Giữ lại để truy nguyên, không cần chạy lại.
 - [.specify/memory/constitution.md](../../../.specify/memory/constitution.md) vẫn ràng buộc.
-  Bộ design này được viết để tuân thủ, trừ đúng một chỗ đã ghi rõ ở
-  [open-decisions.md](./open-decisions.md) mục D-02.
+  Bộ design này được viết để tuân thủ, trừ **hai** chỗ lệch có chủ đích và có lý do — không
+  dùng bottom tabs, và không có swipe action trên dòng. Cả hai phải xuất hiện trong
+  **Complexity Tracking** của `plan.md`; xem [traceability.md §5](./traceability.md) C-3, C-4.
 
 ## Ràng buộc rút gọn cho người lập kế hoạch
 

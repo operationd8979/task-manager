@@ -62,6 +62,16 @@ triển khai cụ thể — mỗi hàng là một trạng thái phải có thi�
 | Màn hình | Quyền thông báo bị từ chối | Banner trong luồng ngay dưới thanh ngày, **không phải modal** | MỞ CÀI ĐẶT · banner không đóng được vì trạng thái vẫn đúng |
 | Dòng | Nhắc có thể bị trễ | Nhãn "NHẮC −10′ · CÓ THỂ TRỄ", viền `accentInk` | Chạm dòng → form → Cấp quyền |
 | Dòng | Đang kéo | Nền dòng đổi sang `surface` + nhãn "Thả để đổi sang 10:15" | Thả ra ngoài = hủy |
+| Dòng | Vừa xóa, còn hoàn tác | Dòng biến mất ngay; toast nổi trên thanh hành động, kẻ accent 2px, nút HOÀN TÁC vùng chạm 44pt, sống ≥5 giây | HOÀN TÁC · tự đóng khi hết giờ |
+| Sheet lịch | Đang đếm ngày bận | Lưới tháng hiện đủ, ô ngày dùng được ngay; chấm ngày bận là lớp riêng, hiện dạng skeleton nhịp 1.4s cho tới khi đếm xong | Chọn ngày được ngay, không phải chờ chấm |
+| Sheet lịch | Lỗi đọc dữ liệu | Lưới tháng vẫn dùng được; dải chữ dưới tiêu đề: "Chưa đếm được ngày bận" + THỬ LẠI. Không chặn việc chọn ngày | THỬ LẠI · chọn ngày · × |
+| Sheet lịch | Tháng không có công việc nào | Không có chấm nào — đây là trạng thái hợp lệ, **không** hiện thông báo rỗng | — |
+| Cài đặt | Đang tải | Skeleton theo đúng hình dạng từng hàng; nhãn trạng thái quyền và số mục đang lưu là hai chỗ hiện sau cùng | Tự chuyển khi đọc xong |
+| Cài đặt | Lỗi đọc dữ liệu | Các hàng đọc được vẫn hiện; hàng hỏng thay giá trị bằng "Chưa đọc được" + THỬ LẠI ngay tại hàng đó | THỬ LẠI theo từng hàng |
+| Cài đặt | Đang lưu một tùy chọn | Điều khiển hiện giá trị mới ngay, khóa cho tới khi ghi xong. Ghi hỏng thì trả về giá trị cũ kèm dòng nói rõ chưa lưu được | Tự kết thúc · THỬ LẠI |
+| Sheet phạm vi | Đang đếm số buổi | Hai khối lựa chọn hiện đủ nhưng **khóa**; dòng đếm là skeleton. Không cho chọn khi chưa biết hậu quả | Tự mở khóa khi đếm xong · HỦY |
+| Sheet phạm vi | Không đếm được | Hai khối mở khóa, dòng đếm thay bằng "Không đếm được số buổi bị ảnh hưởng" — nói thật thay vì hiện số sai | Vẫn chọn được · HỦY |
+| Xác nhận | Xóa toàn bộ dữ liệu | Hộp thoại có chữ, nêu rõ **không có hoàn tác**, kèm số mục sẽ mất | XÓA · HỦY |
 | Form | Tạo mới | Tiêu đề "Công việc mới", không có nút xóa, giá trị mặc định đã điền sẵn | × · vuốt xuống |
 | Form | Đang sửa | Tiêu đề "Sửa công việc", có nút XÓA viền accent | × |
 | Form | Đang lưu | Nút đổi nhãn "ĐANG LƯU…", khóa nút, ô nhập vẫn đọc được | Tự kết thúc |
@@ -69,6 +79,15 @@ triển khai cụ thể — mỗi hàng là một trạng thái phải có thi�
 | Form | Lưu thất bại | Khối lỗi trên đầu sheet, nội dung vừa nhập giữ nguyên **100%** | THỬ LƯU LẠI · xem dung lượng |
 | Form | Xác nhận xóa | Sheet cấp 3, nói rõ có 5 giây hoàn tác | XÓA · GIỮ LẠI |
 | Form | Còn thay đổi chưa lưu | Sheet 3 lựa chọn | Lưu rồi thoát · Tiếp tục sửa · Thoát và bỏ thay đổi |
+| Sheet lặp lại | Không lặp (mặc định) | Segmented ở "Không lặp"; toàn bộ phần chọn thứ, ngày bắt đầu và ngày kết thúc **ẩn hẳn**, không phải làm mờ — không có gì để đọc thì không chiếm chỗ | XONG · × |
+| Sheet lặp lại | Có lặp, chưa chọn thứ nào | Viền trái 3px accent trên hàng 7 nút thứ + câu ngay dưới: "Chọn ít nhất một thứ trong tuần." Nút XONG **vẫn bấm được** — bấm sẽ cuộn tới và làm nổi hàng thứ, không im lặng | Chọn một thứ · quay về "Không lặp" |
+| Sheet lặp lại | Có lặp, hợp lệ | Khối xem trước bằng lời cập nhật theo từng lần chạm, ngay trên nút XONG | XONG |
+| Sheet lặp lại | Ngày kết thúc trước ngày bắt đầu | Viền trái 3px accent trên hàng ngày kết thúc + câu nói cách sửa: "Ngày kết thúc phải từ 03/08 trở đi." Xem trước bằng lời đổi thành "Chưa tạo được buổi nào" | Sửa một trong hai ngày |
+| Thao tác dòng | Việc thường | Bốn mục: Đổi giờ · Di chuyển · Sửa · Xóa | Chọn một mục · vuốt xuống · × |
+| Thao tác dòng | Buổi của chuỗi | Cùng bốn mục, nhãn cuối đổi thành "Bỏ qua buổi này"; thêm dòng phụ "Thuộc công việc lặp T2–T6" để người dùng biết mình đang đứng ở đâu trước khi chọn | Chọn một mục · vuốt xuống · × |
+| Đổi giờ / Di chuyển | Đang chọn giờ | Chip giờ hay dùng ở trên, bộ chọn giờ hệ thống ở dưới; giá trị hiện tại được chọn sẵn | ÁP DỤNG · × |
+| Đổi giờ / Di chuyển | Đang chọn ngày | Bộ chọn ngày hệ thống, kèm câu "Đây là nơi duy nhất đổi được ngày" — kéo-thả không làm được việc này (FR-018b) | ÁP DỤNG · × |
+| Đổi giờ / Di chuyển | Giờ kết thúc ≤ giờ bắt đầu | Nút ÁP DỤNG khóa + câu nói cách sửa ngay dưới cặp giờ | Sửa giờ · × |
 
 ## 4. Spec thành phần
 
@@ -95,10 +114,15 @@ triển khai cụ thể — mỗi hàng là một trạng thái phải có thi�
 - Sheet phạm vi áp dụng là **loại chặn**: không vuốt xuống, không chạm nền để đóng — chỉ có ba lối ra rõ ràng.
 
 ### Toast + Hoàn tác
-- Nổi **trên** thanh hành động, sống 5 giây, kẻ accent 2px ở cạnh trên.
+- Nổi **trên** thanh hành động, sống **ít nhất 5 giây**, kẻ accent 2px ở cạnh trên.
 - Câu toast luôn nhắc lại phạm vi đã áp dụng: *"Chỉ lần này: đã đổi giờ sang 10:15."*
 - Nút HOÀN TÁC là vùng chạm 44pt, không phải chữ nhỏ.
-- Thay thế hoàn toàn hộp thoại xác nhận cho các hành động một buổi.
+- **Sống xuyên qua điều hướng (FR-011a)**: đổi ngày, mở sheet, vào Cài đặt đều không được
+  làm toast biến mất sớm. Đây là điều kiện của quyết định D-03, không phải chi tiết trau
+  chuốt — toast bị nuốt nghĩa là mất luôn cơ chế bảo vệ đã thay thế hộp thoại xác nhận.
+- Hoàn tác một thao tác xóa phải khôi phục cả **nhắc nhở** về đúng trạng thái trước đó.
+- Thay thế hoàn toàn hộp thoại xác nhận cho các hành động một buổi. Ngoại lệ duy nhất là
+  xóa toàn bộ dữ liệu (FR-011b).
 
 ### Chip chọn giá trị
 - Dùng cho mốc nhắc, thời lượng, preset thứ trong tuần — **mọi miền giá trị hữu hạn** (Constitution I).
@@ -118,8 +142,11 @@ triển khai cụ thể — mỗi hàng là một trạng thái phải có thi�
 |---|---|
 | **Kéo tay cầm ⣿** | Chỉ tay cầm mới bắt đầu kéo, **không phải cả dòng** — nếu không sẽ tranh chấp với cuộn dọc. Bám lưới 15 phút, ngưỡng bắt đầu 8pt, nhãn xem trước "Thả để đổi sang 10:15" hiện trong lúc kéo. Thả ngoài vùng ngày = hủy, không ghi. |
 | **Không kéo xuyên ngày** | Đã chốt (`spec.md` FR-018b). Cả nhãn trong menu ⋯ lẫn câu phụ trong sheet Di chuyển đều nói rõ bằng chữ để người dùng thôi thử. |
+| **Vuốt ngang → chuyển ngày** | **FR-003a.** Vuốt sang trái = ngày sau, sang phải = ngày trước. Nhận trên **toàn bộ** vùng timeline, kể cả khi bắt đầu đè lên một dòng — cử chỉ ngang chỉ mang đúng một ý nghĩa trong màn hình này. Ngưỡng kích hoạt 64pt hoặc vận tốc đủ lớn; dưới ngưỡng thì nội dung trượt về chỗ cũ. Trong lúc vuốt, thanh ngày hiện ngày đích để người dùng biết mình sắp đi đâu trước khi thả. |
+| **Ưu tiên so với kéo đổi giờ** | **FR-003c.** Vuốt bắt đầu trong vùng chạm của tay cầm ⣿ thuộc về thao tác kéo, không chuyển ngày. Ngoài vùng đó, cử chỉ ngang luôn là chuyển ngày. Ranh giới là vùng chạm 44pt của tay cầm, không phải hướng vuốt — phân biệt bằng hướng sẽ hỏng khi ngón tay đi chéo. |
+| **Không vuốt ngang trên dòng để thao tác** | **FR-003b.** Không hành động nào của riêng một công việc kích hoạt bằng cử chỉ. Mọi hành động nằm trong ⋯. Ngoài lý do cử chỉ ngang đã có chủ khác, vuốt-để-xóa còn xung đột với vuốt back của iOS và không có lối tương đương cho trình đọc màn hình. |
 | **Vuốt xuống** | Đóng sheet — trừ sheet phạm vi áp dụng. |
-| **Không vuốt ngang trên dòng** | Xung đột với vuốt back của iOS, và không có lối tương đương cho trình đọc màn hình. Mọi hành động nằm trong ⋯. |
+| **Vuốt ngang khi sheet đang mở** | Cử chỉ chuyển ngày thuộc về timeline. Sheet đang mở giữ cử chỉ của nó và **không** chuyển ngày phía sau — nếu không, người dùng đóng sheet ra sẽ thấy mình ở một ngày khác mà không hiểu tại sao. |
 | **Chạm giữ** | Không gán chức năng nào — người dùng đang bận không nên phải giữ chờ. |
 
 ### 5.2 Lối thay thế không cần cử chỉ

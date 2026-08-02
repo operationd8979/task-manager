@@ -14,7 +14,7 @@ artifacts:
     - ia-screens-flows.md
     - wireframes.md
     - ux-ui-spec.md
-    - open-decisions.md
+    - decisions.md
   generated:
     - brief.md
     - traceability.md
