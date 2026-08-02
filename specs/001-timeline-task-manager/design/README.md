@@ -14,6 +14,11 @@ Bộ tài liệu này là bản chuyển thể sang Markdown để `/speckit.pla
 | [wireframes.md](./wireframes.md) | 6 wireframe lo-fi 390×812 theo khối, kèm chiều cao tối thiểu tính bằng pt | Tasks — dựng màn hình |
 | [ux-ui-spec.md](./ux-ui-spec.md) | Giải phẫu dòng công việc, thang chữ, số đo vùng chạm, ma trận trạng thái bắt buộc, spec 6 thành phần, ghi chú tương tác | Plan + Tasks — mọi màn hình |
 | [open-decisions.md](./open-decisions.md) | Quyết định còn bỏ ngỏ, kèm khuyến nghị và cái giá phải trả nếu chọn khác | Cần chốt **trước** khi chạy `/speckit.plan` |
+| [traceability.md](./traceability.md) | Ma trận requirement ↔ màn hình ↔ luồng, phần chưa được phủ, và 4 xung đột giữa spec và design | Gate trước plan — **file sinh tự động, không sửa tay** |
+| `manifest.json` | Provenance: nguồn Claude Design, hash từng artifact, hash spec lúc import | Dùng để phát hiện design lỗi thời — **file sinh tự động** |
+
+Hai file cuối do extension `design` quản lý. Kiểm tra bằng `/speckit-design-check`; chi
+tiết cơ chế ở [.specify/extensions/design/README.md](../../../.specify/extensions/design/README.md).
 
 ## Quan hệ với các tài liệu đã có
 

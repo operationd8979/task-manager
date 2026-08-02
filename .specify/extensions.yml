@@ -1,5 +1,6 @@
 installed:
 - agent-context
+- design
 - git
 settings:
   auto_execute_hooks: true
@@ -29,6 +30,13 @@ hooks:
     description: Auto-commit before spec clarification
     condition: null
   before_plan:
+  - extension: design
+    command: speckit.design.check
+    enabled: true
+    optional: true
+    prompt: Validate design artifacts against the spec before planning?
+    description: Gate technical planning on requirement/design consistency
+    condition: null
   - extension: git
     command: speckit.git.commit
     enabled: true
@@ -106,6 +114,13 @@ hooks:
     optional: true
     prompt: Commit clarification changes?
     description: Auto-commit after spec clarification
+    condition: null
+  - extension: design
+    command: speckit.design.brief
+    enabled: true
+    optional: true
+    prompt: Generate the UX/UI design brief from the clarified spec?
+    description: Produce the design brief once requirements are stable
     condition: null
   after_plan:
   - extension: git

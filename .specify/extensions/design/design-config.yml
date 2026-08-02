@@ -1,0 +1,43 @@
+# Design extension configuration for this project.
+# Generated from config-template.yml. See that file for the meaning of each key.
+
+schema_version: "1.0"
+
+source:
+  provider: claude-design
+  project_id: ""
+
+artifacts:
+  directory: design
+  required:
+    - design-system.md
+    - ia-screens-flows.md
+    - wireframes.md
+    - ux-ui-spec.md
+    - open-decisions.md
+  generated:
+    - brief.md
+    - traceability.md
+    - manifest.json
+
+design_system:
+  package: "@chipmobilesdk/rn-theme"
+  source_directory: "src/theme"
+
+traceability:
+  requirement_prefixes: ["FR-", "NFR-"]
+  story_prefixes: ["US-"]
+  success_criteria_prefixes: ["SC-"]
+  screen_prefix: "S-"
+  flow_prefix: "F-"
+
+validation:
+  strictness: standard
+  gates:
+    - both_color_schemes_complete
+    - no_state_conveyed_by_color_alone
+    - minimum_touch_target
+    - text_scaling_tolerated
+    - navigation_depth_limit
+    - primary_action_visible_without_scroll
+    - all_async_states_designed

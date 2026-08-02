@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "status": "imported",
+  "feature_dir": "specs/001-timeline-task-manager",
+  "source": {
+    "provider": "claude-design",
+    "project_id": "537c8234-5867-43f3-84c9-e20a8413d3fd",
+    "project_url": "https://claude.ai/design/p/537c8234-5867-43f3-84c9-e20a8413d3fd",
+    "files": [
+      "Design Artifacts.dc.html",
+      "artifacts/theme.ts",
+      "Timeline App.dc.html"
+    ]
+  },
+  "spec_hash_at_brief": null,
+  "spec_hash_at_import": "4022a420a7c4c2e5e70b6cab027338f93bee6c3c0c24cf761bd14c1763b75296",
+  "brief_generated_at": null,
+  "imported_at": "2026-08-02T06:20:06.466Z",
+  "notes": "Imported before the design extension existed; brief.md was never generated for this feature. Regenerate with /speckit-design-brief only if the spec changes.",
+  "artifacts": {
+    "README.md": "239fd93b0cd7a3282159fe03b910932ac48dc1f6befa3212d2cb516d6f7e3e28",
+    "design-system.md": "0727840b2bdfdfe344a78a29b4c50b064dae5ef4d3f82a541502faaaab6bd01d",
+    "ia-screens-flows.md": "e3cf2a654a838a0cdcfa68a7718e1f34ac0f6175ae7a2f08c2af502f0efd70c4",
+    "wireframes.md": "ddf57461da47affb42cbc77d103de46e65c3d892c34de2abd4eaeb3dd1572a55",
+    "ux-ui-spec.md": "6c6d63ce7842d4fb45c2fe905da1cae1c59ca1d2d0c18b684629b48082f9c2fb",
+    "open-decisions.md": "bfb6b131aff135d2d4c49e9dcf6017d1cb6bd12451f99f56889283aca59811f4",
+    "traceability.md": "24e170a7a1dff2f835a6d6a62690c813b6ff8e4c900cb0b7bf2c394c01e8b6fd"
+  }
+}
