@@ -1,0 +1,209 @@
+import {Platform} from 'react-native';
+import notifee, {
+  AlarmType,
+  EventType,
+  AndroidImportance,
+  AndroidNotificationSetting,
+  AuthorizationStatus,
+  TriggerType,
+  type TimestampTrigger,
+} from '@notifee/react-native';
+
+import type {ReminderRequest, TargetRef} from '../../domain/reminder';
+import type {
+  PermissionState,
+  ReminderScheduler,
+  ReminderTarget,
+} from './scheduler';
+
+const CHANNEL_ID = 'task-reminders';
+const CHANNEL_NAME = 'Nhắc nhở công việc';
+
+/**
+ * The only place Notifee is imported.
+ *
+ * Everything above this file talks to `ReminderScheduler`, which is what lets
+ * reconciliation be tested against a fake (research.md R2).
+ */
+export function createNotifeeScheduler(): ReminderScheduler {
+  let channelReady: Promise<void> | null = null;
+
+  const ensureChannel = async (): Promise<void> => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+    channelReady ??= notifee
+      .createChannel({
+        id: CHANNEL_ID,
+        name: CHANNEL_NAME,
+        importance: AndroidImportance.HIGH,
+      })
+      .then(() => undefined);
+    await channelReady;
+  };
+
+  return {
+    async consumeLaunchTarget() {
+      const initial = await notifee.getInitialNotification();
+      return initial ? toTarget(initial.notification.data) : null;
+    },
+
+    onTap(listener) {
+      return notifee.onForegroundEvent(({type, detail}) => {
+        if (type !== EventType.PRESS) {
+          return;
+        }
+        const target = toTarget(detail.notification?.data);
+        if (target) {
+          listener(target);
+        }
+      });
+    },
+
+    async getNotificationPermission() {
+      const settings = await notifee.getNotificationSettings();
+      return toPermissionState(settings.authorizationStatus);
+    },
+
+    async requestNotificationPermission() {
+      // Asked only when the user first turns a reminder on, never at first
+      // launch (FR-036a) — asking before they state the intent is the surest
+      // way to be refused.
+      const settings = await notifee.requestPermission();
+      return toPermissionState(settings.authorizationStatus);
+    },
+
+    async getExactAlarmState() {
+      if (Platform.OS !== 'android') {
+        // iOS has no separate exact-alarm permission.
+        return {required: false, granted: true};
+      }
+      const settings = await notifee.getNotificationSettings();
+      return {
+        required: true,
+        granted: settings.android.alarm === AndroidNotificationSetting.ENABLED,
+      };
+    },
+
+    async requestExactAlarm() {
+      if (Platform.OS !== 'android') {
+        return {required: false, granted: true};
+      }
+      // The platform offers no in-app grant; it opens a settings screen, so the
+      // caller has to re-read the state when the app resumes.
+      await notifee.openAlarmPermissionSettings();
+      const settings = await notifee.getNotificationSettings();
+      return {
+        required: true,
+        granted: settings.android.alarm === AndroidNotificationSetting.ENABLED,
+      };
+    },
+
+    async openSystemSettings(target) {
+      if (target === 'exact-alarm' && Platform.OS === 'android') {
+        await notifee.openAlarmPermissionSettings();
+        return;
+      }
+      await notifee.openNotificationSettings();
+    },
+
+    async schedule(request) {
+      await ensureChannel();
+      const {granted} = await this.getExactAlarmState();
+
+      const trigger: TimestampTrigger = {
+        type: TriggerType.TIMESTAMP,
+        timestamp: request.fireAt.getTime(),
+        // Without the exact-alarm permission the OS still delivers, just
+        // loosely. FR-036b says schedule anyway and tell the user it may be
+        // late — refusing to schedule would be worse for them, not safer.
+        alarmManager: granted
+          ? {type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE}
+          : {type: AlarmType.SET_AND_ALLOW_WHILE_IDLE},
+      };
+
+      await notifee.createTriggerNotification(
+        {
+          id: request.id,
+          title: request.title,
+          body: formatBody(request),
+          // Enough to reopen the exact thing that was reminded about (FR-043).
+          data: encodeTarget(request.targetRef, request.taskDate),
+          android: {channelId: CHANNEL_ID, pressAction: {id: 'default'}},
+        },
+        trigger,
+      );
+    },
+
+    async cancel(id) {
+      await notifee.cancelTriggerNotification(id);
+    },
+
+    async listScheduled() {
+      return notifee.getTriggerNotificationIds();
+    },
+  };
+}
+
+function toPermissionState(status: AuthorizationStatus): PermissionState {
+  switch (status) {
+    case AuthorizationStatus.AUTHORIZED:
+    case AuthorizationStatus.PROVISIONAL:
+      return 'granted';
+    case AuthorizationStatus.DENIED:
+      return 'denied';
+    default:
+      return 'not-determined';
+  }
+}
+
+/**
+ * The body carries the task's own time, not the moment the reminder fires.
+ * FR-035 asks for the task time, and "09:00" is what the user is being reminded
+ * about — "08:45" would just describe the notification itself.
+ */
+function formatBody(request: ReminderRequest): string {
+  return `${request.startTime} · ${request.taskDate}`;
+}
+
+function encodeTarget(
+  target: TargetRef,
+  taskDate: string,
+): Record<string, string> {
+  return target.kind === 'task'
+    ? {kind: 'task', taskId: target.taskId, taskDate}
+    : {
+        kind: 'occurrence',
+        ruleId: target.ruleId,
+        date: target.date,
+        taskDate,
+      };
+}
+
+/**
+ * Reads back what `encodeTarget` wrote.
+ *
+ * Anything unrecognised returns null, and the caller falls back to today's
+ * timeline. A notification for a task the user has since deleted is a normal
+ * case, not an error to show them (FR-043).
+ */
+function toTarget(data: Record<string, unknown> | undefined): ReminderTarget | null {
+  if (!data) {
+    return null;
+  }
+  const taskDate = String(data.taskDate ?? '');
+  if (taskDate === '') {
+    return null;
+  }
+  if (data.kind === 'task' && typeof data.taskId === 'string') {
+    return {taskDate, taskId: data.taskId};
+  }
+  if (
+    data.kind === 'occurrence' &&
+    typeof data.ruleId === 'string' &&
+    typeof data.date === 'string'
+  ) {
+    return {taskDate, ruleId: data.ruleId, occurrenceDate: data.date};
+  }
+  return null;
+}

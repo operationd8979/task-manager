@@ -42,6 +42,8 @@ export interface TaskRepository {
   purgeAllSoftDeleted(): Promise<number>;
 
   countAll(): Promise<number>;
+  /** Every task, for rebuilding the reminder schedule (FR-041). */
+  listAll(): Promise<Task[]>;
 }
 
 export function createTaskRepository(handle: DatabaseHandle): TaskRepository {
@@ -154,6 +156,15 @@ export function createTaskRepository(handle: DatabaseHandle): TaskRepository {
         return outcome.applied;
       } catch (error) {
         throw toDataError(error, 'task.purgeAllSoftDeleted');
+      }
+    },
+
+    async listAll() {
+      try {
+        const page = await tasks.list({page: {size: 500}});
+        return page.records.map(toTask);
+      } catch (error) {
+        throw toDataError(error, 'task.listAll');
       }
     },
 

@@ -11,10 +11,12 @@ import {Skeleton, SkeletonGroup} from '../components/Skeleton';
 import {t} from '../lib/strings';
 import {openGateway, type DatabaseGateway} from '../services/db/gateway';
 import {createSettingsRepository} from '../services/db/settingsRepository';
+import {createTaskRepository} from '../services/db/taskRepository';
 import {applyDisplayMode} from '../theme/mode';
 import {appTheme} from '../theme/theme';
 import {RootStack} from './navigation/RootStack';
 import {DatabaseProvider} from './providers/DatabaseProvider';
+import {ReminderProvider} from './providers/ReminderProvider';
 import {UndoProvider} from './providers/UndoProvider';
 
 type BootState =
@@ -47,6 +49,11 @@ export default function App() {
         ).getAll();
         applyDisplayMode(settings.displayMode);
 
+        // Anything still soft-deleted belongs to an undo window that never
+        // closed because the app was killed. FR-011a's edge case says that
+        // deletion is permanent, so the sweep runs before the first screen.
+        await createTaskRepository(gateway.handle).purgeAllSoftDeleted();
+
         if (cancelled) {
           await gateway.close();
           return;
@@ -63,7 +70,10 @@ export default function App() {
     // survive it — eight handles is the ceiling, and a leak here is permanent.
     return () => {
       cancelled = true;
-      void opened?.close();
+      opened?.close().catch(() => {
+        // The gateway is being discarded either way; there is no state left to
+        // report into and the error log lives on the handle being closed.
+      });
     };
   }, [attempt]);
 
@@ -104,6 +114,9 @@ export default function App() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <DatabaseProvider gateway={boot.gateway}>
+          {/* Inside DatabaseProvider: it reads tasks and rules to rebuild the
+              reminder schedule on launch and on every foreground return. */}
+          <ReminderProvider>
           <BottomSheetModalProvider>
             <NavigationContainer>
               {/* Above the navigator on purpose — see UndoProvider. */}
@@ -112,6 +125,7 @@ export default function App() {
               </UndoProvider>
             </NavigationContainer>
           </BottomSheetModalProvider>
+          </ReminderProvider>
         </DatabaseProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

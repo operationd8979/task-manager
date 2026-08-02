@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Debug-only. Metro serves the JS bundle over the network during
+      development; the shipped app is entirely offline and must not ask for a
+      permission it never uses (FR-058, NFR-007).
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>

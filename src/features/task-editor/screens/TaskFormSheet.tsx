@@ -1,20 +1,28 @@
-import React, {useCallback, useEffect, useRef} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Pressable, ScrollView, Switch, TextInput, View} from 'react-native';
 import {StyleSheet} from 'react-native-unistyles';
 
+import {useReminders} from '../../../app/providers/ReminderProvider';
 import {Chip, ChipRow} from '../../../components/Chip';
 import {ErrorState} from '../../../components/ErrorState';
 import {Segmented} from '../../../components/Segmented';
 import {Sheet} from '../../../components/Sheet';
 import {Text} from '../../../components/Text';
-import {REMINDER_OFFSETS, type ReminderOffset} from '../../../domain/reminder';
+import {
+  isInPast,
+  reminderFireAt,
+  REMINDER_OFFSETS,
+  type ReminderOffset,
+} from '../../../domain/reminder';
 import type {Task, TaskStatus} from '../../../domain/task';
 import {minutesOf, timeFromMinutes, type LocalDate} from '../../../lib/date';
+import {weekdayShort} from '../../../lib/format';
 import {t, type StringKey} from '../../../lib/strings';
 import {appTheme} from '../../../theme/theme';
 import {BAR_HEIGHT, TAP_TARGET_MIN} from '../../../theme/tokens';
 import {DateTimeField} from '../components/DateTimeField';
 import {Field} from '../components/Field';
+import {RecurrenceSheet} from '../components/RecurrenceSheet';
 import {useTaskForm} from '../hooks/useTaskForm';
 
 /** Durations offered as one-tap end times (Principle I: selection over typing). */
@@ -28,7 +36,7 @@ export interface TaskFormSheetProps {
   task?: Task;
   viewingDate: LocalDate;
   defaultReminderOffset: ReminderOffset;
-  onSaved: (saved: Task) => void;
+  onSaved: (savedDate: LocalDate) => void;
   onClose: () => void;
 }
 
@@ -47,6 +55,49 @@ export function TaskFormSheet({
   });
   const scroll = useRef<ScrollView>(null);
   const saving = form.save.status === 'saving';
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [editingRepeat, setEditingRepeat] = useState(false);
+  const reminders = useReminders();
+
+  /**
+   * Turning the switch on is the ONE moment permission is requested (FR-036a).
+   * A refusal never blocks the save — the app does what it can and says plainly
+   * what it cannot guarantee (FR-039).
+   */
+  const setReminderEnabled = useCallback(
+    (next: boolean) => {
+      form.setField('reminderEnabled', next);
+      if (next) {
+        reminders.ensurePermission().catch(() => undefined);
+      }
+    },
+    [form, reminders],
+  );
+
+  const fireAt = reminderFireAt({
+    reminderEnabled: form.values.reminderEnabled,
+    reminderOffsetMinutes: form.values.reminderOffsetMinutes,
+    taskDate: form.values.taskDate,
+    startTime: form.values.startTime,
+  });
+  const reminderInPast = fireAt !== null && isInPast(fireAt, new Date());
+  const mayBeLate =
+    form.values.reminderEnabled &&
+    reminders.exactAlarm.required &&
+    !reminders.exactAlarm.granted;
+
+  /**
+   * FR-013: leaving with unsaved edits has to be a decision, not an accident.
+   * Three ways out, because "save" and "discard" alone force a choice the user
+   * may not be ready to make.
+   */
+  const requestClose = useCallback(() => {
+    if (form.dirty) {
+      setConfirmDiscard(true);
+      return;
+    }
+    onClose();
+  }, [form.dirty, onClose]);
 
   // Delivery Baselines: scroll to the first invalid field on submit rather
   // than leaving the user to hunt for what went wrong.
@@ -74,7 +125,7 @@ export function TaskFormSheet({
   return (
     <Sheet
       title={task ? t('form.editTitle') : t('form.newTitle')}
-      onClose={onClose}
+      onClose={requestClose}
       footer={
         <Pressable
           accessibilityRole="button"
@@ -83,24 +134,50 @@ export function TaskFormSheet({
             saving ? t('form.saving') : task ? t('form.saveEdit') : t('form.save')
           }
           disabled={saving}
-          onPress={() => {
-            void form.submit();
-          }}
+          onPress={form.submit}
           style={styles.primary}>
           <Text style={styles.primaryLabel}>
             {saving ? t('form.saving') : task ? t('form.saveEdit') : t('form.save')}
           </Text>
         </Pressable>
       }>
+      {confirmDiscard ? (
+        <View accessibilityRole="alert" style={styles.unsaved}>
+          <Text style={styles.unsavedTitle}>{t('unsaved.title')}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('unsaved.saveAndClose')}
+            onPress={() => {
+              setConfirmDiscard(false);
+              form.submit();
+            }}
+            style={styles.unsavedChoice}>
+            <Text style={styles.unsavedLabel}>{t('unsaved.saveAndClose')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('unsaved.keepEditing')}
+            onPress={() => setConfirmDiscard(false)}
+            style={styles.unsavedChoice}>
+            <Text style={styles.unsavedLabel}>{t('unsaved.keepEditing')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('unsaved.discard')}
+            onPress={onClose}
+            style={styles.unsavedChoice}>
+            <Text style={styles.unsavedDiscard}>{t('unsaved.discard')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       <ScrollView ref={scroll} keyboardShouldPersistTaps="handled">
         {form.save.status === 'failed' ? (
           <ErrorState
             title={t('save.failedTitle')}
             body={t('timeline.errorBody')}
             retryLabel={t('save.retry')}
-            onRetry={() => {
-              void form.submit();
-            }}
+            onRetry={form.submit}
           />
         ) : null}
 
@@ -192,6 +269,31 @@ export function TaskFormSheet({
             />
           </Field>
 
+          {/* Creating a series is a different write path, so the row is only
+              offered on a new task. Converting an existing task into a series
+              is not specified anywhere and would silently move its data. */}
+          {task === undefined ? (
+            <Field label={t('form.repeat')}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('form.repeat')}
+                onPress={() => setEditingRepeat(true)}
+                style={styles.repeatRow}>
+                <Text style={styles.repeatValue}>
+                  {form.values.recurrence === null
+                    ? t('form.noRepeat')
+                    : t('repeat.summary', {
+                        days: [...form.values.recurrence.daysOfWeek]
+                          .sort((a, b) => a - b)
+                          .map(weekdayShort)
+                          .join(', '),
+                        time: form.values.startTime,
+                      })}
+                </Text>
+              </Pressable>
+            </Field>
+          ) : null}
+
           <Field label={t('form.reminder')}>
             <View style={styles.switchRow}>
               {/* A word, not just a knob position (design/ux-ui-spec.md §4). */}
@@ -203,9 +305,40 @@ export function TaskFormSheet({
               <Switch
                 accessibilityLabel={t('form.reminder')}
                 value={form.values.reminderEnabled}
-                onValueChange={next => form.setField('reminderEnabled', next)}
+                onValueChange={setReminderEnabled}
               />
             </View>
+            {/* A block that stays put, not a toast that disappears
+                (design/ux-ui-spec.md §4). */}
+            {mayBeLate ? (
+              <View style={styles.reminderWarning}>
+                <Text style={styles.reminderWarningText}>
+                  {t('permission.inexactBody')}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('permission.grant')}
+                  onPress={() => {
+                    reminders
+                      .openSettings('exact-alarm')
+                      .catch(() => undefined);
+                  }}
+                  style={styles.reminderWarningAction}>
+                  <Text style={styles.reminderWarningLink}>
+                    {t('permission.grant')}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {/* FR-038: the app will not schedule a moment that has passed, and
+                says so rather than letting the OS fire it immediately. */}
+            {reminderInPast ? (
+              <Text style={styles.reminderWarningText}>
+                {t('validate.reminderInPast')}
+              </Text>
+            ) : null}
+
             {form.values.reminderEnabled ? (
               <ChipRow>
                 {REMINDER_OFFSETS.map(offset => (
@@ -237,6 +370,19 @@ export function TaskFormSheet({
           </Field>
         </View>
       </ScrollView>
+
+      {editingRepeat ? (
+        <RecurrenceSheet
+          value={form.values.recurrence}
+          startTime={form.values.startTime}
+          defaultStartDate={form.values.taskDate}
+          onDone={next => {
+            form.setField('recurrence', next);
+            setEditingRepeat(false);
+          }}
+          onClose={() => setEditingRepeat(false)}
+        />
+      ) : null}
     </Sheet>
   );
 }
@@ -298,6 +444,61 @@ const styles = StyleSheet.create(raw => {
     switchLabel: {
       ...theme.typography.body,
       color: theme.color.onBackground,
+    },
+    reminderWarning: {
+      borderWidth: 1,
+      borderColor: theme.appColor.accentInk,
+      backgroundColor: theme.appColor.accentSoft,
+      padding: theme.spacing.sm,
+      gap: theme.spacing.xs,
+    },
+    reminderWarningText: {
+      ...theme.typography.label,
+      color: theme.appColor.accentInk,
+    },
+    reminderWarningAction: {
+      minHeight: TAP_TARGET_MIN,
+      justifyContent: 'center',
+    },
+    reminderWarningLink: {
+      ...theme.typography.body,
+      color: theme.appColor.accentInk,
+      fontWeight: '800',
+    },
+    repeatRow: {
+      minHeight: TAP_TARGET_MIN,
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border,
+      paddingHorizontal: theme.spacing.sm,
+    },
+    repeatValue: {
+      ...theme.typography.body,
+      color: theme.color.onBackground,
+    },
+    unsaved: {
+      borderWidth: 2,
+      borderColor: theme.appColor.accentInk,
+      padding: theme.spacing.sm,
+      gap: theme.spacing.xs,
+      marginBottom: theme.spacing.md,
+    },
+    unsavedTitle: {
+      ...theme.typography.body,
+      color: theme.color.onBackground,
+      fontWeight: '800',
+    },
+    unsavedChoice: {
+      minHeight: TAP_TARGET_MIN,
+      justifyContent: 'center',
+    },
+    unsavedLabel: {
+      ...theme.typography.body,
+      color: theme.color.onBackground,
+    },
+    unsavedDiscard: {
+      ...theme.typography.body,
+      color: theme.appColor.accentInk,
     },
     primary: {
       minHeight: BAR_HEIGHT.action,

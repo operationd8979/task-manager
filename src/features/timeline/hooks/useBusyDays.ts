@@ -52,7 +52,7 @@ export function useBusyDays(monthAnchor: LocalDate): BusyDaysState {
         if (cancelled) {
           return;
         }
-        void errorLog.record({
+        errorLog.report({
           code: error instanceof DataError ? error.code : 'UNKNOWN',
           operation: 'calendar.countBusyDays',
         });

@@ -3,6 +3,11 @@ module.exports = {
   extends: '@react-native',
   overrides: [
     {
+      // Jest globals are only in scope for the setup file and test files.
+      files: ['jest.setup.js', '**/__tests__/**'],
+      env: {jest: true},
+    },
+    {
       // FR-058a: every display string comes from src/lib/strings.ts. Without a
       // rule that fails the build, "no hardcoded strings" is only a promise.
       files: ['src/features/**/*.tsx', 'src/components/**/*.tsx'],

@@ -24,6 +24,12 @@ export interface ErrorLogEntry extends ErrorLogInput {
 
 export interface ErrorLog {
   record(entry: ErrorLogInput): Promise<void>;
+  /**
+   * Fire-and-forget form. `record` never rejects — it swallows its own
+   * failures on purpose — so callers on an error path should not have to
+   * decorate every call with a no-op catch just to satisfy a lint rule.
+   */
+  report(entry: ErrorLogInput): void;
   recent(limit: number): Promise<ErrorLogEntry[]>;
 }
 
@@ -40,7 +46,7 @@ export function createErrorLog(handle: DatabaseHandle): ErrorLog {
     COLLECTION.errorLog,
   );
 
-  return {
+  const log: ErrorLog = {
     async record(entry) {
       try {
         const at = Date.now();
@@ -57,6 +63,13 @@ export function createErrorLog(handle: DatabaseHandle): ErrorLog {
       } catch {
         // Intentionally ignored — see the note above.
       }
+    },
+
+    report(entry) {
+      log.record(entry).catch(() => {
+        // Unreachable: record never rejects. Present so the contract holds even
+        // if that ever changes.
+      });
     },
 
     async recent(limit) {
@@ -77,6 +90,8 @@ export function createErrorLog(handle: DatabaseHandle): ErrorLog {
       }
     },
   };
+
+  return log;
 }
 
 /** Trim oldest entries past the hard cap. */

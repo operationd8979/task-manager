@@ -1,4 +1,5 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
+import type {GestureType} from 'react-native-gesture-handler';
 import {Gesture} from 'react-native-gesture-handler';
 import {runOnJS} from 'react-native-reanimated';
 
@@ -27,7 +28,12 @@ export interface UseDaySwipeOptions {
  * soon as the movement is mostly vertical.
  */
 export function useDaySwipe({onPrevious, onNext}: UseDaySwipeOptions) {
-  return useMemo(
+  // Handed to the drag handle so it can block this gesture outright. Deciding
+  // by hit area rather than by direction is what keeps a diagonal drag from
+  // changing the day (FR-003c).
+  const ref = useRef<GestureType | undefined>(undefined);
+
+  const gesture = useMemo(
     () =>
       Gesture.Pan()
         .activeOffsetX([-ACTIVATE_AFTER_PX, ACTIVATE_AFTER_PX])
@@ -41,7 +47,10 @@ export function useDaySwipe({onPrevious, onNext}: UseDaySwipeOptions) {
           }
           // Swiping left moves forward, matching the direction content travels.
           runOnJS(event.translationX < 0 ? onNext : onPrevious)();
-        }),
+        })
+        .withRef(ref),
     [onPrevious, onNext],
   );
+
+  return {gesture, ref};
 }

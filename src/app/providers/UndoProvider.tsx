@@ -61,15 +61,10 @@ export function UndoProvider({children}: {children: React.ReactNode}) {
   const run = useCallback(
     (action: () => Promise<void>, operation: string) => {
       action().catch((error: unknown) => {
-        errorLog
-          .record({
-            code: error instanceof DataError ? error.code : 'UNKNOWN',
-            operation,
-          })
-          .catch(() => {
-            // The logger swallows its own failures by design; nothing further
-            // can be done here without starting an error loop.
-          });
+        errorLog.report({
+          code: error instanceof DataError ? error.code : 'UNKNOWN',
+          operation,
+        });
       });
     },
     [errorLog],

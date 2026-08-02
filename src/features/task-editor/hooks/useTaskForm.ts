@@ -10,7 +10,9 @@ import {
   type TaskStatus,
 } from '../../../domain/task';
 import {DataError} from '../../../services/db/errors';
+import {createRecurrenceRepository} from '../../../services/db/recurrenceRepository';
 import {createTaskRepository} from '../../../services/db/taskRepository';
+import type {RecurrenceValue} from '../components/RecurrenceSheet';
 import type {LocalDate, LocalTime} from '../../../lib/date';
 
 export type FormMode = 'create' | 'edit';
@@ -24,6 +26,8 @@ export interface TaskFormValues {
   status: TaskStatus;
   reminderEnabled: boolean;
   reminderOffsetMinutes: ReminderOffset;
+  /** null means this is a one-off task rather than a series (FR-008). */
+  recurrence: RecurrenceValue | null;
 }
 
 export type SaveState =
@@ -38,7 +42,12 @@ export interface UseTaskFormOptions {
   viewingDate: LocalDate;
   /** From settings, so a new task inherits the user's chosen offset (FR-036c). */
   defaultReminderOffset: ReminderOffset;
-  onSaved: (saved: Task) => void;
+  /**
+   * Reports the date the record landed on, not the record itself: saving may
+   * produce a task or a recurring rule, and the screen only needs to know
+   * whether to follow it to another day (design/ia §5 F-2).
+   */
+  onSaved: (savedDate: LocalDate) => void;
 }
 
 const DEFAULT_START: LocalTime = '09:00';
@@ -51,6 +60,10 @@ export function useTaskForm({
 }: UseTaskFormOptions) {
   const {handle, errorLog} = useDatabase();
   const repository = useMemo(() => createTaskRepository(handle), [handle]);
+  const recurrence = useMemo(
+    () => createRecurrenceRepository(handle),
+    [handle],
+  );
 
   const mode: FormMode = task ? 'edit' : 'create';
 
@@ -66,6 +79,7 @@ export function useTaskForm({
             status: task.status,
             reminderEnabled: task.reminderEnabled,
             reminderOffsetMinutes: task.reminderOffsetMinutes,
+            recurrence: null,
           }
         : {
             // Principle I: every field with a predictable value ships a default.
@@ -77,6 +91,7 @@ export function useTaskForm({
             status: 'processing',
             reminderEnabled: false,
             reminderOffsetMinutes: defaultReminderOffset,
+            recurrence: null,
           },
     [task, viewingDate, defaultReminderOffset],
   );
@@ -141,7 +156,7 @@ export function useTaskForm({
     [],
   );
 
-  const submit = useCallback(async () => {
+  const runSubmit = useCallback(async () => {
     setSubmitted(true);
     if (allErrors.length > 0) {
       // The screen scrolls to allErrors[0]; nothing is written.
@@ -151,23 +166,62 @@ export function useTaskForm({
     setSave({status: 'saving'});
     try {
       const draft = toDraft(values);
+      if (values.recurrence !== null && task === undefined) {
+        // A repeating task is a RULE, not a task row. Occurrences are computed
+        // when a day is drawn and never stored (FR-023).
+        await recurrence.createRule({
+          title: draft.title,
+          note: draft.note,
+          startDate: values.recurrence.startDate,
+          endDate: values.recurrence.endDate,
+          daysOfWeek: values.recurrence.daysOfWeek,
+          defaultStartTime: draft.startTime,
+          defaultEndTime: draft.endTime,
+          reminderEnabled: draft.reminderEnabled,
+          reminderOffsetMinutes: draft.reminderOffsetMinutes,
+        });
+        setSave({status: 'idle'});
+        onSaved(values.recurrence.startDate);
+        return;
+      }
+
       const saved =
         task === undefined
           ? await repository.create(draft)
           : await repository.update(task.id, draft);
       setSave({status: 'idle'});
-      onSaved(saved);
+      onSaved(saved.taskDate);
     } catch (error) {
       // Entered values are kept untouched — losing them is the thing that
       // makes a save failure unforgivable (Delivery Baselines).
-      void errorLog.record({
+      errorLog.report({
         code: error instanceof DataError ? error.code : 'UNKNOWN',
         operation: 'task.save',
         recordId: task?.id,
       });
       setSave({status: 'failed'});
     }
-  }, [allErrors, toDraft, values, task, repository, onSaved, errorLog]);
+  }, [
+    allErrors,
+    toDraft,
+    values,
+    task,
+    repository,
+    recurrence,
+    onSaved,
+    errorLog,
+  ]);
+
+  /**
+   * Exposed synchronously: a button handler should not have to know that saving
+   * is asynchronous, and `runSubmit` already routes every failure into save
+   * state plus the error log, so there is nothing left for a caller to await.
+   */
+  const submit = useCallback(() => {
+    runSubmit().catch(() => {
+      // Unreachable: runSubmit handles its own failures.
+    });
+  }, [runSubmit]);
 
   return {
     mode,

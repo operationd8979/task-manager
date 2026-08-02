@@ -82,6 +82,14 @@ const CATALOG = {
   'form.notePlaceholder': 'Thêm ghi chú',
   'form.endUnset': '—',
 
+  // Reminder permissions
+  'permission.deniedTitle': 'Nhắc nhở đang bị tắt',
+  'permission.deniedBody': 'Ứng dụng chưa được phép hiện thông báo, nên nhắc nhở sẽ không xuất hiện.',
+  'permission.openSettings': 'MỞ CÀI ĐẶT',
+  'permission.inexactTitle': 'Nhắc nhở có thể bị trễ',
+  'permission.inexactBody': 'Thiếu quyền báo thức chính xác, nên nhắc nhở vẫn được đặt nhưng có thể phát trễ vài phút.',
+  'permission.grant': 'CẤP QUYỀN',
+
   // Validation — every message says how to fix, never "invalid"
   'validate.titleRequired': 'Nhập tên công việc để lưu được.',
   'validate.endBeforeStart':
@@ -106,6 +114,82 @@ const CATALOG = {
   'unsaved.saveAndClose': 'Lưu rồi thoát',
   'unsaved.keepEditing': 'Tiếp tục sửa',
   'unsaved.discard': 'Thoát và bỏ thay đổi',
+
+  // Recurrence sheet (S-04)
+  'repeat.title': 'Thiết lập lặp lại',
+  'repeat.none': 'Không lặp',
+  'repeat.byWeekday': 'Lặp theo thứ',
+  'repeat.weekdays': 'Các thứ trong tuần',
+  'repeat.presetWeekdays': 'T2–T6',
+  'repeat.presetWeekend': 'Cuối tuần',
+  'repeat.presetDaily': 'Hằng ngày',
+  'repeat.startDate': 'Ngày bắt đầu',
+  'repeat.endDate': 'Ngày kết thúc',
+  'repeat.noEndDate': 'Không giới hạn',
+  'repeat.untilDate': 'Đến ngày',
+  'repeat.previewNone': 'Chưa tạo được buổi nào.',
+  'repeat.preview': 'Sẽ tạo buổi vào {days} lúc {time}, từ {start}{end}.',
+  'repeat.previewOpenEnded': ' và không có ngày kết thúc',
+  'repeat.previewUntil': ' đến {end}',
+  'repeat.summary': 'Lặp {days} lúc {time}',
+
+  // Apply-scope sheet (S-05)
+  'scope.title': 'Áp dụng thay đổi cho?',
+  'scope.subject': '{title} · {date} · lặp lại',
+  'scope.thisOnly': 'CHỈ LẦN NÀY',
+  'scope.wholeSeries': 'TOÀN BỘ CHUỖI',
+  'scope.thisOnlyEffect': 'Ảnh hưởng 1 buổi · các buổi còn lại giữ nguyên',
+  'scope.seriesEffect': 'Ảnh hưởng {count} buổi trong 12 tháng tới',
+  'scope.seriesEffectOpen': 'Ảnh hưởng {count} buổi trong 12 tháng tới, và mọi buổi sau đó',
+  'scope.counting': 'Đang đếm số buổi bị ảnh hưởng…',
+  'scope.countFailed': 'Không đếm được số buổi bị ảnh hưởng',
+  'scope.cancel': 'HỦY — KHÔNG THAY ĐỔI GÌ',
+  'scope.skipThisSession': 'Bỏ qua buổi này',
+  'scope.changedTime': 'đã đổi giờ sang {time}.',
+  'scope.skipped': 'đã bỏ qua buổi này.',
+  'scope.seriesDeleted': 'Đã xóa toàn bộ chuỗi lặp.',
+
+  // Row actions (S-06)
+  'actions.title': 'Thao tác',
+  'actions.shiftTime': 'Đổi giờ trong ngày',
+  'actions.move': 'Di chuyển',
+  'actions.edit': 'Sửa',
+  'actions.delete': 'Xóa',
+
+  // Time shift / move (S-07)
+  'shift.timeTitle': 'Đổi giờ',
+  'shift.moveTitle': 'Di chuyển',
+  'shift.commonTimes': 'Giờ hay dùng',
+  'shift.dateOnlyHere': 'Đây là nơi duy nhất đổi được ngày. Kéo-thả chỉ đổi giờ trong cùng một ngày.',
+  'shift.dropPreview': 'Thả để đổi sang {time}',
+
+  // Settings (S-08)
+  'settings.reminders': 'NHẮC NHỞ',
+  'settings.notificationPermission': 'Quyền hiện thông báo',
+  'settings.exactAlarmPermission': 'Quyền nhắc đúng thời điểm',
+  'settings.granted': '✓ Đã cấp',
+  'settings.notGranted': '⚠ Chưa cấp',
+  'settings.mayBeLate': 'Nhắc nhở có thể bị phát trễ.',
+  'settings.defaultOffset': 'Mốc nhắc mặc định',
+  'settings.defaultOffsetHint': 'Chỉ áp dụng cho công việc tạo mới.',
+  'settings.display': 'HIỂN THỊ',
+  'settings.displayMode': 'Chế độ',
+  'settings.modeAuto': 'Tự động',
+  'settings.modeAutoHint': 'Theo cài đặt của máy',
+  'settings.modeLight': 'Sáng',
+  'settings.modeDark': 'Tối',
+  'settings.firstDayOfWeek': 'Ngày bắt đầu tuần',
+  'settings.monday': 'Thứ Hai',
+  'settings.sunday': 'Chủ Nhật',
+  'settings.data': 'DỮ LIỆU',
+  'settings.dataOnDevice': 'Dữ liệu chỉ lưu trên máy này. Gỡ ứng dụng là mất.',
+  'settings.backupUnknown': 'Chưa xác nhận được dữ liệu có bị loại khỏi sao lưu của hệ điều hành hay không.',
+  'settings.itemCount': 'Đang lưu {count} công việc.',
+  'settings.destroyAll': 'XÓA TOÀN BỘ DỮ LIỆU',
+  'settings.destroyTitle': 'Xóa toàn bộ dữ liệu?',
+  'settings.destroyBody': 'Thao tác này không hoàn tác được. {count} công việc cùng mọi lịch lặp và nhắc nhở sẽ bị xóa.',
+  'settings.destroyConfirm': 'XÓA',
+  'settings.saveFailed': 'Chưa lưu được lựa chọn',
 
   // Common
   'common.cancel': 'HỦY',
