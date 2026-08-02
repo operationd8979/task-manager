@@ -56,6 +56,30 @@ npm run android
 yarn android
 ```
 
+To build a release-variant APK for local testing without starting Metro:
+
+```powershell
+npm run build:apk
+```
+
+The APK is copied to `.artifacts/android/` with its version in the file name. The
+script reads Gradle's `output-metadata.json`, so it does not depend on the default
+`app-release.apk` file name. Useful options can be passed after `--`:
+
+```powershell
+# Faster device-only artifact; keep just the common 64-bit Android ABI.
+npm run build:apk "--" -Architectures arm64-v8a
+
+# Reuse Gradle outputs and overwrite an existing copied artifact.
+npm run build:apk "--" -SkipClean -Force
+
+# Purge generated app/Gradle build directories when diagnosing CMake issues.
+npm run build:apk "--" -DeepClean -Force
+```
+
+The current Android `release` build type uses the debug signing configuration, so
+this artifact is suitable for development/sideload testing, not store distribution.
+
 ### iOS
 
 For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).

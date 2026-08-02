@@ -1,3 +1,5 @@
+/* eslint-env jest */
+
 /**
  * Jest setup for component-level tests.
  *
@@ -27,6 +29,12 @@ jest.mock('react-native-gesture-handler', () => {
     },
   };
 });
+
+// Worklets is a native dependency of Reanimated 4. Mock it first so loading
+// Reanimated's own Jest mock never attempts to initialise a native runtime.
+jest.mock('react-native-worklets', () =>
+  require('react-native-worklets/lib/module/mock'),
+);
 
 // Reanimated ships an official mock; @gorhom/bottom-sheet reaches into parts
 // of it (Easing, withTiming) that a hand-written stub would have to chase.
