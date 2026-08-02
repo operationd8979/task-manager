@@ -264,12 +264,20 @@ Gói lưu trữ không có khóa ngoại, nên toàn vẹn tham chiếu do tần
 
 ## 7. Migration
 
-`schemaVersion: 1` — chưa có migration nào. Điều quan trọng ở giai đoạn này là **cơ chế** đã
-sẵn sàng trước khi cần đến, vì FR-048 cấm tự động xóa dữ liệu khi cấu trúc thay đổi.
+`schemaVersion: 1` với **một migration version 1 rỗng**.
 
-Hai ràng buộc ghi lại để phiên bản sau khỏi phải suy luận:
+Không phải thừa: gói yêu cầu chuỗi migration **liên tục từ 1** tới `schemaVersion`, và "không
+có migration nào" bị coi là một lỗ hổng trong chuỗi chứ không phải "không có gì để migrate".
+Mở cơ sở dữ liệu mà thiếu nó sẽ ném `MIGRATION_CONFIG_INVALID` — và triệu chứng duy nhất
+người dùng thấy là màn hình "Chưa đọc được dữ liệu", không mã, không tên trường.
+
+Ràng buộc này được khoá bằng kiểm thử ở `src/services/db/__tests__/schema.test.ts`.
+
+Ba ràng buộc ghi lại để phiên bản sau khỏi phải suy luận:
 
 1. Gói chạy toàn bộ validate **trước khi ghi bất cứ thứ gì** — chuỗi migration đứt hay chỉ
    mục trỏ vào trường chưa khai báo đều báo lỗi trước khi chạm vào file.
 2. Migration thất bại phải để dữ liệu hiện có nguyên vẹn và hiển thị được cho người dùng một
    thông báo có hành động (FR-048, FR-055). Không được rơi vào màn hình trắng.
+3. Mỗi lần tăng `schemaVersion` phải kèm đúng một migration mang số đó. Bỏ qua một số là
+   lỗi lúc mở, không phải lúc chạy migration.

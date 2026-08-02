@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View} from 'react-native';
+import {StyleSheet as RNStyleSheet, View} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import {NavigationContainer} from '@react-navigation/native';
@@ -9,6 +9,7 @@ import {StyleSheet} from 'react-native-unistyles';
 import {ErrorState} from '../components/ErrorState';
 import {Skeleton, SkeletonGroup} from '../components/Skeleton';
 import {t} from '../lib/strings';
+import {DataError} from '../services/db/errors';
 import {openGateway, type DatabaseGateway} from '../services/db/gateway';
 import {createSettingsRepository} from '../services/db/settingsRepository';
 import {createTaskRepository} from '../services/db/taskRepository';
@@ -18,6 +19,17 @@ import {RootStack} from './navigation/RootStack';
 import {DatabaseProvider} from './providers/DatabaseProvider';
 import {ReminderProvider} from './providers/ReminderProvider';
 import {UndoProvider} from './providers/UndoProvider';
+
+/**
+ * A plain React Native style, deliberately not a Unistyles one.
+ *
+ * The Unistyles Babel plugin only rewrites components imported from
+ * 'react-native'; GestureHandlerRootView comes from another package, so it
+ * receives the style object raw. Handing a third-party component Unistyles'
+ * internal style shape is outside that package's contract, and this root must
+ * be exactly `flex: 1` for gesture handling to cover the screen.
+ */
+const rootStyle = RNStyleSheet.create({fill: {flex: 1}});
 
 type BootState =
   | {status: 'loading'}
@@ -59,8 +71,19 @@ export default function App() {
           return;
         }
         setBoot({status: 'ready', gateway});
-      } catch {
+      } catch (error) {
         if (!cancelled) {
+          // The error log lives on the handle we just failed to open, so this
+          // one failure has nowhere to be recorded. In development it goes to
+          // the console — without it, a boot failure is a red box with no code
+          // and the only way forward is reading package source.
+          // Never shown in the UI: FR-055 forbids technical codes there.
+          if (__DEV__) {
+            console.error(
+              '[boot] database open failed:',
+              error instanceof DataError ? error.code : error,
+            );
+          }
           setBoot({status: 'failed'});
         }
       }
@@ -79,24 +102,27 @@ export default function App() {
 
   if (boot.status === 'loading') {
     return (
-      <SafeAreaProvider>
-        <View style={styles.boot}>
-          <SkeletonGroup>
+      <GestureHandlerRootView style={rootStyle.fill}>
+        <SafeAreaProvider>
+          <View style={styles.boot}>
+            <SkeletonGroup>
             <Skeleton height={56} />
             <Skeleton height={76} />
             <Skeleton height={76} />
-            <Skeleton height={92} />
-          </SkeletonGroup>
-        </View>
-      </SafeAreaProvider>
+              <Skeleton height={92} />
+            </SkeletonGroup>
+          </View>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     );
   }
 
   if (boot.status === 'failed') {
     return (
-      <SafeAreaProvider>
-        <View style={styles.boot}>
-          <ErrorState
+      <GestureHandlerRootView style={rootStyle.fill}>
+        <SafeAreaProvider>
+          <View style={styles.boot}>
+            <ErrorState
             title={t('timeline.errorTitle')}
             body={t('timeline.errorBody')}
             retryLabel={t('timeline.retry')}
@@ -104,14 +130,15 @@ export default function App() {
               setBoot({status: 'loading'});
               setAttempt(n => n + 1);
             }}
-          />
-        </View>
-      </SafeAreaProvider>
+            />
+          </View>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     );
   }
 
   return (
-    <GestureHandlerRootView style={styles.root}>
+    <GestureHandlerRootView style={rootStyle.fill}>
       <SafeAreaProvider>
         <DatabaseProvider gateway={boot.gateway}>
           {/* Inside DatabaseProvider: it reads tasks and rules to rebuild the
@@ -135,9 +162,6 @@ export default function App() {
 const styles = StyleSheet.create(raw => {
   const theme = appTheme(raw);
   return {
-    root: {
-      flex: 1,
-    },
     boot: {
       flex: 1,
       backgroundColor: theme.color.background,

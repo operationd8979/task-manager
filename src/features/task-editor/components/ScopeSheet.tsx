@@ -85,8 +85,11 @@ export function ScopeSheet({
       : t('scope.seriesEffect', {count: count.count});
   };
 
+  // `onClose` is what back triggers. It cancels, exactly as the Huỷ button
+  // does, and writes nothing — so it does not weaken the rule that a stray tap
+  // must never commit a scope.
   return (
-    <Sheet title={t('scope.title')} blocking>
+    <Sheet title={t('scope.title')} blocking onClose={onCancel}>
       <Text style={styles.subject}>{t('scope.subject', {title, date})}</Text>
 
       <Pressable

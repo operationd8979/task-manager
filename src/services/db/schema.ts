@@ -1,4 +1,4 @@
-import type {CollectionSchema} from '@chipmobilesdk/rn-local-db';
+import type {CollectionSchema, Migration} from '@chipmobilesdk/rn-local-db';
 
 /**
  * Collection names. Named constants rather than inline strings so a typo is a
@@ -16,6 +16,24 @@ export const COLLECTION = {
 export const ERROR_LOG_LIMIT = 500;
 
 export const SCHEMA_VERSION = 1;
+
+/**
+ * The chain must be CONTIGUOUS FROM 1 to schemaVersion — a database declaring
+ * version 1 with no migrations is rejected at open time with
+ * MIGRATION_CONFIG_INVALID, not accepted as "nothing to migrate".
+ *
+ * Version 1 therefore exists and does nothing: collections are created from the
+ * declarations above, so the first version has no work to do. It is here so the
+ * chain has a starting point that later versions can build on.
+ */
+export const MIGRATIONS: Migration[] = [
+  {
+    version: 1,
+    migrate: async () => {
+      // Intentionally empty — see the note above.
+    },
+  },
+];
 
 /**
  * Declaring a field makes it queryable; undeclared fields are still stored and

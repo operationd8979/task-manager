@@ -1,5 +1,5 @@
-import React, {forwardRef, useCallback, useMemo} from 'react';
-import {Pressable, View} from 'react-native';
+import React, {useCallback, useEffect, useMemo, useRef} from 'react';
+import {BackHandler, Pressable, View} from 'react-native';
 import {
   BottomSheetBackdrop,
   BottomSheetFooter,
@@ -82,10 +82,49 @@ const styles = StyleSheet.create(raw => {
   };
 });
 
-export const Sheet = forwardRef<BottomSheetModal, SheetProps>(function SheetImpl(
-  {title, children, footer, blocking = false, onClose},
-  ref,
-) {
+export function Sheet({
+  title,
+  children,
+  footer,
+  blocking = false,
+  onClose,
+}: SheetProps) {
+  const sheet = useRef<BottomSheetModal>(null);
+
+  /**
+   * BottomSheetModal is an imperative component: it renders nothing at all
+   * until `present()` is called on its ref. Every call site here is declarative
+   * — the sheet is mounted exactly when it should be visible — so the bridge
+   * between the two belongs in this one place rather than in six screens.
+   *
+   * Without it the buttons that open a sheet look dead: the press fires and the
+   * state updates, but nothing is ever drawn.
+   */
+  useEffect(() => {
+    sheet.current?.present();
+  }, []);
+
+  /**
+   * On Android, back is how a sheet is dismissed. Neither the sheet library nor
+   * the navigator claims it, so without this the press falls through to the
+   * navigator, finds the timeline at the root of the stack, and quits the app
+   * with the sheet still open.
+   *
+   * Always consumed, even when a sheet chose not to pass `onClose`: leaving the
+   * app is never the right answer to back while a sheet is up. Listeners fire
+   * most-recent-first, so a nested sheet closes before the one that opened it.
+   */
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        onClose?.();
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [onClose]);
+
   const insets = useSafeAreaInsets();
   const {theme: rawTheme} = useUnistyles();
   const scrim = appTheme(rawTheme).appColor.scrim;
@@ -118,7 +157,7 @@ export const Sheet = forwardRef<BottomSheetModal, SheetProps>(function SheetImpl
 
   return (
     <BottomSheetModal
-      ref={ref}
+      ref={sheet}
       topInset={insets.top + TOP_GAP}
       enablePanDownToClose={!blocking}
       enableDynamicSizing
@@ -147,5 +186,5 @@ export const Sheet = forwardRef<BottomSheetModal, SheetProps>(function SheetImpl
       </BottomSheetView>
     </BottomSheetModal>
   );
-});
+}
 

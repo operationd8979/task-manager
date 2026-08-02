@@ -6,7 +6,7 @@ import {
 import type {DatabaseHandle, EffectivePosture} from '@chipmobilesdk/rn-local-db';
 
 import {createErrorLog, type ErrorLog} from '../logging/errorLog';
-import {COLLECTIONS, SCHEMA_VERSION} from './schema';
+import {COLLECTIONS, MIGRATIONS, SCHEMA_VERSION} from './schema';
 import {toDataError} from './errors';
 
 const DATABASE_NAME = 'timeline_task_manager';
@@ -41,6 +41,7 @@ export async function openGateway(): Promise<DatabaseGateway> {
       scope: SCOPE,
       schemaVersion: SCHEMA_VERSION,
       collections: COLLECTIONS,
+      migrations: MIGRATIONS,
       // Backup exclusion is the package default. On iOS it is enforced; on
       // Android it depends on this repo's manifest — see the XML added under
       // android/app/src/main/res/xml/ (FR-049).
