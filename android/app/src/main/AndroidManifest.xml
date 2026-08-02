@@ -1,6 +1,18 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      @dr.pogodin/react-native-fs declares WRITE_EXTERNAL_STORAGE in its own
+      manifest, so it merges in whether or not it is used. The storage package
+      never writes outside the app-private documents directory, so the
+      permission is declared and unused: it would show on the Play listing and
+      invite a data-safety question with no true answer (FR-058).
+    -->
+    <uses-permission
+      android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+      tools:node="remove" />
 
     <application
       android:name=".MainApplication"
@@ -8,6 +20,8 @@
       android:icon="@mipmap/ic_launcher"
       android:roundIcon="@mipmap/ic_launcher_round"
       android:allowBackup="false"
+      android:dataExtractionRules="@xml/data_extraction_rules"
+      android:fullBackupContent="@xml/backup_rules"
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">

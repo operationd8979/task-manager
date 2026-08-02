@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Read below Android 12 (API 31). Kept alongside data_extraction_rules.xml
+  because minSdkVersion is 24 and both paths are live.
+-->
+<full-backup-content>
+  <exclude domain="file" path="chipmobilesdk-localdb/" />
+</full-backup-content>
