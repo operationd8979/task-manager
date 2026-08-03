@@ -1,8 +1,18 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {FlatList, Pressable, View} from 'react-native';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet as RNStyleSheet,
+  View,
+} from 'react-native';
 import {GestureDetector} from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import {useNavigation} from '@react-navigation/native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {StyleSheet} from 'react-native-unistyles';
 
 import {useDatabase} from '../../../app/providers/DatabaseProvider';
@@ -13,10 +23,10 @@ import {EmptyState} from '../../../components/EmptyState';
 import {Skeleton, SkeletonGroup} from '../../../components/Skeleton';
 import {Text} from '../../../components/Text';
 import {DEFAULT_SETTINGS, type AppSettings} from '../../../domain/settings';
-import type {Task} from '../../../domain/task';
+import {withStartTime, type Task} from '../../../domain/task';
 import type {RecurringRule} from '../../../domain/recurrence';
 import type {TimelineItem} from '../../../domain/timeline';
-import {addDays, today, type LocalTime} from '../../../lib/date';
+import {addDays, compareDate, today, type LocalTime} from '../../../lib/date';
 import {dayLabel} from '../../../lib/format';
 import {t} from '../../../lib/strings';
 import {createRecurrenceRepository} from '../../../services/db/recurrenceRepository';
@@ -39,20 +49,49 @@ import {
 import {DatePickerSheet} from '../components/DatePickerSheet';
 import {DayBar} from '../components/DayBar';
 import {TaskRow} from '../components/TaskRow';
+import {useCreateSwipe} from '../hooks/useCreateSwipe';
 import {useDaySwipe} from '../hooks/useDaySwipe';
 import {useTimelineDay} from '../hooks/useTimelineDay';
 
 const SKELETON_ROWS = ['s1', 's2', 's3', 's4', 's5', 's6'];
+
+/** How far the day slides in from, and how long it takes. */
+const DAY_TRAVEL_PX = 28;
+const DAY_DURATION_MS = 180;
+
+/**
+ * Plain React Native styles, deliberately not Unistyles ones.
+ *
+ * The Unistyles Babel plugin only rewrites components imported from
+ * 'react-native'; Reanimated's Animated.View is not one, so it must be handed
+ * an ordinary style object. Neither of these carries a themed value, so there
+ * is nothing lost by keeping them out of the theme.
+ */
+const plain = RNStyleSheet.create({fill: {flex: 1}});
+
+/**
+ * A write that has to pass the apply-scope sheet first.
+ *
+ * `shiftTime` carries the end time as well as the start: a reschedule moves the
+ * whole span, and dropping the end here is what left occurrences ending before
+ * they began.
+ */
+type ScopedAction =
+  | {kind: 'shiftTime'; startTime: LocalTime; endTime: LocalTime | null}
+  | {kind: 'delete'};
 
 type Overlay =
   | {kind: 'none'}
   | {kind: 'calendar'}
   | {kind: 'form'; task?: Task}
   | {kind: 'actions'; item: TimelineItem}
-  | {kind: 'shift'; task: Task; mode: 'time' | 'move'};
+  // Holds the row, not a resolved Task: a recurring session has no record
+  // behind it, and this sheet only ever reads the date and the start time.
+  | {kind: 'shift'; item: TimelineItem; mode: 'time' | 'move'};
 
 export function TimelineScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const {handle} = useDatabase();
   const undo = useUndo();
   const reminders = useReminders();
@@ -72,10 +111,29 @@ export function TimelineScreen() {
     rule: RecurringRule;
     date: string;
     title: string;
-    action: {kind: 'shiftTime'; startTime: LocalTime} | {kind: 'delete'};
+    action: ScopedAction;
   } | null>(null);
 
   const {state, reload, setStatus} = useTimelineDay(date);
+
+  /**
+   * Which way the day last moved, so the new day enters from the side it came
+   * from. A ref rather than state: it is only ever read by the effect that the
+   * date change already triggers, and holding it in state would render twice.
+   */
+  const travel = useRef(1);
+  /**
+   * The single way the viewed day changes. Every caller goes through it so the
+   * transition direction is recorded in exactly one place — a stray `setDate`
+   * would animate the wrong way round.
+   */
+  const goTo = useCallback((next: (current: string) => string) => {
+    setDate(current => {
+      const target = next(current);
+      travel.current = compareDate(target, current) < 0 ? -1 : 1;
+      return target;
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,17 +164,38 @@ export function TimelineScreen() {
     if (!target) {
       return;
     }
-    setDate(target.taskDate || today());
+    goTo(() => target.taskDate || today());
     reminders.clearPendingTarget();
-  }, [reminders]);
+  }, [reminders, goTo]);
 
   // Recomputed per render rather than ticking: overdue is derived, and a timer
   // firing every minute would wake the JS thread for nothing.
   const now = useMemo(() => new Date(), []);
 
-  const goPrevious = useCallback(() => setDate(d => addDays(d, -1)), []);
-  const goNext = useCallback(() => setDate(d => addDays(d, 1)), []);
+  const goPrevious = useCallback(() => goTo(d => addDays(d, -1)), [goTo]);
+  const goNext = useCallback(() => goTo(d => addDays(d, 1)), [goTo]);
+  const goToday = useCallback(() => goTo(() => today()), [goTo]);
   const swipe = useDaySwipe({onPrevious: goPrevious, onNext: goNext});
+
+  /**
+   * The day slides and fades in when the date changes (S-01).
+   *
+   * Driven by a shared value rather than by a layout animation: this runs on
+   * the UI thread, survives the list re-rendering underneath it, and cannot
+   * leave a row half-animated if the read finishes mid-transition (SC-006).
+   */
+  const dayProgress = useSharedValue(1);
+  const dayOffset = useSharedValue(0);
+  useEffect(() => {
+    dayOffset.value = travel.current * DAY_TRAVEL_PX;
+    dayProgress.value = 0;
+    dayProgress.value = withTiming(1, {duration: DAY_DURATION_MS});
+  }, [date, dayProgress, dayOffset]);
+
+  const dayStyle = useAnimatedStyle(() => ({
+    opacity: dayProgress.value,
+    transform: [{translateX: (1 - dayProgress.value) * dayOffset.value}],
+  }));
 
   const closeOverlay = useCallback(() => setOverlay({kind: 'none'}), []);
 
@@ -164,10 +243,7 @@ export function TimelineScreen() {
    * (design/ia §5 F-3).
    */
   const askScope = useCallback(
-    (
-      item: TimelineItem,
-      action: {kind: 'shiftTime'; startTime: LocalTime} | {kind: 'delete'},
-    ) => {
+    (item: TimelineItem, action: ScopedAction) => {
       if (item.source.kind !== 'occurrence') {
         return;
       }
@@ -191,14 +267,14 @@ export function TimelineScreen() {
 
   const shiftTime = useCallback(
     (item: TimelineItem, nextStart: LocalTime) => {
+      // Drag moves the whole span. Writing the start alone left 09:00–10:00
+      // sitting at 10:00–10:00 after one step.
+      const next = withStartTime(item, nextStart);
       if (item.source.kind === 'occurrence') {
-        askScope(item, {kind: 'shiftTime', startTime: nextStart});
+        askScope(item, {kind: 'shiftTime', ...next});
         return;
       }
-      repository
-        .update(item.source.taskId, {startTime: nextStart})
-        .then(reload)
-        .catch(reload);
+      repository.update(item.source.taskId, next).then(reload).catch(reload);
     },
     [repository, reload, askScope],
   );
@@ -214,13 +290,18 @@ export function TimelineScreen() {
 
       if (action.kind === 'shiftTime') {
         const previous = rule.defaultStartTime;
+        const previousEnd = rule.defaultEndTime;
         const write =
           scope === 'thisOnly'
             ? recurrence.upsertOverride(rule.id, occurrenceDate, {
                 startTime: action.startTime,
+                endTime: action.endTime,
               })
             : recurrence
-                .updateRule(rule.id, {defaultStartTime: action.startTime})
+                .updateRule(rule.id, {
+                  defaultStartTime: action.startTime,
+                  defaultEndTime: action.endTime,
+                })
                 .then(() => undefined);
 
         write
@@ -241,6 +322,7 @@ export function TimelineScreen() {
                 } else {
                   await recurrence.updateRule(rule.id, {
                     defaultStartTime: previous,
+                    defaultEndTime: previousEnd,
                   });
                 }
                 reload();
@@ -315,53 +397,59 @@ export function TimelineScreen() {
   const handleAction = useCallback(
     (item: TimelineItem, action: RowAction) => {
       closeOverlay();
-      if (item.source.kind === 'occurrence') {
-        if (action === 'delete') {
-          askScope(item, {kind: 'delete'});
-        } else if (action === 'shiftTime') {
-          // Reuses the same scope sheet the drag path goes through, so both
-          // routes reach the same decision (FR-018c).
-          askScope(item, {kind: 'shiftTime', startTime: item.startTime});
-        }
-        return;
+      switch (action) {
+        case 'move':
+          // Both kinds open the same sheet; only the date field differs. A
+          // session's date is decided by its rule's weekdays, so for one of
+          // those this is the đổi-giờ sheet and nothing more (FR-018b).
+          setOverlay({
+            kind: 'shift',
+            item,
+            mode: item.source.kind === 'occurrence' ? 'time' : 'move',
+          });
+          break;
+        case 'edit':
+          withTask(item, task => setOverlay({kind: 'form', task}));
+          break;
+        case 'delete':
+          if (item.source.kind === 'occurrence') {
+            askScope(item, {kind: 'delete'});
+          } else {
+            withTask(item, deleteTask);
+          }
+          break;
       }
-      withTask(item, task => {
-        switch (action) {
-          case 'shiftTime':
-            setOverlay({kind: 'shift', task, mode: 'time'});
-            break;
-          case 'move':
-            setOverlay({kind: 'shift', task, mode: 'move'});
-            break;
-          case 'edit':
-            setOverlay({kind: 'form', task});
-            break;
-          case 'delete':
-            deleteTask(task);
-            break;
-        }
-      });
     },
     [deleteTask, withTask, askScope, closeOverlay],
   );
 
   const applyShift = useCallback(
-    (task: Task, next: {taskDate: string; startTime: LocalTime}) => {
+    (item: TimelineItem, next: {taskDate: string; startTime: LocalTime}) => {
       closeOverlay();
+      // Same rule as the drag path: the span moves, it does not stretch.
+      const shifted = withStartTime(item, next.startTime);
+
+      // A session's new time still has to pass the apply-scope sheet, so this
+      // route and the drag reach the same decision (FR-026).
+      if (item.source.kind === 'occurrence') {
+        askScope(item, {kind: 'shiftTime', ...shifted});
+        return;
+      }
+
       repository
-        .update(task.id, next)
+        .update(item.source.taskId, {taskDate: next.taskDate, ...shifted})
         .then(() => {
           // Follow the task if it left the day being viewed, for the same
           // reason saving does (design/ia §5 F-2).
           if (next.taskDate !== date) {
-            setDate(next.taskDate);
+            goTo(() => next.taskDate);
           } else {
             reload();
           }
         })
         .catch(reload);
     },
-    [repository, reload, date, closeOverlay],
+    [repository, reload, date, closeOverlay, goTo, askScope],
   );
 
   const handleSaved = useCallback(
@@ -372,12 +460,12 @@ export function TimelineScreen() {
       // Follow the record if it landed on another day — otherwise the user
       // saves something and appears to lose it (design/ia §5 F-2).
       if (savedDate !== date) {
-        setDate(savedDate);
+        goTo(() => savedDate);
       } else {
         reload();
       }
     },
-    [closeOverlay, date, reload, reminders],
+    [closeOverlay, date, reload, reminders, goTo],
   );
 
   const openSettings = useCallback(
@@ -396,6 +484,7 @@ export function TimelineScreen() {
     [],
   );
   const openCalendar = useCallback(() => setOverlay({kind: 'calendar'}), []);
+  const createSwipe = useCreateSwipe({onCreate: openCreate});
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -404,6 +493,7 @@ export function TimelineScreen() {
         label={dayLabel(date)}
         onPrevious={goPrevious}
         onNext={goNext}
+        onToday={goToday}
         onOpenCalendar={openCalendar}
         onOpenSettings={openSettings}
       />
@@ -423,74 +513,88 @@ export function TimelineScreen() {
 
       <GestureDetector gesture={swipe.gesture}>
         <View style={styles.body}>
-          {state.status === 'loading' ? (
-            <SkeletonGroup>
-              <View style={styles.skeletonList}>
-                {SKELETON_ROWS.map(key => (
-                  <Skeleton key={key} height={ROW_MIN_HEIGHT.oneLabel} />
-                ))}
-              </View>
-              {state.slow ? (
-                <Text style={styles.slow}>{t('timeline.loadingSlow')}</Text>
-              ) : null}
-            </SkeletonGroup>
-          ) : null}
+          {/* Wraps the day's content, not the gesture target: the swipe has to
+              stay live while the transition is still running. */}
+          <Animated.View style={[plain.fill, dayStyle]}>
+            {state.status === 'loading' ? (
+              <SkeletonGroup>
+                <View style={styles.skeletonList}>
+                  {SKELETON_ROWS.map(key => (
+                    <Skeleton key={key} height={ROW_MIN_HEIGHT.oneLabel} />
+                  ))}
+                </View>
+                {state.slow ? (
+                  <Text style={styles.slow}>{t('timeline.loadingSlow')}</Text>
+                ) : null}
+              </SkeletonGroup>
+            ) : null}
 
-          {state.status === 'empty' ? (
-            <EmptyState
-              title={t('timeline.emptyTitle')}
-              body={t('timeline.emptyBody')}
-              actionLabel={t('timeline.newTask')}
-              onAction={openCreate}
-            />
-          ) : null}
+            {state.status === 'empty' ? (
+              <EmptyState
+                title={t('timeline.emptyTitle')}
+                body={t('timeline.emptyBody')}
+                actionLabel={t('timeline.newTask')}
+                onAction={openCreate}
+              />
+            ) : null}
 
-          {state.status === 'error' ? (
-            <ErrorState
-              title={t('timeline.errorTitle')}
-              body={t('timeline.errorBody')}
-              retryLabel={t('timeline.retry')}
-              onRetry={reload}
-              secondaryLabel={t('day.settings')}
-              onSecondary={openSettings}
-            />
-          ) : null}
+            {state.status === 'error' ? (
+              <ErrorState
+                title={t('timeline.errorTitle')}
+                body={t('timeline.errorBody')}
+                retryLabel={t('timeline.retry')}
+                onRetry={reload}
+                secondaryLabel={t('day.settings')}
+                onSecondary={openSettings}
+              />
+            ) : null}
 
-          {state.status === 'ready' ? (
-            <FlatList
-              data={state.items}
-              keyExtractor={item => item.key}
-              renderItem={({item}) => (
-                <TaskRow
-                  task={item}
-                  now={now}
-                  onToggleStatus={toggleStatus}
-                  onOpen={openEdit}
-                  onMore={openActions}
-                  onShiftTime={shiftTime}
-                  remindersMayBeLate={
-                    reminders.exactAlarm.required &&
-                    !reminders.exactAlarm.granted
-                  }
-                  swipeRef={swipe.ref}
-                />
-              )}
-              contentContainerStyle={styles.listContent}
-              // No entrance animations, no shadows: the list has to hold 60 FPS
-              // on a low-end device (SC-006).
-              removeClippedSubviews
-            />
-          ) : null}
+            {state.status === 'ready' ? (
+              <FlatList
+                data={state.items}
+                keyExtractor={item => item.key}
+                renderItem={({item}) => (
+                  <TaskRow
+                    task={item}
+                    now={now}
+                    onToggleStatus={toggleStatus}
+                    onOpen={openEdit}
+                    onMore={openActions}
+                    onShiftTime={shiftTime}
+                    remindersMayBeLate={
+                      reminders.exactAlarm.required &&
+                      !reminders.exactAlarm.granted
+                    }
+                    swipeRef={swipe.ref}
+                  />
+                )}
+                contentContainerStyle={styles.listContent}
+                // No entrance animations, no shadows: the list has to hold
+                // 60 FPS on a low-end device (SC-006).
+                removeClippedSubviews
+              />
+            ) : null}
+          </Animated.View>
         </View>
       </GestureDetector>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('timeline.newTask')}
-        onPress={openCreate}
-        style={styles.action}>
-        <Text style={styles.actionLabel}>{t('timeline.newTask')}</Text>
-      </Pressable>
+      {/* The bar is the swipe target as well as the button — see
+          useCreateSwipe for why the gesture stops at this edge. */}
+      <GestureDetector gesture={createSwipe}>
+        <View style={styles.actionBar}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('timeline.newTask')}
+            accessibilityHint={t('timeline.newTaskSwipeHint')}
+            onPress={openCreate}
+            style={styles.action}>
+            <Text style={styles.actionLabel}>{t('timeline.newTask')}</Text>
+          </Pressable>
+          {/* Android draws its back/gesture bar over the app, so the label has
+              to be lifted clear of it while the fill stays edge-to-edge. */}
+          <View style={{height: insets.bottom}} />
+        </View>
+      </GestureDetector>
 
       {overlay.kind === 'form' ? (
         <TaskFormSheet
@@ -523,9 +627,9 @@ export function TimelineScreen() {
 
       {overlay.kind === 'shift' ? (
         <TimeShiftSheet
-          task={overlay.task}
+          subject={overlay.item}
           mode={overlay.mode}
-          onApply={next => applyShift(overlay.task, next)}
+          onApply={next => applyShift(overlay.item, next)}
           onClose={closeOverlay}
         />
       ) : null}
@@ -535,7 +639,7 @@ export function TimelineScreen() {
           selected={date}
           firstDayOfWeek={settings.firstDayOfWeek}
           onSelect={next => {
-            setDate(next);
+            goTo(() => next);
             closeOverlay();
           }}
           onClose={closeOverlay}
@@ -567,11 +671,13 @@ const styles = StyleSheet.create(raw => {
     listContent: {
       paddingBottom: LIST_BOTTOM_PADDING,
     },
+    actionBar: {
+      backgroundColor: theme.appColor.accentFill,
+    },
     action: {
       minHeight: BAR_HEIGHT.action,
       justifyContent: 'center',
       paddingHorizontal: theme.spacing.md,
-      backgroundColor: theme.appColor.accentFill,
     },
     actionLabel: {
       ...theme.typography.body,

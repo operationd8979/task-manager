@@ -17,6 +17,7 @@ const CATALOG = {
   'day.next': 'Ngày sau',
   'day.openCalendar': 'Mở lịch chọn ngày',
   'day.settings': 'Cài đặt',
+  'day.backToToday': 'VỀ HÔM NAY',
 
   // Calendar sheet
   'calendar.title': 'Chọn ngày',
@@ -37,6 +38,7 @@ const CATALOG = {
   'timeline.errorBody': 'Dữ liệu vẫn nằm trên máy, chưa mất.',
   'timeline.retry': 'THỬ LẠI',
   'timeline.newTask': '+ CÔNG VIỆC MỚI',
+  'timeline.newTaskSwipeHint': 'Vuốt lên để tạo công việc mới',
   'timeline.overlapCluster': '{count} VIỆC CHỒNG GIỜ {from}–{to}',
 
   // Row labels
@@ -151,7 +153,6 @@ const CATALOG = {
 
   // Row actions (S-06)
   'actions.title': 'Thao tác',
-  'actions.shiftTime': 'Đổi giờ trong ngày',
   'actions.move': 'Di chuyển',
   'actions.edit': 'Sửa',
   'actions.delete': 'Xóa',
@@ -164,6 +165,7 @@ const CATALOG = {
   'shift.dropPreview': 'Thả để đổi sang {time}',
 
   // Settings (S-08)
+  'settings.back': 'Quay lại',
   'settings.reminders': 'NHẮC NHỞ',
   'settings.notificationPermission': 'Quyền hiện thông báo',
   'settings.exactAlarmPermission': 'Quyền nhắc đúng thời điểm',
@@ -175,7 +177,7 @@ const CATALOG = {
   'settings.display': 'HIỂN THỊ',
   'settings.displayMode': 'Chế độ',
   'settings.modeAuto': 'Tự động',
-  'settings.modeAutoHint': 'Theo cài đặt của máy',
+  'settings.modeAutoHint': 'Theo máy',
   'settings.modeLight': 'Sáng',
   'settings.modeDark': 'Tối',
   'settings.firstDayOfWeek': 'Ngày bắt đầu tuần',

@@ -3,6 +3,7 @@ import {
   isOverdue,
   overdueByMinutes,
   validateTask,
+  withStartTime,
   type NewTask,
 } from '../task';
 
@@ -84,6 +85,40 @@ describe('isOverdue', () => {
   it('reports how late, for the label that must name a duration', () => {
     expect(overdueByMinutes(base, at('2026-08-03T15:00:00'))).toBe(300);
     expect(overdueByMinutes(base, at('2026-08-03T09:00:00'))).toBe(0);
+  });
+});
+
+describe('withStartTime', () => {
+  it('carries the end time so the duration survives a reschedule', () => {
+    expect(withStartTime({startTime: '09:00', endTime: '10:00'}, '10:15')).toEqual(
+      {startTime: '10:15', endTime: '11:15'},
+    );
+  });
+
+  it('moves the end backwards too', () => {
+    expect(withStartTime({startTime: '14:00', endTime: '15:30'}, '08:00')).toEqual(
+      {startTime: '08:00', endTime: '09:30'},
+    );
+  });
+
+  it('leaves a bare moment without an end time', () => {
+    expect(withStartTime({startTime: '09:00', endTime: null}, '11:00')).toEqual({
+      startTime: '11:00',
+      endTime: null,
+    });
+  });
+
+  it('clamps to the end of the day rather than wrapping past midnight', () => {
+    // Wrapping would produce 00:30, which reads as ending before it starts and
+    // is exactly what validateTask rejects.
+    expect(withStartTime({startTime: '09:00', endTime: '10:00'}, '23:30')).toEqual(
+      {startTime: '23:30', endTime: '23:59'},
+    );
+  });
+
+  it('produces a value validateTask accepts', () => {
+    const next = withStartTime(base, '23:45');
+    expect(validateTask({...base, ...next})).toEqual([]);
   });
 });
 

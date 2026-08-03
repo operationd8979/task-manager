@@ -4,9 +4,10 @@ import {
   BottomSheetBackdrop,
   BottomSheetFooter,
   BottomSheetModal,
-  BottomSheetView,
+  BottomSheetScrollView,
   type BottomSheetBackdropProps,
   type BottomSheetFooterProps,
+  type BottomSheetScrollViewMethods,
 } from '@gorhom/bottom-sheet';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {StyleSheet, useUnistyles} from 'react-native-unistyles';
@@ -30,6 +31,12 @@ export interface SheetProps {
    */
   blocking?: boolean;
   onClose?: () => void;
+  /**
+   * The sheet body scrolls, so the ref belongs to the sheet rather than to the
+   * screen inside it. Exposed for the one caller that needs to move the view
+   * itself — bringing a validation error back into sight.
+   */
+  scrollRef?: React.Ref<BottomSheetScrollViewMethods>;
 }
 
 /** Placeholder until the icon set is chosen (decisions.md D-06). */
@@ -42,9 +49,6 @@ const styles = StyleSheet.create(raw => {
       backgroundColor: theme.color.background,
       borderRadius: theme.radius.md,
     },
-    container: {
-      backgroundColor: theme.color.background,
-    },
     header: {
       minHeight: BAR_HEIGHT.sheetHeader,
       flexDirection: 'row',
@@ -53,6 +57,8 @@ const styles = StyleSheet.create(raw => {
       paddingLeft: theme.spacing.md,
       borderBottomWidth: 2,
       borderBottomColor: theme.color.onBackground,
+      // Opaque because it is sticky: the body scrolls underneath it.
+      backgroundColor: theme.color.background,
     },
     title: {
       ...theme.appType.sheetTitle,
@@ -88,8 +94,11 @@ export function Sheet({
   footer,
   blocking = false,
   onClose,
+  scrollRef,
 }: SheetProps) {
   const sheet = useRef<BottomSheetModal>(null);
+  /** True once the owner has taken this sheet off screen. See `handleDismiss`. */
+  const removed = useRef(false);
 
   /**
    * BottomSheetModal is an imperative component: it renders nothing at all
@@ -102,7 +111,28 @@ export function Sheet({
    */
   useEffect(() => {
     sheet.current?.present();
+    return () => {
+      removed.current = true;
+    };
   }, []);
+
+  /**
+   * `onDismiss` answers two different questions with one callback: "the user
+   * closed this" and "the owner replaced this". Only the first is news.
+   *
+   * The library reports a dismissal when the EXIT ANIMATION ends, which is a
+   * few hundred milliseconds after the tap that caused it. So a row action —
+   * unmount this sheet, then open the next one — had its replacement wiped by
+   * the reply to a close it had already handled: the sheet shut and no dialog
+   * appeared. Once React has unmounted us, the owner has already decided what
+   * is on screen and does not need telling.
+   */
+  const handleDismiss = useCallback(() => {
+    if (removed.current) {
+      return;
+    }
+    onClose?.();
+  }, [onClose]);
 
   /**
    * On Android, back is how a sheet is dismissed. Neither the sheet library nor
@@ -149,11 +179,24 @@ export function Sheet({
       return undefined;
     }
     return (props: BottomSheetFooterProps) => (
+      // `bottomInset` rather than padding inside the footer: the library shifts
+      // it out of the way when the keyboard opens, and padding would sit there
+      // as dead space above the keyboard.
       <BottomSheetFooter {...props} bottomInset={insets.bottom}>
         <View style={styles.footer}>{footer}</View>
       </BottomSheetFooter>
     );
   }, [footer, insets.bottom]);
+
+  /**
+   * `enableFooterMarginAdjustment` reserves the footer's own height; this adds
+   * the inset the footer is lifted by, so the reserved space matches exactly
+   * what covers the content.
+   */
+  const contentStyle = useMemo(
+    () => ({paddingBottom: insets.bottom}),
+    [insets.bottom],
+  );
 
   return (
     <BottomSheetModal
@@ -161,13 +204,39 @@ export function Sheet({
       topInset={insets.top + TOP_GAP}
       enablePanDownToClose={!blocking}
       enableDynamicSizing
+      /**
+       * The library's default is `switch`, which MINIMISES whichever sheet is
+       * already open when a second one is presented. Every nested sheet here is
+       * opened from inside its parent — repeat setup from the form, apply-scope
+       * from a row action — so the default made the screen the user was working
+       * in slide away the moment they opened a sub-sheet, which reads as the
+       * app closing their work. `push` stacks them instead.
+       */
+      stackBehavior="push"
       backdropComponent={renderBackdrop}
       footerComponent={renderFooter}
       backgroundStyle={styles.background}
       handleComponent={null}
-      onDismiss={onClose}>
-      <BottomSheetView style={styles.container}>
-        {/* Sticky header: the close button must stay reachable one-handed. */}
+      onDismiss={handleDismiss}>
+      {/*
+        A scrollable, not a plain view. `enableDynamicSizing` sizes the sheet to
+        its content and caps it at the screen — but a BottomSheetView reports
+        its full height and then simply overflows past the cap, which is why a
+        long form ran off the bottom with its last fields unreachable. A
+        scrollable reports its CONTENT size instead, so the sheet grows to fit,
+        stops at the cap, and scrolls the remainder. It also coordinates with
+        the pan-down-to-close gesture, which a bare ScrollView fights.
+      */}
+      <BottomSheetScrollView
+        ref={scrollRef}
+        // Index 0 is the header: the close button must stay reachable
+        // one-handed no matter how far the body has scrolled.
+        stickyHeaderIndices={[0]}
+        enableFooterMarginAdjustment={Boolean(footer)}
+        // Chips and toggles stay tappable while the keyboard is up, instead of
+        // spending the first tap on dismissing it.
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={contentStyle}>
         <View style={styles.header}>
           <Text style={styles.title} numberOfLines={2}>
             {title}
@@ -183,7 +252,7 @@ export function Sheet({
           )}
         </View>
         <View style={styles.body}>{children}</View>
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </BottomSheetModal>
   );
 }

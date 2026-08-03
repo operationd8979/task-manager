@@ -61,24 +61,36 @@ jest.mock('react-native-unistyles', () => {
 
 jest.mock('react-native-gesture-handler', () => {
   const {View} = require('react-native');
-  const chainable = {
-    activeOffsetX: () => chainable,
-    failOffsetY: () => chainable,
-    onEnd: () => chainable,
-  };
+  // Every builder method returns the same object, so any chain the app writes
+  // resolves. The gestures themselves are exercised on a device, not here.
+  const chainable = new Proxy(
+    {},
+    {get: () => () => chainable},
+  );
   return {
     GestureHandlerRootView: View,
     GestureDetector: View,
-    Gesture: {Pan: () => chainable},
+    Gesture: {Pan: () => chainable, Fling: () => chainable},
+    Directions: {UP: 1, DOWN: 2, LEFT: 4, RIGHT: 8},
   };
 });
 
-// With the bottom sheet mocked out, the only thing the app takes from
-// Reanimated is runOnJS, so a two-line stub is honest here — nothing else in
-// the tree reaches for the animation runtime.
-jest.mock('react-native-reanimated', () => ({
-  runOnJS: fn => fn,
-}));
+/**
+ * Reanimated drives the day transition, so the shared-value hooks have to
+ * answer. They are stubbed rather than run: the values are read on the UI
+ * thread by the real runtime, and asserting on a fake one would test the stub.
+ */
+jest.mock('react-native-reanimated', () => {
+  const {View} = require('react-native');
+  return {
+    __esModule: true,
+    default: {View},
+    runOnJS: fn => fn,
+    useSharedValue: initial => ({value: initial}),
+    useAnimatedStyle: build => build(),
+    withTiming: value => value,
+  };
+});
 
 /**
  * The bottom sheet is mocked rather than rendered.
@@ -98,6 +110,7 @@ jest.mock('@gorhom/bottom-sheet', () => {
     BottomSheetModal: passthrough,
     BottomSheetModalProvider: passthrough,
     BottomSheetView: passthrough,
+    BottomSheetScrollView: passthrough,
     BottomSheetFooter: passthrough,
     BottomSheetBackdrop: () => null,
     BottomSheetTextInput: TextInput,

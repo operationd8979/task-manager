@@ -16,8 +16,26 @@ import type {
   ReminderTarget,
 } from './scheduler';
 
-const CHANNEL_ID = 'task-reminders';
+/**
+ * Bumped from `task-reminders` when the sound was added.
+ *
+ * An Android channel is immutable once created: `createChannel` on an existing
+ * id silently keeps the original settings, so anyone who had already run the
+ * app would go on getting a silent reminder forever. A new id is the only way
+ * the change reaches them, and the old channel is removed so it does not sit in
+ * system settings as a second, dead entry.
+ */
+const CHANNEL_ID = 'task-reminders-sound';
+const RETIRED_CHANNEL_IDS = ['task-reminders'];
 const CHANNEL_NAME = 'Nhắc nhở công việc';
+
+/**
+ * The device's own notification sound rather than one bundled with the app.
+ *
+ * A reminder should sound like every other reminder on the phone — the user
+ * already recognises it, and it follows whatever they chose in system settings.
+ */
+const REMINDER_SOUND = 'default';
 
 /**
  * The only place Notifee is imported.
@@ -37,8 +55,19 @@ export function createNotifeeScheduler(): ReminderScheduler {
         id: CHANNEL_ID,
         name: CHANNEL_NAME,
         importance: AndroidImportance.HIGH,
+        sound: REMINDER_SOUND,
+        vibration: true,
       })
-      .then(() => undefined);
+      .then(async () => {
+        // Best effort: a channel that was never created, or a platform that
+        // does not have them, is not a reason to fail the schedule that is
+        // waiting on this.
+        await Promise.all(
+          RETIRED_CHANNEL_IDS.map(id =>
+            notifee.deleteChannel(id).catch(() => undefined),
+          ),
+        );
+      });
     await channelReady;
   };
 
@@ -129,7 +158,15 @@ export function createNotifeeScheduler(): ReminderScheduler {
           body: formatBody(request),
           // Enough to reopen the exact thing that was reminded about (FR-043).
           data: encodeTarget(request.targetRef, request.taskDate),
-          android: {channelId: CHANNEL_ID, pressAction: {id: 'default'}},
+          android: {
+            channelId: CHANNEL_ID,
+            pressAction: {id: 'default'},
+            // The channel decides this from Android 8 on; the field still
+            // carries it on anything older.
+            sound: REMINDER_SOUND,
+          },
+          // iOS has no channels, so the sound is stated per notification.
+          ios: {sound: REMINDER_SOUND},
         },
         trigger,
       );

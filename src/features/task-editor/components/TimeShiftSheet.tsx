@@ -24,11 +24,15 @@ const COMMON_TIMES: readonly LocalTime[] = [
 ];
 
 export interface TimeShiftSheetProps {
-  task: Task;
+  /**
+   * Only the two fields the sheet actually edits, so a recurring session — which
+   * has no Task record behind it — can be handed here as well.
+   */
+  subject: Pick<Task, 'taskDate' | 'startTime'>;
   /**
    * `time` shifts within the day; `move` also offers the date.
-   * Drag-and-drop only ever produces `time` — crossing days is deliberately
-   * not a gesture (FR-018b).
+   * A session of a series is always `time`: its date is decided by the rule's
+   * weekdays, and drag-and-drop never crosses days either (FR-018b).
    */
   mode: 'time' | 'move';
   onApply: (next: {taskDate: LocalDate; startTime: LocalTime}) => void;
@@ -36,13 +40,13 @@ export interface TimeShiftSheetProps {
 }
 
 export function TimeShiftSheet({
-  task,
+  subject,
   mode,
   onApply,
   onClose,
 }: TimeShiftSheetProps) {
-  const [date, setDate] = useState(task.taskDate);
-  const [time, setTime] = useState(task.startTime);
+  const [date, setDate] = useState(subject.taskDate);
+  const [time, setTime] = useState(subject.startTime);
 
   return (
     <Sheet

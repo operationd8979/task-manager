@@ -3,6 +3,8 @@ import {
   isLocalDate,
   isLocalTime,
   minutesOf,
+  MINUTES_PER_DAY,
+  timeFromMinutes,
   toDateTime,
   type LocalDate,
   type LocalTime,
@@ -79,6 +81,35 @@ export function validateTask(input: NewTask): FieldError[] {
   }
 
   return errors;
+}
+
+/**
+ * Move something to a new start time, carrying its end time with it.
+ *
+ * Rescheduling means "the same work, later" — the duration is the part the user
+ * did NOT ask to change. Writing `startTime` alone silently stretches or
+ * inverts the span, which is what made a dragged 09:00–10:00 task come back as
+ * 10:00–10:00.
+ *
+ * Used by every reschedule path (drag, Đổi giờ, Di chuyển) so all three agree.
+ */
+export function withStartTime(
+  item: Pick<Task, 'startTime' | 'endTime'>,
+  nextStart: LocalTime,
+): {startTime: LocalTime; endTime: LocalTime | null} {
+  if (item.endTime === null) {
+    return {startTime: nextStart, endTime: null};
+  }
+  const duration = minutesOf(item.endTime) - minutesOf(item.startTime);
+  return {
+    startTime: nextStart,
+    // Clamped to the end of the day rather than wrapped: a span that crosses
+    // midnight would read as ending before it starts, and validateTask rejects
+    // exactly that. Losing a few minutes beats writing an invalid record.
+    endTime: timeFromMinutes(
+      Math.min(minutesOf(nextStart) + duration, MINUTES_PER_DAY - 1),
+    ),
+  };
 }
 
 /**

@@ -6,12 +6,16 @@ import {Text} from '../../../components/Text';
 import {t} from '../../../lib/strings';
 import {today, type LocalDate} from '../../../lib/date';
 import {appTheme} from '../../../theme/theme';
-import {BAR_HEIGHT, TAP_TARGET_MIN} from '../../../theme/tokens';
+import {BAR_HEIGHT, DAY_ICON_SIZE, NAV_GLYPH} from '../../../theme/tokens';
 
 /** Placeholders until the icon set is chosen (decisions.md D-06). */
 const PREV_GLYPH = '‹';
 const NEXT_GLYPH = '›';
-const SETTINGS_GLYPH = 'CĐ';
+/**
+ * U+FE0E asks for the TEXT presentation of the gear, so it inherits the bar's
+ * colour instead of arriving as a multi-colour emoji that ignores the theme.
+ */
+const SETTINGS_GLYPH = '⚙︎';
 
 export interface DayBarProps {
   date: LocalDate;
@@ -21,6 +25,8 @@ export interface DayBarProps {
   onNext: () => void;
   onOpenCalendar: () => void;
   onOpenSettings: () => void;
+  /** Jump straight back to today from any other day. */
+  onToday: () => void;
 }
 
 export function DayBar({
@@ -30,6 +36,7 @@ export function DayBar({
   onNext,
   onOpenCalendar,
   onOpenSettings,
+  onToday,
 }: DayBarProps) {
   const isToday = date === today();
 
@@ -54,6 +61,20 @@ export function DayBar({
         </Text>
         {isToday ? <Text style={styles.todayTag}>{t('day.today')}</Text> : null}
       </Pressable>
+
+      {/* Only offered when it would do something. On today it would be a live
+          control that changes nothing, which is worse than an absent one. */}
+      {isToday ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('day.backToToday')}
+          onPress={onToday}
+          style={styles.todayButton}>
+          <Text style={styles.todayLabel} numberOfLines={1}>
+            {t('day.backToToday')}
+          </Text>
+        </Pressable>
+      )}
 
       <Pressable
         accessibilityRole="button"
@@ -86,22 +107,23 @@ const styles = StyleSheet.create(raw => {
       backgroundColor: theme.color.background,
     },
     arrow: {
-      width: TAP_TARGET_MIN,
-      minHeight: TAP_TARGET_MIN,
+      width: DAY_ICON_SIZE,
+      minHeight: DAY_ICON_SIZE,
       alignItems: 'center',
       justifyContent: 'center',
     },
     arrowGlyph: {
-      ...theme.typography.title,
+      ...theme.typography.headline,
+      ...NAV_GLYPH,
       color: theme.color.onBackground,
     },
     settingsGlyph: {
-      ...theme.typography.caption,
+      ...theme.typography.title,
       color: theme.color.onBackground,
     },
     title: {
       flex: 1,
-      minHeight: TAP_TARGET_MIN,
+      minHeight: DAY_ICON_SIZE,
       justifyContent: 'center',
       paddingHorizontal: theme.spacing.xs,
     },
@@ -113,6 +135,19 @@ const styles = StyleSheet.create(raw => {
     todayTag: {
       ...theme.typography.caption,
       color: theme.appColor.textMuted,
+    },
+    // Outlined rather than filled: it is a shortcut back to a default, not the
+    // screen's primary action.
+    todayButton: {
+      minHeight: DAY_ICON_SIZE - 12,
+      justifyContent: 'center',
+      paddingHorizontal: theme.spacing.sm,
+      borderWidth: 2,
+      borderColor: theme.appColor.accentInk,
+    },
+    todayLabel: {
+      ...theme.typography.caption,
+      color: theme.appColor.accentInk,
     },
   };
 });

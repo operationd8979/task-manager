@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {Pressable, ScrollView, Switch, TextInput, View} from 'react-native';
+import {Pressable, Switch, TextInput, View} from 'react-native';
+import type {BottomSheetScrollViewMethods} from '@gorhom/bottom-sheet';
 import {StyleSheet} from 'react-native-unistyles';
 
 import {useReminders} from '../../../app/providers/ReminderProvider';
@@ -53,7 +54,9 @@ export function TaskFormSheet({
     defaultReminderOffset,
     onSaved,
   });
-  const scroll = useRef<ScrollView>(null);
+  // The sheet owns the scrolling now, so this reaches into it rather than
+  // wrapping the fields in a second scroll view.
+  const scroll = useRef<BottomSheetScrollViewMethods>(null);
   const saving = form.save.status === 'saving';
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [editingRepeat, setEditingRepeat] = useState(false);
@@ -126,6 +129,7 @@ export function TaskFormSheet({
     <Sheet
       title={task ? t('form.editTitle') : t('form.newTitle')}
       onClose={requestClose}
+      scrollRef={scroll}
       footer={
         <Pressable
           accessibilityRole="button"
@@ -171,7 +175,7 @@ export function TaskFormSheet({
         </View>
       ) : null}
 
-      <ScrollView ref={scroll} keyboardShouldPersistTaps="handled">
+      <>
         {form.save.status === 'failed' ? (
           <ErrorState
             title={t('save.failedTitle')}
@@ -369,7 +373,7 @@ export function TaskFormSheet({
             />
           </Field>
         </View>
-      </ScrollView>
+      </>
 
       {editingRepeat ? (
         <RecurrenceSheet

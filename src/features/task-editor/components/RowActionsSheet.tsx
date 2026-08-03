@@ -8,30 +8,39 @@ import {t, type StringKey} from '../../../lib/strings';
 import {appTheme} from '../../../theme/theme';
 import {TAP_TARGET_MIN} from '../../../theme/tokens';
 
-export type RowAction = 'shiftTime' | 'move' | 'edit' | 'delete';
+export type RowAction = 'move' | 'edit' | 'delete';
 
 export interface RowActionsSheetProps {
   title: string;
   /**
    * A session of a series reads differently: "Xóa" would suggest the whole
    * series is going away, so the last action becomes "Bỏ qua buổi này"
-   * (design/ia §4 S-06). Moving a session across days is not offered — that is
-   * a series-level change, not a per-session one.
+   * (design/ia §4 S-06). It also decides what "Di chuyển" opens — a session
+   * belongs to its weekday, so only its time is on offer.
    */
   isOccurrence: boolean;
   onAction: (action: RowAction) => void;
   onClose: () => void;
 }
 
+/**
+ * "Đổi giờ trong ngày" used to sit above this list, but Di chuyển already
+ * offers the time — the two differed only in whether the date field was there
+ * as well. Two entries for one job made the sheet longer and the choice
+ * harder, so the narrower one is gone.
+ *
+ * "Sửa" is absent for a session because editing a session's CONTENT — title,
+ * note, reminder — is not built yet. Listing it anyway gave a button that
+ * closed the sheet and did nothing, which is worse than not offering it.
+ */
 function actionsFor(
   isOccurrence: boolean,
 ): ReadonlyArray<{action: RowAction; key: StringKey}> {
   return [
-    {action: 'shiftTime', key: 'actions.shiftTime'},
+    {action: 'move', key: 'actions.move'},
     ...(isOccurrence
       ? []
-      : [{action: 'move' as const, key: 'actions.move' as const}]),
-    {action: 'edit', key: 'actions.edit'},
+      : [{action: 'edit' as const, key: 'actions.edit' as const}]),
     {
       action: 'delete',
       key: isOccurrence ? 'scope.skipThisSession' : 'actions.delete',

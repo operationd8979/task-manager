@@ -16,7 +16,12 @@ import type {Weekday} from '../../../lib/date';
 import {t} from '../../../lib/strings';
 import {applyDisplayMode} from '../../../theme/mode';
 import {appTheme} from '../../../theme/theme';
-import {BAR_HEIGHT, TAP_TARGET_MIN} from '../../../theme/tokens';
+import {
+  BAR_HEIGHT,
+  DAY_ICON_SIZE,
+  NAV_GLYPH,
+  TAP_TARGET_MIN,
+} from '../../../theme/tokens';
 import {useSettings} from '../hooks/useSettings';
 
 const BACK_GLYPH = '‹';
@@ -32,7 +37,7 @@ export function SettingsScreen() {
       <View style={styles.bar}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('day.settings')}
+          accessibilityLabel={t('settings.back')}
           onPress={() => navigation.goBack()}
           style={styles.back}>
           <Text style={styles.backGlyph}>{BACK_GLYPH}</Text>
@@ -260,13 +265,19 @@ const styles = StyleSheet.create(raw => {
       borderBottomWidth: 2,
       borderBottomColor: theme.color.onBackground,
     },
+    // Same size as the day bar's controls: this header is the counterpart to
+    // that one, and a smaller arrow here reads as a different app.
     back: {
-      width: TAP_TARGET_MIN,
-      height: TAP_TARGET_MIN,
+      width: DAY_ICON_SIZE,
+      height: DAY_ICON_SIZE,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    backGlyph: {...theme.typography.title, color: theme.color.onBackground},
+    backGlyph: {
+      ...theme.typography.headline,
+      ...NAV_GLYPH,
+      color: theme.color.onBackground,
+    },
     barTitle: {
       ...theme.typography.body,
       color: theme.color.onBackground,

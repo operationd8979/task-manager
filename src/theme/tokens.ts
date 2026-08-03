@@ -138,6 +138,24 @@ export const TYPE_OVERRIDE = {
 export const TAP_TARGET_MIN = 44;
 
 /**
+ * Header controls: the day bar's arrows and settings button, and the Settings
+ * screen's back button.
+ *
+ * Deliberately above TAP_TARGET_MIN: these are the most-used controls on the
+ * most-used screens, and at 44pt with a 20pt glyph they read as decoration
+ * rather than as buttons. Shared so a header control is the same size wherever
+ * it appears — a smaller back arrow on one screen reads as a different app.
+ */
+export const DAY_ICON_SIZE = 52;
+
+/**
+ * The chevrons drawn in those controls. Above the type scale on purpose: they
+ * sit small inside their em box, so at `title` size they look lighter than the
+ * glyphs beside them.
+ */
+export const NAV_GLYPH = {fontSize: 34, lineHeight: 38} as const;
+
+/**
  * OS text-size ceiling. Enforced with `maxFontSizeMultiplier` on the shared
  * Text component — NOT via the theme's `fontScale`, which is applied once at
  * config time and does not track the OS setting.
