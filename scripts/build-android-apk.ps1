@@ -287,23 +287,24 @@ if ($DeepClean) {
 $variantTaskSuffix = $Variant.Substring(0, 1).ToUpperInvariant() + $Variant.Substring(1)
 $moduleGradlePath = ":" + ($moduleSegments -join ":")
 $assembleTask = "{0}:assemble{1}" -f $moduleGradlePath, $variantTaskSuffix
-$gradleInvocationArguments = New-Object System.Collections.Generic.List[string]
-
-if (-not $SkipClean) {
-    $gradleInvocationArguments.Add("clean")
-}
-$gradleInvocationArguments.Add($assembleTask)
+$commonGradleArguments = New-Object System.Collections.Generic.List[string]
 
 if ($null -ne $Architectures -and $Architectures.Count -gt 0) {
-    $gradleInvocationArguments.Add("-PreactNativeArchitectures=$($Architectures -join ',')")
+    $commonGradleArguments.Add("-PreactNativeArchitectures=$($Architectures -join ',')")
 }
 
 if ($null -ne $GradleArguments) {
     foreach ($argument in $GradleArguments) {
         if (-not [string]::IsNullOrWhiteSpace($argument)) {
-            $gradleInvocationArguments.Add($argument)
+            $commonGradleArguments.Add($argument)
         }
     }
+}
+
+$assembleInvocationArguments = New-Object System.Collections.Generic.List[string]
+$assembleInvocationArguments.Add($assembleTask)
+foreach ($argument in $commonGradleArguments) {
+    $assembleInvocationArguments.Add($argument)
 }
 
 $taskSummary = if ($SkipClean) { $assembleTask } else { "clean, $assembleTask" }
@@ -316,8 +317,22 @@ try {
     Push-Location $androidDir
     $pushedLocation = $true
 
-    $gradleArgumentArray = $gradleInvocationArguments.ToArray()
-    & $gradleWrapper @gradleArgumentArray
+    if (-not $SkipClean) {
+        $cleanInvocationArguments = New-Object System.Collections.Generic.List[string]
+        $cleanInvocationArguments.Add("clean")
+        foreach ($argument in $commonGradleArguments) {
+            $cleanInvocationArguments.Add($argument)
+        }
+
+        $cleanArgumentArray = $cleanInvocationArguments.ToArray()
+        & $gradleWrapper @cleanArgumentArray
+        if ($LASTEXITCODE -ne 0) {
+            throw "Gradle clean failed with exit code $LASTEXITCODE"
+        }
+    }
+
+    $assembleArgumentArray = $assembleInvocationArguments.ToArray()
+    & $gradleWrapper @assembleArgumentArray
     if ($LASTEXITCODE -ne 0) {
         throw "Gradle build failed with exit code $LASTEXITCODE"
     }

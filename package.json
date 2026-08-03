@@ -14,8 +14,8 @@
     "check:native": "node scripts/check-native-deps.mjs"
   },
   "dependencies": {
-    "@chipmobilesdk/rn-local-db": "*",
-    "@chipmobilesdk/rn-theme": "*",
+    "@chipmobilesdk/rn-local-db": "0.1.1",
+    "@chipmobilesdk/rn-theme": "0.2.2",
     "@dr.pogodin/react-native-fs": "^2.39.2",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@notifee/react-native": "^9.1.8",
