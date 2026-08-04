@@ -105,11 +105,11 @@ Một codebase React Native, bare workflow. Ranh giới tầng do thư mục quy
 - [X] T034 [P] [US1] Tạo `src/domain/task.ts`: kiểu `Task`, `NewTask`, `TaskStatus` và các hàm kiểm tra thuần — **không import React**
 - [X] T035 [US1] Tạo `src/services/db/taskRepository.ts` theo [contracts/storage.md](./contracts/storage.md): `listByDate` đọc qua chỉ mục `tasks_by_date_start` nên thứ tự giờ đến từ chỉ mục, không sắp lại trong JS (SC-004)
 - [X] T036 [US1] Tạo `src/features/timeline/hooks/useTimelineDay.ts` — sở hữu đủ 5 trạng thái tải/có dữ liệu/rỗng/lỗi/thử lại (Principle IV)
-- [X] T037 [P] [US1] Tạo `src/features/timeline/components/DayBar.tsx`: `‹ · Thứ Hai 03/08 · HÔM NAY · › · CĐ`, cao 56pt, kẻ dưới 2px ([design/wireframes.md W-01](./design/wireframes.md))
+- [X] T037 [P] [US1] Tạo `src/features/timeline/components/DayBar.tsx`: `‹ · Thứ Hai 03/08 · HÔM NAY · › · CĐ`, cao 56pt, kẻ dưới 2px ([design/wireframes.md W-01](./design/wireframes.md)) — *thanh này được làm lại ở T139/T145: mũi tên vẽ thay cho ký tự, ô chạm 52pt, `CĐ` → biểu tượng bánh răng, thêm nút VỀ HÔM NAY*
 - [X] T038 [US1] Tạo `src/features/timeline/components/TaskRow.tsx` với **bốn vùng chạm tách bạch**: ô tick 44, thân dòng, tay cầm ⣿ 44, nút ⋯ 44; chiều cao do nội dung quyết định, không cắt chữ ([design/ux-ui-spec.md §1](./design/ux-ui-spec.md))
 - [X] T039 [US1] Tạo `src/features/timeline/screens/TimelineScreen.tsx` dùng `FlatList` — chỉ dựng từ token, không hex (R8, Principle III)
 - [X] T040 [US1] Nối 5 trạng thái màn hình vào `Skeleton`/`EmptyState`/`ErrorState`; skeleton mang đúng hình dạng dòng thật (cột giờ, ô tick, 2 dải chữ), thêm dòng "vẫn đang đọc dữ liệu" khi quá 3 giây ([design/ux-ui-spec.md §3](./design/ux-ui-spec.md))
-- [X] T041 [US1] Tạo `src/features/task-editor/hooks/useTaskForm.ts`: giá trị mặc định điền sẵn (ngày = ngày đang xem, giờ 09:00, nhắc theo cài đặt), kiểm tra khi gõ, giữ nguyên dữ liệu khi lưu thất bại (FR-008, Delivery Baselines)
+- [X] T041 [US1] Tạo `src/features/task-editor/hooks/useTaskForm.ts`: giá trị mặc định điền sẵn (ngày = ngày đang xem, giờ bắt đầu theo T151, nhắc theo cài đặt), kiểm tra khi gõ, giữ nguyên dữ liệu khi lưu thất bại (FR-008, Delivery Baselines)
 - [X] T042 [US1] Tạo `src/features/task-editor/screens/TaskFormSheet.tsx` theo [W-03](./design/wireframes.md); nút Lưu **dính đáy sheet** để luôn thấy khi bàn phím mở
 - [X] T043 [US1] Nối lỗi từng trường trong `src/features/task-editor/screens/TaskFormSheet.tsx`: viền trái 3px accent trên **đúng ô sai** + câu nói cách sửa, cuộn tới trường sai đầu tiên khi bấm lưu (FR-009)
 - [X] T044 [US1] Sau khi lưu, nếu ngày trong form khác ngày đang xem thì timeline **nhảy sang ngày đó** — nếu không người dùng tưởng mất việc ([design/ia-screens-flows.md F-2](./design/ia-screens-flows.md))
@@ -155,7 +155,7 @@ Một codebase React Native, bare workflow. Ranh giới tầng do thư mục quy
 - [X] T058 [US3] Chạy `purgeAllSoftDeleted()` **một lần lúc khởi động** trong `src/app/App.tsx`, trước khi dựng màn hình đầu — đây là thứ biến "đóng app trong lúc chờ hoàn tác" thành xóa vĩnh viễn (edge case đã chốt)
 - [X] T059 [US3] Nối luồng xóa vào `src/app/providers/UndoProvider.tsx`: xóa mềm ngay, toast sống **≥5 giây** và **không biến mất** khi đổi ngày hay mở màn hình khác; hết giờ thì `purge` (FR-011, FR-011a)
 - [X] T060 [US3] Trong `src/app/providers/UndoProvider.tsx`, hoàn tác khôi phục công việc **cùng nhắc nhở** về đúng trạng thái trước khi xóa (FR-011a) — phần nhắc nhở nối vào ở US6, để lại điểm mở rộng rõ ràng
-- [X] T061 [P] [US3] Tạo `src/features/task-editor/components/RowActionsSheet.tsx` (S-06): Đổi giờ · Di chuyển · Sửa · Xóa; **không** dùng vuốt ngang trên dòng (FR-003b)
+- [X] T061 [P] [US3] Tạo `src/features/task-editor/components/RowActionsSheet.tsx` (S-06): Đổi giờ · Di chuyển · Sửa · Xóa; **không** dùng vuốt ngang trên dòng (FR-003b) — *danh sách rút còn Di chuyển · Sửa · Xóa ở T142, xem FR-018d*
 - [X] T062 [P] [US3] Tạo `src/features/task-editor/components/TimeShiftSheet.tsx` (S-07): chip giờ hay dùng + bộ chọn giờ gốc; bộ chọn ngày kèm câu "Đây là nơi duy nhất đổi được ngày" (FR-018b)
 - [X] T063 [US3] Tạo `src/features/timeline/hooks/useTaskDrag.ts` — kéo **chỉ từ tay cầm ⣿**, không phải cả dòng; bám lưới 15 phút; ngưỡng bắt đầu 8pt; nhãn "Thả để đổi sang 10:15" trong lúc kéo; thả ngoài vùng = hủy (FR-018a)
 - [X] T064 [US3] Xử lý ưu tiên cử chỉ giữa `src/features/timeline/hooks/useTaskDrag.ts` và `useDaySwipe.ts`: vuốt bắt đầu **trong vùng chạm 44pt của tay cầm** thuộc về thao tác kéo, ngoài vùng đó là chuyển ngày. Ranh giới là **vùng chạm, không phải hướng vuốt** — phân biệt bằng hướng sẽ hỏng khi ngón tay đi chéo (FR-003c)
@@ -209,7 +209,7 @@ Một codebase React Native, bare workflow. Ranh giới tầng do thư mục quy
 ### Implementation for User Story 5
 
 - [X] T082 [US5] Bổ sung logic hợp nhất vào `src/domain/occurrence.ts`: kiểm tra sự có mặt bằng `'field' in override`, **không** bằng `!== undefined` — sai chỗ này biến "buổi này cố ý không có giờ kết thúc" thành "kế thừa 10:00" (R7)
-- [X] T083 [US5] Tạo `src/services/db/overrideRepository.ts` với `id = "${ruleId}:${occurrenceDate}"` — ràng buộc "tối đa một điều chỉnh riêng mỗi buổi" trở thành thứ **không thể vi phạm** thay vì phải kiểm tra trước khi ghi (FR-028)
+- [X] T083 [US5] Đặt `id = "${ruleId}:${occurrenceDate}"` cho override — ràng buộc "tối đa một điều chỉnh riêng mỗi buổi" trở thành thứ **không thể vi phạm** thay vì phải kiểm tra trước khi ghi (FR-028). *Nằm trong `src/services/db/recurrenceRepository.ts`, không tách file riêng: `deleteRuleCascade` phải chạm cả quy tắc lẫn override trong cùng một transaction, nên một ranh giới ở giữa là ranh giới mà chính transaction đó phải phá — xem chú thích ③ trong [plan.md](./plan.md)*
 - [X] T084 [US5] `upsertOverride` chỉ đưa vào payload những khóa **thực sự có mặt**; không điền `undefined` cho phần còn lại (contracts/storage.md)
 - [X] T085 [US5] `deleteRuleCascade` xóa quy tắc **và** mọi override của nó trong **cùng một transaction** — xóa riêng lẻ sẽ để lại override mồ côi làm nhiễu mọi lần đếm về sau ([data-model.md §6](./data-model.md))
 - [X] T086 [US5] Tạo `src/features/task-editor/components/ScopeSheet.tsx` (S-05/W-04) — loại **chặn**: không vuốt xuống, không chạm nền để đóng, chỉ ba lối ra rõ ràng
@@ -267,8 +267,8 @@ Một codebase React Native, bare workflow. Ranh giới tầng do thư mục quy
 - [X] T109 [P] [US7] Tạo `src/services/db/settingsRepository.ts` — `getAll()` **luôn trả đủ khóa**, điền mặc định khi thiếu, để màn hình không phải xử lý `undefined` (contracts/storage.md)
 - [X] T110 [US7] Tạo `src/features/settings/hooks/useSettings.ts` với đủ 5 trạng thái bất đồng bộ
 - [X] T111 [US7] Tạo `src/features/settings/screens/SettingsScreen.tsx` theo [W-06](./design/wireframes.md)
-- [X] T112 [US7] Trong `src/features/settings/components/PermissionRow.tsx`, hàng trạng thái quyền dùng **nhãn có chữ** (✓ Đã cấp / ⚠ Chưa cấp), không phải chấm màu, kèm nút mở cài đặt hệ thống (FR-051)
-- [X] T113 [US7] `src/features/settings/components/DisplayModeRow.tsx`: segmented Tự động | Sáng | Tối, mỗi lựa chọn 44pt, "Tự động" có dòng phụ nói rõ nó theo cài đặt máy; áp dụng **ngay** không cần thoát màn hình (FR-052b, FR-052c)
+- [X] T112 [US7] Hàng trạng thái quyền dùng **nhãn có chữ** (✓ Đã cấp / ⚠ Chưa cấp), không phải chấm màu, kèm nút mở cài đặt hệ thống (FR-051). *`PermissionRow` để nội tuyến trong `SettingsScreen.tsx`: nó chỉ dùng ở đúng màn hình này, và Principle II đặt ngưỡng tách thành phần dùng chung ở "≥2 feature"*
+- [X] T113 [US7] Hàng chế độ hiển thị dùng `Segmented` dùng chung: Tự động | Sáng | Tối, mỗi lựa chọn 44pt, "Tự động" có dòng phụ nói rõ nó theo cài đặt máy; áp dụng **ngay** không cần thoát màn hình (FR-052b, FR-052c). *Không cần `DisplayModeRow` riêng — `Segmented` đã nhận `hint` cho đúng nhu cầu này*
 - [X] T114 [US7] Trong `src/features/settings/screens/SettingsScreen.tsx`, hàng mốc nhắc mặc định kèm câu "chỉ áp dụng cho việc tạo mới" — đổi mặc định **không** sửa công việc đã tồn tại (FR-052a)
 - [X] T115 [US7] Trong `src/features/settings/screens/SettingsScreen.tsx`, hàng ngày bắt đầu tuần, áp dụng cho bộ chọn lịch của S-02 (FR-052)
 - [X] T116 [US7] Khối dữ liệu: câu "chỉ lưu trên máy này, gỡ app là mất" + số mục đang lưu; **không khẳng định** loại trừ sao lưu nếu `backupPosture().observed` là `unknown` — lời trấn an sai còn tệ hơn không nói gì (FR-053, contracts/storage.md)
@@ -305,7 +305,72 @@ Phase này **kiểm chứng**, không giới thiệu chúng lần đầu.
 - [X] T131 Trích xuất logic bị lặp giữa các story vào `src/components/` hoặc `src/hooks/` (Principle II)
 - [ ] T132 [P] Chạy toàn bộ 12 kịch bản trong [quickstart.md](./quickstart.md) và ghi lại kết quả
 - [ ] T133 Chạy [quickstart.md](./quickstart.md) trên cả hai nền tảng: nhất quán nghiệp vụ cho trạng thái, lặp lại, điều chỉnh riêng, di chuyển, lưu trữ và lịch nhắc (FR-059, SC-012)
-- [X] T134 [P] Chốt bộ icon thay cho ký hiệu chữ ⟳ ✎ ⣿ ✓ ‹ › — quyết định D-06 đã hoãn tới giai đoạn này ([design/decisions.md](./design/decisions.md))
+- [X] T134 [P] Chốt bộ icon thay cho ký hiệu chữ ⟳ ✎ ⣿ ✓ ‹ › — quyết định D-06 đã hoãn tới giai đoạn này ([design/decisions.md](./design/decisions.md)). **Kết luận: không thêm thư viện icon.** Mũi tên điều hướng được **vẽ** (`src/components/Chevron.tsx`) vì phông chữ không đặt nét đối xứng nên ký tự `‹ ›` không bao giờ căn thẳng với nhãn bên cạnh; các ký hiệu còn lại giữ nguyên dạng ký tự vì chúng đối xứng và căn giữa ổn định, chỉ cần token `GLYPH_ALIGN` để tắt padding phông của Android. Một gói icon sẽ thêm phụ thuộc mà không giải quyết đúng vấn đề (Principle VI)
+
+---
+
+## Phase 11: Vòng dùng thử trên thiết bị thật (2026-08-05)
+
+**Purpose**: Khép lại phản hồi từ lần dùng bản dựng thật đầu tiên
+
+Phase này khác mọi phase trên: nó không đến từ đặc tả mà đến từ việc **dùng ứng dụng**. Mỗi
+task dưới đây sửa một thứ chỉ lộ ra trên thiết bị — hoặc là hành vi mặc định của thư viện đi
+ngược điều kế hoạch giả định (xem *Ràng buộc thư viện* trong [plan.md](./plan.md)), hoặc là
+một mặc định đúng trên giấy nhưng sai trong tay người dùng. Các yêu cầu mới sinh ra từ đây đã
+được ghi ngược vào [spec.md](./spec.md), nên đặc tả vẫn là nguồn sự thật chứ không phải nhật
+ký thay đổi này.
+
+### Lỗi hành vi (đúng đặc tả nhưng sai khi dùng)
+
+- [X] T135 [US3] Thêm `withStartTime()` vào `src/domain/task.ts` và nối vào **cả ba** đường đổi giờ — kéo-thả, "Di chuyển", và nhánh `shiftTime` của sheet phạm vi. Ghi mỗi `startTime` làm một việc 09:00–10:00 kéo sang 10:00 thành 10:00–10:00; giờ kết thúc phải đi theo, và bị giới hạn trong ngày thay vì vòng qua nửa đêm (FR-019a, SC-016)
+- [X] T136 [P] [US3] `src/domain/__tests__/task.test.ts` — 5 trường hợp cho `withStartTime`: dời tới, dời lui, việc không có giờ kết thúc, giới hạn ở cuối ngày, và kết quả luôn qua được `validateTask`
+- [X] T137 Khai `stackBehavior="push"` trong `src/components/Sheet.tsx` — mặc định `switch` của thư viện **thu nhỏ** sheet đang mở khi sheet con hiện, khiến bấm "Lặp lại" trong form tạo việc trông như ứng dụng tự đóng phần đang làm dở (L-1)
+- [X] T138 Bỏ qua `onDismiss` đến sau khi React đã unmount sheet, trong `src/components/Sheet.tsx` — thư viện báo đóng khi hoạt ảnh kết thúc, tức vài trăm ms sau cú chạm, nên hành động trên dòng bị chính báo cáo muộn đó xóa mất sheet mà nó vừa mở (L-2). Đây là nguyên nhân "bấm nút trong Thao tác thì sheet đóng mà không mở gì"
+
+### Bố cục lớp phủ (FR-062)
+
+- [X] T139 Đổi nội dung `src/components/Sheet.tsx` sang `BottomSheetScrollView` — `BottomSheetView` báo chiều cao layout nên form dài tràn khỏi đáy màn hình với các trường cuối không chạm tới được; scrollable báo chiều cao **nội dung** nên sheet lớn tới trần rồi cuộn (L-3)
+- [X] T140 Chuyển tiêu đề sheet sang `handleComponent` thay vì `stickyHeaderIndices` — React Native chuyển style của con lên phần tử bọc và đưa con `{flex: 1}`, làm `flexDirection: 'row'` biến mất và tiêu đề với nút × xếp thành cột (L-4)
+- [X] T141 Dùng `enableFooterMarginAdjustment` + phần đệm theo vùng an toàn đáy trong `src/components/Sheet.tsx` và thanh hành động của `TimelineScreen.tsx` — thanh điều hướng Android vẽ đè lên ứng dụng ở `targetSdk 36`, che nút TẠO CÔNG VIỆC và trường Ghi chú
+
+### Rút gọn và làm rõ thao tác
+
+- [X] T142 Bỏ "Đổi giờ trong ngày" khỏi `src/features/task-editor/components/RowActionsSheet.tsx`; "Di chuyển" là lối duy nhất đổi thời gian và đã chứa cả giờ lẫn ngày (FR-018d)
+- [X] T143 Với buổi của chuỗi lặp, "Di chuyển" mở `TimeShiftSheet` ở chế độ **chỉ giờ**, rồi đi qua sheet phạm vi như đường kéo-thả. `TimeShiftSheet` nhận `subject: Pick<Task, 'taskDate' | 'startTime'>` thay vì `Task` — một buổi không có bản ghi nào phía sau (FR-018e)
+- [X] T144 Ẩn "Sửa" cho buổi của chuỗi lặp — sửa **nội dung** một buổi chưa có màn hình, và một nút đóng sheet rồi không mở gì tệ hơn một nút vắng mặt (FR-029a). Ghi vào Out of Scope thay vì để lại lối cụt
+
+### Điều hướng và chuyển cảnh (FR-060, FR-003d, FR-005a)
+
+- [X] T145 Thanh ngày: ô chạm 52pt, mũi tên vẽ bằng `Chevron`, `CĐ` → biểu tượng bánh răng, và nút **VỀ HÔM NAY** chỉ hiện khi ngày đang xem không phải hôm nay (FR-003d)
+- [X] T146 `animation: 'slide_from_right'` 220ms trong `src/app/navigation/RootStack.tsx`, và chuyển cảnh có hướng cho việc đổi ngày trên timeline — chạy bằng shared value của Reanimated trên UI thread, không dùng layout animation (FR-060, SC-006)
+- [X] T147 Tạo `src/features/timeline/hooks/useCreateSwipe.ts` — vuốt lên **từ thanh hành động**, không phải từ vùng danh sách: trên danh sách, vuốt dọc đã mang nghĩa cuộn, và một cử chỉ đổi nghĩa theo vị trí cuộn là cử chỉ không tin được (FR-005a)
+- [X] T148 Đồng bộ biểu tượng giữa thanh ngày và tiêu đề Cài đặt qua token `DAY_ICON_SIZE`, `NAV_CHEVRON_SIZE`, `GLYPH_ALIGN`; tạo `src/components/Chevron.tsx` vẽ mũi tên bằng viền (T134, D-06)
+
+### Form và bàn phím
+
+- [X] T149 Ba lựa chọn của cảnh báo "còn thay đổi chưa lưu" trở thành ba **nút**; lối thoát làm mất dữ liệu dùng viền, không dùng nền đặc (FR-013a)
+- [X] T150 `Keyboard.dismiss()` trong `Chip`, `Segmented`, `DateTimeField`, công tắc nhắc nhở và hàng Lặp lại — điều khiển vẫn thực thi **và** bàn phím đóng; nuốt lần chạm đầu chỉ để đóng bàn phím là hỏng theo kiểu khác (FR-061)
+- [X] T151 `nextWholeHour()` trong `src/lib/date.ts` làm giờ bắt đầu mặc định, đọc **một lần** lúc mở form: đọc lại mỗi lần render sẽ khiến mặc định nhích lên trong lúc người dùng đang gõ, và `dirty` so với mốc đang trôi sẽ báo form chưa ai chạm là đã sửa (FR-008a)
+- [X] T152 [P] `src/lib/__tests__/date.test.ts` — 5 trường hợp cho `nextWholeHour`, gồm giới hạn ở cuối ngày thay vì vòng về 00:00
+
+### Hoàn tác và đếm dữ liệu
+
+- [X] T153 [US5] Thêm `snapshotRule`/`restoreRule` vào `src/services/db/recurrenceRepository.ts` và nối hoàn tác 5 giây cho nhánh xóa "Toàn bộ chuỗi" — cascade là xóa cứng nên ảnh chụp phải đọc **trước** khi xóa; khôi phục đặt lại quy tắc và mọi override dưới đúng định danh cũ (FR-031a)
+- [X] T154 [US5] Gọi `reminders.sync()` ở **cả ba** nhánh của sheet phạm vi — trước đó đổi giờ hay xóa chuỗi vẫn để lại nhắc nhở đã đặt cho những buổi không còn tồn tại (FR-037)
+- [X] T155 [US7] Cộng `countAllRules()` vào số mục hiển thị trong Cài đặt — chỉ đếm bảng công việc báo "0 công việc" cho người dùng có toàn bộ lịch là việc lặp (FR-053a)
+
+### Nhắc nhở nghe được (FR-035a/b/c, SC-017)
+
+- [X] T156 [US6] Bật âm báo và rung cho kênh thông báo trong `src/services/notifications/notifeeScheduler.ts`; đổi id kênh vì Android **khóa cấu hình kênh sau khi tạo**, nên ghi đè lên id cũ không có tác dụng nào
+- [X] T157 [US6] Khi phát hiện kênh cũ còn trên máy thì hủy toàn bộ trigger đang chờ, để lần hòa giải kế tiếp dựng lại chúng trên kênh mới — hòa giải cố ý không đụng id đã đúng lịch (FR-041), nên nếu không có bước này thì âm báo chỉ đến với người cài mới (FR-035c, L-5)
+- [X] T158 [US6] Trình bày nhắc nhở như cảnh báo theo thời điểm: `loopSound`, `category: ALARM`, `bypassDnd`, mẫu rung dứt khoát, `autoCancel` để dừng ngay khi người dùng xử lý (FR-035b)
+
+### Giới hạn đã biết của vòng này
+
+- [ ] T159 [US6] **Chưa xác minh trên thiết bị**: âm báo nhắc nhở, gồm cả các nhắc nhở đã đặt trước khi cập nhật. Cần máy thật có quyền thông báo (SC-017)
+- [ ] T160 Âm báo hiện dùng tiếng thông báo mặc định của hệ thống, không phải tiếng báo thức: Notifee chỉ nhận `'default'` hoặc tên tệp trong `android/app/src/main/res/raw/`, **không** nhận URI hệ thống. Dùng tiếng báo thức thật cần đóng gói một tệp âm thanh — quyết định còn để mở
+
+**Checkpoint**: Phản hồi vòng một đã khép; T159/T160 cần thiết bị hoặc một quyết định về tài nguyên âm thanh
 
 ---
 
@@ -317,6 +382,7 @@ Phase này **kiểm chứng**, không giới thiệu chúng lần đầu.
 - **Foundational (Phase 2)**: sau Setup — **chặn toàn bộ** user story
 - **User Stories (Phase 3–9)**: đều sau Foundational; sau đó chạy song song hoặc tuần tự theo ưu tiên
 - **Polish (Phase 10)**: sau các story cần giao
+- **Vòng dùng thử (Phase 11)**: sau khi có bản dựng chạy được trên thiết bị thật. Phase này không lập kế hoạch trước được — nội dung của nó do việc dùng ứng dụng quyết định
 
 ### User Story Dependencies
 
@@ -407,5 +473,12 @@ nên thống nhất chữ ký hai file đó ngay khi Foundational xong.
   import theme — sai thì app render không style và không báo lỗi), T019 (thiếu XML thì FR-049
   trượt mà app vẫn chạy), T082 (`'field' in override` — sai thì mất dữ liệu người dùng không
   nhận ra).
+- Phase 11 bổ sung chỗ thứ tư, và nó im lặng ở tầng khác: T157. Cấu hình kênh thông báo bị
+  Android khóa sau khi tạo, nên một thay đổi về âm báo **biên dịch sạch, chạy sạch, và không
+  có tác dụng gì** với mọi người dùng đã cài. Không có kiểm thử nào bắt được điều đó; chỉ có
+  việc thử trên máy đã cài bản cũ mới bắt được.
+- Bốn task Phase 11 khác cũng thuộc loại "chỉ lộ ra trên thiết bị": T137, T138, T139, T140.
+  Cả bốn đều là hành vi mặc định của thư viện, đều hợp lệ về kiểu, và đều không có bài kiểm
+  thử nào ở tầng này chạm tới — xem bảng *Ràng buộc thư viện* trong [plan.md](./plan.md).
 - Commit sau mỗi task hoặc mỗi nhóm hợp lý.
 - Dừng ở bất kỳ checkpoint nào để kiểm chứng story độc lập.

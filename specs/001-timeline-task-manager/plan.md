@@ -1,6 +1,6 @@
 # Implementation Plan: Ứng dụng quản lý công việc theo Timeline (MVP)
 
-**Branch**: `001-timeline-task-manager` | **Date**: 2026-08-02 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-timeline-task-manager` | **Date**: 2026-08-02 (cập nhật 2026-08-05) | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/001-timeline-task-manager/spec.md`
 
@@ -17,9 +17,17 @@ xuất hiện* của công việc lặp lại (sinh khi vẽ đúng ngày đang 
 tái tạo được từ công việc và quy tắc lặp). Đây là ràng buộc kiến trúc quan trọng nhất của
 tính năng: mọi thứ khác đều là hệ quả của nó.
 
-Repository hiện là bộ khung React Native trần — chưa có `src/`. Kế hoạch này tạo ra toàn bộ
-cấu trúc nguồn, và bổ sung năm nhóm phụ thuộc mà bộ khung chưa có (điều hướng, cử chỉ, nhắc
-nhở cục bộ, bộ chọn ngày giờ, và khai báo tường minh hai gói đang tồn tại ngầm).
+Khi kế hoạch này được viết, repository còn là bộ khung React Native trần — chưa có `src/`.
+Kế hoạch tạo ra toàn bộ cấu trúc nguồn, và bổ sung năm nhóm phụ thuộc mà bộ khung chưa có
+(điều hướng, cử chỉ, nhắc nhở cục bộ, bộ chọn ngày giờ, và khai báo tường minh hai gói đang
+tồn tại ngầm).
+
+**Trạng thái 2026-08-05**: bảy user story đã triển khai và chạy trên thiết bị thật. Vòng dùng
+thử đầu tiên sinh ra một loạt thay đổi hành vi đã được ghi ngược vào [spec.md](./spec.md)
+(FR-003d, FR-005a, FR-008a, FR-013a, FR-018d/e, FR-019a, FR-029a, FR-031a, FR-035a/b/c,
+FR-053a, FR-060…062) và vào Phase 11 của [tasks.md](./tasks.md). Mục *Ràng buộc thư viện phát
+hiện khi triển khai* bên dưới ghi năm chỗ mà hành vi mặc định của thư viện đi ngược lại điều
+kế hoạch giả định — đó là phần đắt nhất của vòng này và là phần dễ mất nhất nếu không ghi lại.
 
 ## Technical Context
 
@@ -28,22 +36,25 @@ nhở cục bộ, bộ chọn ngày giờ, và khai báo tường minh hai gói 
 
 **Primary Dependencies**: React Native `0.86.2`, **bare workflow** (`android/` và `ios/` được
 commit, không có Expo). Đã cài và dùng được:
-`@chipmobilesdk/rn-theme@0.2.1`, `@chipmobilesdk/rn-local-db@0.1.1`, `@op-engineering/op-sqlite@17.1.3`,
-`@dr.pogodin/react-native-fs@2.39.2`, `react-native-safe-area-context@^5.5.2`,
-`react-native-unistyles@3.3.0` (peer chưa khai báo), `tinycolor2@1.6.0` (transitive).
+`@chipmobilesdk/rn-theme@0.2.2`, `@chipmobilesdk/rn-local-db@0.1.1`, `@op-engineering/op-sqlite@^17.1.3`,
+`@dr.pogodin/react-native-fs@^2.39.2`, `react-native-safe-area-context@^5.5.2`,
+`react-native-unistyles@^3.3.0`, `tinycolor2@1.6.0` (transitive).
 
-Tính năng này **thêm** các phụ thuộc sau — mỗi dòng kèm lý do cân với Principle VI:
+Tính năng này **thêm** các phụ thuộc sau — mỗi dòng kèm lý do cân với Principle VI. Cột phiên
+bản là những gì thực sự nằm trong [package.json](../../package.json) sau khi triển khai:
 
-| Gói | Vì sao bắt buộc | Requirement |
-|---|---|---|
-| `@react-navigation/native` + `native-stack` | Cần một stack thật cho Cài đặt; hiến pháp yêu cầu thư viện điều hướng | FR-051…054 |
-| `react-native-screens` | Peer của native-stack; bật màn hình gốc, giảm chi phí dựng | — |
-| `react-native-gesture-handler` | Ba cử chỉ bắt buộc: kéo đổi giờ, vuốt chuyển ngày, vuốt đóng sheet | FR-003a, FR-018a |
-| `react-native-reanimated` | Chạy cử chỉ trên UI thread; ngân sách 60 FPS không đạt được nếu chạy trên JS thread | SC-006 |
-| `@gorhom/bottom-sheet` | 6/9 màn hình là bottom sheet, một trong số đó là loại chặn | Toàn bộ IA |
-| `@notifee/react-native` | Nhắc nhở cục bộ có lịch, kênh thông báo, và quyền báo thức chính xác trên Android | FR-033…044 |
-| `@react-native-community/datetimepicker` | Bộ chọn ngày/giờ **gốc** của hệ điều hành theo Principle I | FR-007, FR-021 |
-| `react-native-unistyles` *(khai báo lại)* | App import trực tiếp nhưng chưa khai trong `package.json`; hiện chỉ tồn tại nhờ peer của gói theme | Constitution III |
+| Gói | Phiên bản | Vì sao bắt buộc | Requirement |
+|---|---|---|---|
+| `@react-navigation/native` + `native-stack` | `^7.3.14` / `^7.18.6` | Cần một stack thật cho Cài đặt; hiến pháp yêu cầu thư viện điều hướng. Cũng là nơi khai báo chuyển cảnh có hướng | FR-051…054, FR-060 |
+| `react-native-screens` | `^4.26.2` | Peer của native-stack; bật màn hình gốc, giảm chi phí dựng | — |
+| `react-native-gesture-handler` | `^3.1.0` | Bốn cử chỉ: kéo đổi giờ, vuốt chuyển ngày, vuốt lên tạo việc, vuốt đóng sheet | FR-003a, FR-005a, FR-018a |
+| `react-native-reanimated` | `^4.5.3` | Chạy cử chỉ và chuyển cảnh ngày trên UI thread; ngân sách 60 FPS không đạt được nếu chạy trên JS thread | SC-006, FR-060 |
+| `react-native-worklets` | `^0.11.3` | Reanimated 4 tách plugin Babel sang gói này; **phải nằm cuối** mảng plugins | SC-006 |
+| `react-native-nitro-modules` | `^0.36.5` | Peer bắt buộc của `op-sqlite` ở dòng 17.x | — |
+| `@gorhom/bottom-sheet` | `^5.2.14` | 6/9 màn hình là bottom sheet, một trong số đó là loại chặn | Toàn bộ IA |
+| `@notifee/react-native` | `^9.1.8` | Nhắc nhở cục bộ có lịch, kênh thông báo, và quyền báo thức chính xác trên Android | FR-033…044 |
+| `@react-native-community/datetimepicker` | `^9.1.0` | Bộ chọn ngày/giờ **gốc** của hệ điều hành theo Principle I | FR-007, FR-021 |
+| `react-native-unistyles` *(khai báo lại)* | `^3.3.0` | App import trực tiếp nhưng chưa khai trong `package.json`; trước đó chỉ tồn tại nhờ peer của gói theme | Constitution III |
 
 **Không** thêm: thư viện i18n (một ngôn ngữ — xem R9), thư viện quản lý state toàn cục (xem
 R11), `react-native-quick-crypto` (chỉ cần khi bật mã hóa — xem R5), `@shopify/flash-list`
@@ -78,7 +89,8 @@ chỉnh (FR-056); vùng chạm ≥44×44pt và bố cục chịu được cỡ c
 (FR-058a).
 
 **Scale/Scope**: 9 màn hình (S-01…S-09), 8 luồng (F-1…F-8), 4 thực thể lưu trữ + 1 bảng cài
-đặt, 80 yêu cầu chức năng, 15 tiêu chí thành công.
+đặt, 96 yêu cầu chức năng, 18 tiêu chí thành công (80/15 khi lập kế hoạch; phần chênh đến từ
+vòng dùng thử 2026-08-05).
 
 ## Constitution Check
 
@@ -131,54 +143,61 @@ specs/001-timeline-task-manager/
 
 ### Source Code (repository root)
 
-`src/` **chưa tồn tại**; tính năng này tạo toàn bộ. Ngoài `src/`, tính năng chạm vào
-`index.js` (mount vỏ app), `package.json` (phụ thuộc), và hai thư mục native cho quyền và
-quy tắc sao lưu.
+`src/` **chưa tồn tại** khi kế hoạch được viết; tính năng này tạo toàn bộ. Ngoài `src/`, tính
+năng chạm vào `index.js` (mount vỏ app), `package.json` (phụ thuộc), và hai thư mục native
+cho quyền và quy tắc sao lưu.
+
+Cây dưới đây là **hiện trạng sau khi triển khai**. Ba chỗ lệch so với dự kiến ban đầu được
+đánh dấu, vì mỗi chỗ đều là một quyết định chứ không phải thiếu sót.
 
 ```text
 src/
 ├── app/
 │   ├── App.tsx                       # Vỏ: providers + navigator
 │   ├── navigation/
-│   │   ├── RootStack.tsx             # Timeline → Settings (2 màn hình)
+│   │   ├── RootStack.tsx             # Timeline → Settings, slide_from_right 220ms (FR-060)
 │   │   └── routes.ts                 # Tên route + kiểu tham số
 │   └── providers/
 │       ├── DatabaseProvider.tsx      # Mở handle một lần, cung cấp xuống dưới
-│       ├── UndoProvider.tsx          # Toast Hoàn tác sống trên navigator (FR-011a)
-│       └── SheetProvider.tsx         # Vật chủ bottom sheet
+│       ├── ReminderProvider.tsx      # Quyền + hòa giải lịch nhắc (thay cho SheetProvider ①)
+│       └── UndoProvider.tsx          # Toast Hoàn tác sống trên navigator (FR-011a)
 ├── features/
 │   ├── timeline/                     # S-01, S-02 · US-1, US-2
 │   │   ├── screens/TimelineScreen.tsx
-│   │   ├── components/               # TaskRow, OverlapCluster, DayBar, DatePickerSheet
-│   │   ├── hooks/                    # useTimelineDay, useDaySwipe, useTaskDrag
+│   │   ├── components/               # TaskRow, DayBar, DatePickerSheet ②
+│   │   ├── hooks/                    # useTimelineDay, useDaySwipe, useTaskDrag,
+│   │   │                             #   useCreateSwipe (FR-005a), useBusyDays
 │   │   └── index.ts
 │   ├── task-editor/                  # S-03, S-04, S-06, S-07, S-09 · US-3, US-4, US-5
 │   │   ├── screens/TaskFormSheet.tsx
-│   │   ├── components/               # RecurrenceSheet, ScopeSheet, RowActionsSheet, TimeShiftSheet
-│   │   ├── hooks/                    # useTaskForm, useApplyScope
-│   │   └── index.ts
+│   │   ├── components/               # RecurrenceSheet, ScopeSheet, RowActionsSheet,
+│   │   │                             #   TimeShiftSheet, DateTimeField, Field
+│   │   ├── hooks/useTaskForm.ts      # ③ useApplyScope không tồn tại: logic phạm vi
+│   │   └── index.ts                  #   nằm trong TimelineScreen, nơi sở hữu pendingScope
 │   └── settings/                     # S-08 · US-7
-│       ├── screens/SettingsScreen.tsx
-│       ├── components/               # PermissionRow, DisplayModeRow
+│       ├── screens/SettingsScreen.tsx  # PermissionRow nội tuyến — dùng đúng một chỗ
 │       ├── hooks/useSettings.ts
 │       └── index.ts
 ├── components/                       # Dùng chung ≥2 feature
 │   ├── Text.tsx                      # Bọc maxFontSizeMultiplier=1.7 (FR-057)
+│   ├── Chevron.tsx                   # Mũi tên VẼ bằng viền, không phải ký tự ‹ › (D-06)
 │   ├── Chip.tsx  Segmented.tsx  Sheet.tsx  Toast.tsx
-│   ├── Skeleton.tsx  EmptyState.tsx  ErrorState.tsx
+│   └── Skeleton.tsx  EmptyState.tsx  ErrorState.tsx
 ├── theme/                            # Nguồn sự thật DUY NHẤT chứa hex
-│   ├── brand.ts  tokens.ts  setup.ts  mode.ts
-├── hooks/                            # Hook dùng chung
+│   └── brand.ts  tokens.ts  setup.ts  mode.ts  theme.ts
 ├── services/
-│   ├── db/                           # Cấu hình schema, mở/đóng, migration
-│   ├── notifications/                # Cổng Notifee + hòa giải lịch nhắc
+│   ├── db/                           # schema, gateway, errors + 3 repository
+│   ├── notifications/                # scheduler (cổng) + notifeeScheduler + reconcile
 │   └── logging/                      # Nhật ký lỗi cục bộ xoay vòng (FR-055a/b/c)
 ├── domain/                           # KHÔNG import React — kiểm thử không cần renderer
-│   ├── task.ts  recurrence.ts  occurrence.ts  overlap.ts  reminder.ts
+│   ├── task.ts  recurrence.ts  occurrence.ts  reminder.ts
+│   ├── timeline.ts  settings.ts      # ② thay cho overlap.ts, xem ghi chú
 │   └── __tests__/
 ├── lib/
 │   ├── date.ts                       # Ngày/giờ địa phương, không phụ thuộc đồng hồ máy chủ
-│   └── strings.ts                    # Danh mục chuỗi tập trung (FR-058a)
+│   ├── format.ts  haptics.ts
+│   ├── strings.ts                    # Danh mục chuỗi tập trung (FR-058a)
+│   └── __tests__/
 └── types/
 
 index.js                              # Import src/theme/setup TRƯỚC, rồi mount src/app
@@ -189,9 +208,25 @@ ios/TaskManager/Info.plist                        # Chuỗi mục đích thông 
 __tests__/                                        # Kiểm thử app-level (đã có)
 ```
 
-**Structure Decision**: Một codebase React Native duy nhất, bare workflow. Trong các thư mục
-trên, **chỉ `android/`, `ios/`, `__tests__/` và `index.js` đã tồn tại** — toàn bộ `src/` do
-tính năng này tạo, nên đây cũng là tính năng thiết lập ranh giới tầng cho mọi tính năng sau.
+① **`SheetProvider` không cần tồn tại.** `BottomSheetModalProvider` của thư viện đã là vật chủ
+duy nhất cần có, và mỗi sheet tự dựng khi state của màn hình nói nó nên hiện. Thêm một
+provider của riêng ứng dụng chỉ để bọc lại nó là một tầng gián tiếp không mang thông tin.
+Chỗ trống đó dành cho `ReminderProvider`, thứ thực sự cần sống trên navigator: nó giữ trạng
+thái quyền và chạy hòa giải khi app quay lại tiền cảnh (FR-040, FR-041).
+
+② **`overlap.ts` và `OverlapCluster` không được dựng.** FR-006 chỉ yêu cầu hiển thị **đầy đủ**
+các công việc chồng giờ, không yêu cầu gộp chúng thành cụm. Một danh sách phẳng đã thỏa mãn
+điều đó và giữ được ngân sách cuộn của SC-006. `domain/timeline.ts` thay vào đó làm việc hữu
+ích hơn: hợp nhất công việc thường và buổi lặp thành một kiểu `TimelineItem` duy nhất, để màn
+hình không phải phân biệt hai nguồn dữ liệu trong lúc vẽ.
+
+③ **Không có `overrideRepository.ts` riêng.** Override luôn được đọc và ghi cùng quy tắc sinh
+ra nó, và `deleteRuleCascade` bắt buộc phải chạm cả hai trong một transaction ([data-model.md
+§6](./data-model.md)). Tách đôi sẽ tạo ra một ranh giới mà chính transaction đó phải phá.
+
+**Structure Decision**: Một codebase React Native duy nhất, bare workflow. Khi lập kế hoạch,
+**chỉ `android/`, `ios/`, `__tests__/` và `index.js` đã tồn tại** — toàn bộ `src/` do tính
+năng này tạo, nên đây cũng là tính năng thiết lập ranh giới tầng cho mọi tính năng sau.
 `index.js` giữ vai trò vỏ mỏng: import `src/theme/setup` ở dòng đầu (thứ tự này là bắt buộc,
 xem R6) rồi mount `src/app`. Không có backend trong repository và tính năng không cần backend.
 
@@ -212,6 +247,27 @@ Một rủi ro mới lộ ra ở Phase 1 và đã được xử lý trong thiế
 duyệt từng ngày — 365 vòng lặp trên JS thread ngay lúc người dùng đang chờ sheet mở. Hợp đồng
 quy định phép đếm là số học thuần (số tuần trọn vẹn × số thứ được chọn, cộng phần dư hai
 đầu), giữ Principle VI.
+
+## Ràng buộc thư viện phát hiện khi triển khai
+
+Năm chỗ dưới đây là nơi **hành vi mặc định của thư viện đi ngược lại điều kế hoạch giả định**.
+Không chỗ nào lộ ra khi đọc tài liệu; mỗi chỗ đều mất một vòng dùng thử để tìm. Ghi lại vì
+chúng sẽ tái xuất hiện ở bất kỳ tính năng nào chạm vào cùng thư viện.
+
+| # | Giả định của kế hoạch | Thực tế | Cách xử lý |
+|---|---|---|---|
+| L-1 | Mở một sheet từ trong sheet khác thì sheet dưới ở nguyên chỗ | `@gorhom/bottom-sheet` mặc định `stackBehavior: 'switch'`, tức **thu nhỏ** sheet đang mở khi sheet mới hiện. Người dùng thấy màn hình đang làm dở trượt đi mất | Khai `stackBehavior="push"` trong `src/components/Sheet.tsx`. Áp dụng cho mọi sheet, vì mọi sheet lồng nhau ở đây đều mở từ bên trong sheet cha |
+| L-2 | `onDismiss` nghĩa là "người dùng đã đóng sheet này" | Nó cũng bắn khi **chủ sở hữu thay sheet này bằng sheet khác**, và bắn sau khi hoạt ảnh đóng kết thúc — tức vài trăm ms sau cú chạm. Kết quả: hành động trên dòng đóng sheet rồi xóa luôn sheet mà chính cú chạm đó vừa mở | `Sheet` nhớ mình đã bị React unmount hay chưa và bỏ qua báo cáo muộn. Sau khi unmount, chủ sở hữu đã tự biết cái gì đang hiện |
+| L-3 | `enableDynamicSizing` giới hạn chiều cao sheet theo màn hình | Nó giới hạn **sheet**, nhưng `BottomSheetView` bên trong vẫn dựng ở chiều cao tự nhiên rồi tràn ra ngoài. Form dài chạy khỏi đáy màn hình, các trường cuối không chạm tới được | Nội dung sheet là `BottomSheetScrollView` — nó báo kích thước **nội dung** thay vì kích thước layout, nên sheet lớn tới mức trần rồi cuộn phần còn lại. Cũng là thứ hợp tác đúng với cử chỉ vuốt-đóng, thứ mà `ScrollView` trần chống lại |
+| L-4 | `stickyHeaderIndices` ghim một hàng mà giữ nguyên bố cục của nó | React Native **chuyển style của con lên phần tử bọc** rồi đưa con `{flex: 1}` (`ScrollViewStickyHeader`). `flexDirection: 'row'` đi theo, tiêu đề và nút đóng xếp thành cột | Tiêu đề sheet trở thành `handleComponent`. Vị trí đó nằm ngoài vùng cuộn, được thư viện đo vào chiều cao sheet, và giữ nguyên style được giao |
+| L-5 | Đổi cấu hình kênh thông báo là đủ để mọi nhắc nhở nhận cấu hình mới | Kênh Android **bất biến sau khi tạo**, và phép hòa giải (FR-041) cố ý không đụng vào id đã đúng lịch. Hai điều đó cộng lại: thêm âm báo chỉ có tác dụng với người cài mới | Đổi id kênh, và khi phát hiện kênh cũ vẫn còn thì hủy toàn bộ nhắc nhở đang chờ để lần hòa giải kế tiếp dựng lại chúng trên kênh mới (FR-035c) |
+
+Một quan sát chung, đắt hơn cả năm dòng trên: **ký tự không phải biểu tượng.** Căn giữa `‹`
+trong một ô vuông không cho ra một mũi tên nằm giữa ô vuông, vì phông chữ đặt nét theo
+ascent/descent bất đối xứng của riêng nó và mỗi ký tự lại lệch một kiểu. Hai vòng chỉnh
+padding đều thất bại; chỉ khi **vẽ** mũi tên bằng viền (`src/components/Chevron.tsx`) thì các
+biểu tượng trong thanh tiêu đề mới thẳng hàng. Đây là dữ kiện quyết định D-06 trong
+[design/decisions.md](./design/decisions.md).
 
 ## Complexity Tracking
 
