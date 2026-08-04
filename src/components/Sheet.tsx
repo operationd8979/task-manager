@@ -13,7 +13,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {StyleSheet, useUnistyles} from 'react-native-unistyles';
 
 import {appTheme} from '../theme/theme';
-import {BAR_HEIGHT, TAP_TARGET_MIN} from '../theme/tokens';
+import {BAR_HEIGHT, GLYPH_ALIGN, TAP_TARGET_MIN} from '../theme/tokens';
 import {t} from '../lib/strings';
 import {Text} from './Text';
 
@@ -57,13 +57,19 @@ const styles = StyleSheet.create(raw => {
       paddingLeft: theme.spacing.md,
       borderBottomWidth: 2,
       borderBottomColor: theme.color.onBackground,
-      // Opaque because it is sticky: the body scrolls underneath it.
+      // The handle sits above the sheet's own background, and the body scrolls
+      // right up to it, so it has to be opaque in its own right.
       backgroundColor: theme.color.background,
+      borderTopLeftRadius: theme.radius.md,
+      borderTopRightRadius: theme.radius.md,
     },
     title: {
       ...theme.appType.sheetTitle,
+      ...GLYPH_ALIGN,
       color: theme.color.onBackground,
-      flexShrink: 1,
+      // Takes the row so the close button is pushed to the far edge of the SAME
+      // line rather than being wrapped onto the next one.
+      flex: 1,
     },
     close: {
       width: TAP_TARGET_MIN,
@@ -73,6 +79,7 @@ const styles = StyleSheet.create(raw => {
     },
     closeGlyph: {
       ...theme.typography.title,
+      ...GLYPH_ALIGN,
       color: theme.color.onBackground,
     },
     body: {
@@ -198,6 +205,38 @@ export function Sheet({
     [insets.bottom],
   );
 
+  /**
+   * The header is the sheet's HANDLE, not the first row of its content.
+   *
+   * `stickyHeaderIndices` was the obvious way to pin it and it is a trap: React
+   * Native's sticky wrapper hoists the child's style onto itself and hands the
+   * child `{flex: 1}` instead (ScrollViewStickyHeader). Our `flexDirection:
+   * 'row'` went with it, so the title and the close button stacked into a
+   * column. The handle slot is outside the scrollable, is measured into the
+   * sheet's height by the library, and keeps the style we give it.
+   */
+  const renderHandle = useCallback(
+    () => (
+      <View style={styles.header}>
+        {/* One line: a title that wraps would push the close button off the
+            row it belongs on. */}
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        {blocking ? null : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('form.close')}
+            onPress={onClose}
+            style={styles.close}>
+            <Text style={styles.closeGlyph}>{CLOSE_GLYPH}</Text>
+          </Pressable>
+        )}
+      </View>
+    ),
+    [title, blocking, onClose],
+  );
+
   return (
     <BottomSheetModal
       ref={sheet}
@@ -216,7 +255,7 @@ export function Sheet({
       backdropComponent={renderBackdrop}
       footerComponent={renderFooter}
       backgroundStyle={styles.background}
-      handleComponent={null}
+      handleComponent={renderHandle}
       onDismiss={handleDismiss}>
       {/*
         A scrollable, not a plain view. `enableDynamicSizing` sizes the sheet to
@@ -229,28 +268,11 @@ export function Sheet({
       */}
       <BottomSheetScrollView
         ref={scrollRef}
-        // Index 0 is the header: the close button must stay reachable
-        // one-handed no matter how far the body has scrolled.
-        stickyHeaderIndices={[0]}
         enableFooterMarginAdjustment={Boolean(footer)}
         // Chips and toggles stay tappable while the keyboard is up, instead of
         // spending the first tap on dismissing it.
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={contentStyle}>
-        <View style={styles.header}>
-          <Text style={styles.title} numberOfLines={2}>
-            {title}
-          </Text>
-          {blocking ? null : (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('form.close')}
-              onPress={onClose}
-              style={styles.close}>
-              <Text style={styles.closeGlyph}>{CLOSE_GLYPH}</Text>
-            </Pressable>
-          )}
-        </View>
         <View style={styles.body}>{children}</View>
       </BottomSheetScrollView>
     </BottomSheetModal>

@@ -2,6 +2,7 @@ import {Platform} from 'react-native';
 import notifee, {
   AlarmType,
   EventType,
+  AndroidCategory,
   AndroidImportance,
   AndroidNotificationSetting,
   AuthorizationStatus,
@@ -25,17 +26,80 @@ import type {
  * the change reaches them, and the old channel is removed so it does not sit in
  * system settings as a second, dead entry.
  */
-const CHANNEL_ID = 'task-reminders-sound';
-const RETIRED_CHANNEL_IDS = ['task-reminders'];
+const CHANNEL_ID = 'task-reminders-alarm';
+const RETIRED_CHANNEL_IDS = ['task-reminders', 'task-reminders-sound'];
 const CHANNEL_NAME = 'Nhắc nhở công việc';
 
 /**
- * The device's own notification sound rather than one bundled with the app.
+ * The device's own notification tone.
  *
- * A reminder should sound like every other reminder on the phone — the user
- * already recognises it, and it follows whatever they chose in system settings.
+ * Notifee resolves this field one of exactly two ways: the literal `'default'`,
+ * or the name of a file bundled in `android/app/src/main/res/raw`. It does NOT
+ * accept a system URI, so the alarm ringtone cannot be named here — reaching it
+ * would mean shipping an audio file with the app. Everything below is what
+ * makes a notification tone behave like an alarm without one.
  */
 const REMINDER_SOUND = 'default';
+
+/**
+ * Repeat the tone instead of playing it once.
+ *
+ * This is the part that answers "the sound is too small": a single short chirp
+ * is easy to miss across a room, and the tone itself is fixed by the platform.
+ */
+const LOOP_SOUND = true;
+
+/** Insistent rather than polite: two long buzzes, like a clock going off. */
+const VIBRATION_PATTERN = [300, 600, 300, 600];
+
+/**
+ * Creates the reminder channel, and drops anything scheduled against an older
+ * one.
+ *
+ * That second half is the part that matters. A trigger notification stores the
+ * `channelId` it was created with, and reconciliation deliberately leaves an
+ * already-scheduled id alone — so adding a sound to the channel changed nothing
+ * for reminders that were scheduled before it, which is every reminder an
+ * existing user has. Cancelling them makes the next reconcile re-create them
+ * against the channel that rings.
+ *
+ * Runs once per app run, and only does the cancelling when a retired channel is
+ * actually still on the device.
+ */
+async function migrateChannel(): Promise<void> {
+  const retired = await Promise.all(
+    RETIRED_CHANNEL_IDS.map(id =>
+      notifee
+        .getChannel(id)
+        .then(channel => (channel ? id : null))
+        .catch(() => null),
+    ),
+  );
+
+  await notifee.createChannel({
+    id: CHANNEL_ID,
+    name: CHANNEL_NAME,
+    importance: AndroidImportance.HIGH,
+    sound: REMINDER_SOUND,
+    vibration: true,
+    vibrationPattern: VIBRATION_PATTERN,
+    // A missed reminder is the failure this feature exists to prevent, so it
+    // is allowed through Do Not Disturb the way an alarm is.
+    bypassDnd: true,
+  });
+
+  const stale = retired.filter((id): id is string => id !== null);
+  if (stale.length === 0) {
+    return;
+  }
+
+  // Order matters: drop the notifications while their channel still exists,
+  // then remove the channel so it stops appearing in system settings.
+  await notifee.cancelTriggerNotifications();
+  for (const id of stale) {
+    await notifee.deleteChannel(id).catch(() => undefined);
+  }
+}
 
 /**
  * The only place Notifee is imported.
@@ -50,24 +114,13 @@ export function createNotifeeScheduler(): ReminderScheduler {
     if (Platform.OS !== 'android') {
       return;
     }
-    channelReady ??= notifee
-      .createChannel({
-        id: CHANNEL_ID,
-        name: CHANNEL_NAME,
-        importance: AndroidImportance.HIGH,
-        sound: REMINDER_SOUND,
-        vibration: true,
-      })
-      .then(async () => {
-        // Best effort: a channel that was never created, or a platform that
-        // does not have them, is not a reason to fail the schedule that is
-        // waiting on this.
-        await Promise.all(
-          RETIRED_CHANNEL_IDS.map(id =>
-            notifee.deleteChannel(id).catch(() => undefined),
-          ),
-        );
-      });
+    // The failure is deliberately not cached. Holding a rejected promise here
+    // would mean one bad call leaves the app unable to schedule anything for
+    // the rest of the run, with no way back short of a restart.
+    channelReady ??= migrateChannel().catch((error: unknown) => {
+      channelReady = null;
+      throw error;
+    });
     await channelReady;
   };
 
@@ -164,9 +217,17 @@ export function createNotifeeScheduler(): ReminderScheduler {
             // The channel decides this from Android 8 on; the field still
             // carries it on anything older.
             sound: REMINDER_SOUND,
+            loopSound: LOOP_SOUND,
+            vibrationPattern: VIBRATION_PATTERN,
+            // Tells the system this is a time-critical alert rather than a
+            // message, which is what earns it alarm-like treatment.
+            category: AndroidCategory.ALARM,
+            // Stops looping the moment the user acts on it — without this the
+            // tone would keep going after it has been dealt with.
+            autoCancel: true,
           },
           // iOS has no channels, so the sound is stated per notification.
-          ios: {sound: REMINDER_SOUND},
+          ios: {sound: REMINDER_SOUND, critical: false},
         },
         trigger,
       );
@@ -177,6 +238,11 @@ export function createNotifeeScheduler(): ReminderScheduler {
     },
 
     async listScheduled() {
+      // Reconciliation reads this FIRST and then leaves every id it finds
+      // alone, so the channel migration has to have finished cancelling by the
+      // time this answers — otherwise it reports the stale reminders as fine
+      // and they are never rebuilt.
+      await ensureChannel();
       return notifee.getTriggerNotificationIds();
     },
   };

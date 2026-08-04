@@ -13,7 +13,7 @@ import {DataError} from '../../../services/db/errors';
 import {createRecurrenceRepository} from '../../../services/db/recurrenceRepository';
 import {createTaskRepository} from '../../../services/db/taskRepository';
 import type {RecurrenceValue} from '../components/RecurrenceSheet';
-import type {LocalDate, LocalTime} from '../../../lib/date';
+import {nextWholeHour, type LocalDate, type LocalTime} from '../../../lib/date';
 
 export type FormMode = 'create' | 'edit';
 
@@ -50,8 +50,6 @@ export interface UseTaskFormOptions {
   onSaved: (savedDate: LocalDate) => void;
 }
 
-const DEFAULT_START: LocalTime = '09:00';
-
 export function useTaskForm({
   task,
   viewingDate,
@@ -66,6 +64,16 @@ export function useTaskForm({
   );
 
   const mode: FormMode = task ? 'edit' : 'create';
+
+  /**
+   * Read once, when the form opens.
+   *
+   * Re-reading the clock per render would let the default start time step
+   * forward under the user while they are still typing a title, and `dirty`
+   * compares against these initial values — a moving baseline would make a
+   * form the user never touched look edited.
+   */
+  const [openedAt] = useState(() => new Date());
 
   const initial = useMemo<TaskFormValues>(
     () =>
@@ -86,14 +94,14 @@ export function useTaskForm({
             title: '',
             note: '',
             taskDate: viewingDate,
-            startTime: DEFAULT_START,
+            startTime: nextWholeHour(openedAt),
             endTime: null,
             status: 'processing',
             reminderEnabled: false,
             reminderOffsetMinutes: defaultReminderOffset,
             recurrence: null,
           },
-    [task, viewingDate, defaultReminderOffset],
+    [task, viewingDate, defaultReminderOffset, openedAt],
   );
 
   const [values, setValues] = useState<TaskFormValues>(initial);

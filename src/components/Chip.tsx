@@ -1,5 +1,5 @@
 import React from 'react';
-import {Pressable, View} from 'react-native';
+import {Keyboard, Pressable, View} from 'react-native';
 import {StyleSheet} from 'react-native-unistyles';
 
 import {appTheme} from '../theme/theme';
@@ -27,7 +27,13 @@ export function Chip({label, selected, onPress, accessibilityLabel}: ChipProps) 
       accessibilityRole="button"
       accessibilityState={{selected}}
       accessibilityLabel={accessibilityLabel ?? label}
-      onPress={onPress}
+      // The sheet keeps taps alive while the keyboard is open, so the press
+      // lands — but the keyboard would stay up over the rest of the form. The
+      // user has moved on from typing; put it away.
+      onPress={() => {
+        Keyboard.dismiss();
+        onPress();
+      }}
       style={styles.chip}>
       <Text style={styles.label}>{label}</Text>
     </Pressable>

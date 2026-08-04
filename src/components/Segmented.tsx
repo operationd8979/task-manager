@@ -1,5 +1,5 @@
 import React from 'react';
-import {Pressable, View} from 'react-native';
+import {Keyboard, Pressable, View} from 'react-native';
 import {StyleSheet} from 'react-native-unistyles';
 
 import {appTheme} from '../theme/theme';
@@ -42,7 +42,11 @@ export function Segmented<T extends string>({
             key={option.value}
             option={option}
             selected={selected}
-            onPress={() => onChange(option.value)}
+            // Same reason as Chip: choosing a segment means typing is over.
+            onPress={() => {
+              Keyboard.dismiss();
+              onChange(option.value);
+            }}
           />
         );
       })}

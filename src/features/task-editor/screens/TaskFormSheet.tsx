@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {Pressable, Switch, TextInput, View} from 'react-native';
+import {Keyboard, Pressable, Switch, TextInput, View} from 'react-native';
 import type {BottomSheetScrollViewMethods} from '@gorhom/bottom-sheet';
 import {StyleSheet} from 'react-native-unistyles';
 
@@ -69,6 +69,7 @@ export function TaskFormSheet({
    */
   const setReminderEnabled = useCallback(
     (next: boolean) => {
+      Keyboard.dismiss();
       form.setField('reminderEnabled', next);
       if (next) {
         reminders.ensurePermission().catch(() => undefined);
@@ -148,6 +149,9 @@ export function TaskFormSheet({
       {confirmDiscard ? (
         <View accessibilityRole="alert" style={styles.unsaved}>
           <Text style={styles.unsavedTitle}>{t('unsaved.title')}</Text>
+          {/* Three buttons, not three lines of text. They ask for a decision,
+              and a row that only looks like a label does not read as one of
+              them — which is how people end up tapping nothing at all. */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('unsaved.saveAndClose')}
@@ -155,22 +159,30 @@ export function TaskFormSheet({
               setConfirmDiscard(false);
               form.submit();
             }}
-            style={styles.unsavedChoice}>
-            <Text style={styles.unsavedLabel}>{t('unsaved.saveAndClose')}</Text>
+            style={styles.unsavedPrimary}>
+            <Text style={styles.unsavedPrimaryLabel}>
+              {t('unsaved.saveAndClose')}
+            </Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('unsaved.keepEditing')}
             onPress={() => setConfirmDiscard(false)}
-            style={styles.unsavedChoice}>
-            <Text style={styles.unsavedLabel}>{t('unsaved.keepEditing')}</Text>
+            style={styles.unsavedSecondary}>
+            <Text style={styles.unsavedSecondaryLabel}>
+              {t('unsaved.keepEditing')}
+            </Text>
           </Pressable>
+          {/* Outlined, never filled: losing the edits is the one irreversible
+              choice here, so it must not be the easiest thing to hit. */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('unsaved.discard')}
             onPress={onClose}
-            style={styles.unsavedChoice}>
-            <Text style={styles.unsavedDiscard}>{t('unsaved.discard')}</Text>
+            style={styles.unsavedDanger}>
+            <Text style={styles.unsavedDangerLabel}>
+              {t('unsaved.discard')}
+            </Text>
           </Pressable>
         </View>
       ) : null}
@@ -281,7 +293,10 @@ export function TaskFormSheet({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('form.repeat')}
-                onPress={() => setEditingRepeat(true)}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setEditingRepeat(true);
+                }}
                 style={styles.repeatRow}>
                 <Text style={styles.repeatValue}>
                   {form.values.recurrence === null
@@ -484,7 +499,7 @@ const styles = StyleSheet.create(raw => {
       borderWidth: 2,
       borderColor: theme.appColor.accentInk,
       padding: theme.spacing.sm,
-      gap: theme.spacing.xs,
+      gap: theme.spacing.sm,
       marginBottom: theme.spacing.md,
     },
     unsavedTitle: {
@@ -492,21 +507,48 @@ const styles = StyleSheet.create(raw => {
       color: theme.color.onBackground,
       fontWeight: '800',
     },
-    unsavedChoice: {
+    unsavedPrimary: {
       minHeight: TAP_TARGET_MIN,
       justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.sm,
+      backgroundColor: theme.appColor.accentFill,
     },
-    unsavedLabel: {
+    unsavedPrimaryLabel: {
+      ...theme.typography.body,
+      color: theme.appColor.onAccent,
+      fontWeight: '800',
+    },
+    unsavedSecondary: {
+      minHeight: TAP_TARGET_MIN,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.sm,
+      borderWidth: 2,
+      borderColor: theme.color.onBackground,
+    },
+    unsavedSecondaryLabel: {
       ...theme.typography.body,
       color: theme.color.onBackground,
+      fontWeight: '800',
     },
-    unsavedDiscard: {
+    unsavedDanger: {
+      minHeight: TAP_TARGET_MIN,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.sm,
+      borderWidth: 2,
+      borderColor: theme.appColor.accentInk,
+    },
+    unsavedDangerLabel: {
       ...theme.typography.body,
       color: theme.appColor.accentInk,
+      fontWeight: '800',
     },
     primary: {
       minHeight: BAR_HEIGHT.action,
       justifyContent: 'center',
+      alignItems: 'center',
       paddingHorizontal: theme.spacing.md,
       backgroundColor: theme.appColor.accentFill,
     },

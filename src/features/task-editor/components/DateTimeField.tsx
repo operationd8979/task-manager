@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Platform, Pressable} from 'react-native';
+import {Keyboard, Platform, Pressable} from 'react-native';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
@@ -75,7 +75,12 @@ export function DateTimeField(props: DateTimeFieldProps) {
         accessibilityRole="button"
         accessibilityLabel={props.accessibilityLabel}
         accessibilityValue={{text: display}}
-        onPress={() => setOpen(true)}
+        // The OS picker is about to cover the screen; leaving the keyboard
+        // underneath it means it is still there when the picker closes.
+        onPress={() => {
+          Keyboard.dismiss();
+          setOpen(true);
+        }}
         style={styles.trigger}>
         <Text style={styles.value}>{display}</Text>
       </Pressable>

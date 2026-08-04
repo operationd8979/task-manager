@@ -149,11 +149,27 @@ export const TAP_TARGET_MIN = 44;
 export const DAY_ICON_SIZE = 52;
 
 /**
- * The chevrons drawn in those controls. Above the type scale on purpose: they
- * sit small inside their em box, so at `title` size they look lighter than the
- * glyphs beside them.
+ * Side of the square the header chevrons are cut from (see components/Chevron).
+ * The drawn arrow ends up roughly 13×25pt, which reads at the same weight as
+ * the 20pt glyphs beside it.
  */
-export const NAV_GLYPH = {fontSize: 34, lineHeight: 38} as const;
+export const NAV_CHEVRON_SIZE = 18;
+/** The smaller chevrons inside a sheet, e.g. the month stepper. */
+export const SHEET_CHEVRON_SIZE = 12;
+
+/**
+ * Every Text used as an icon needs this.
+ *
+ * Android sizes a Text box from the font's ascent and descent, which are not
+ * symmetric — so a glyph in a centred box sits visibly high or low, and a row
+ * of icons next to a label ends up crooked even though every box is centred.
+ * Turning that padding off and centring on the box is what actually aligns
+ * them. Both properties are Android-only; iOS ignores them.
+ */
+export const GLYPH_ALIGN = {
+  includeFontPadding: false,
+  textAlignVertical: 'center',
+} as const;
 
 /**
  * OS text-size ceiling. Enforced with `maxFontSizeMultiplier` on the shared

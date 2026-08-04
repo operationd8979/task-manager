@@ -2,18 +2,22 @@ import React from 'react';
 import {Pressable, View} from 'react-native';
 import {StyleSheet} from 'react-native-unistyles';
 
+import {Chevron} from '../../../components/Chevron';
 import {Text} from '../../../components/Text';
 import {t} from '../../../lib/strings';
 import {today, type LocalDate} from '../../../lib/date';
 import {appTheme} from '../../../theme/theme';
-import {BAR_HEIGHT, DAY_ICON_SIZE, NAV_GLYPH} from '../../../theme/tokens';
+import {
+  BAR_HEIGHT,
+  DAY_ICON_SIZE,
+  GLYPH_ALIGN,
+  NAV_CHEVRON_SIZE,
+} from '../../../theme/tokens';
 
-/** Placeholders until the icon set is chosen (decisions.md D-06). */
-const PREV_GLYPH = '‹';
-const NEXT_GLYPH = '›';
 /**
  * U+FE0E asks for the TEXT presentation of the gear, so it inherits the bar's
  * colour instead of arriving as a multi-colour emoji that ignores the theme.
+ * The arrows are drawn rather than typed — see Chevron for why.
  */
 const SETTINGS_GLYPH = '⚙︎';
 
@@ -47,7 +51,7 @@ export function DayBar({
         accessibilityLabel={t('day.previous')}
         onPress={onPrevious}
         style={styles.arrow}>
-        <Text style={styles.arrowGlyph}>{PREV_GLYPH}</Text>
+        <Chevron direction="left" size={NAV_CHEVRON_SIZE} />
       </Pressable>
 
       {/* Tapping the title opens the month sheet (S-02). */}
@@ -81,7 +85,7 @@ export function DayBar({
         accessibilityLabel={t('day.next')}
         onPress={onNext}
         style={styles.arrow}>
-        <Text style={styles.arrowGlyph}>{NEXT_GLYPH}</Text>
+        <Chevron direction="right" size={NAV_CHEVRON_SIZE} />
       </Pressable>
 
       <Pressable
@@ -112,13 +116,9 @@ const styles = StyleSheet.create(raw => {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    arrowGlyph: {
-      ...theme.typography.headline,
-      ...NAV_GLYPH,
-      color: theme.color.onBackground,
-    },
     settingsGlyph: {
       ...theme.typography.title,
+      ...GLYPH_ALIGN,
       color: theme.color.onBackground,
     },
     title: {
@@ -129,11 +129,13 @@ const styles = StyleSheet.create(raw => {
     },
     titleText: {
       ...theme.typography.body,
+      ...GLYPH_ALIGN,
       color: theme.color.onBackground,
       fontWeight: '800',
     },
     todayTag: {
       ...theme.typography.caption,
+      ...GLYPH_ALIGN,
       color: theme.appColor.textMuted,
     },
     // Outlined rather than filled: it is a shortcut back to a default, not the

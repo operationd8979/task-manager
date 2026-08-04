@@ -2,6 +2,7 @@ import React, {useMemo, useState} from 'react';
 import {Pressable, View} from 'react-native';
 import {StyleSheet} from 'react-native-unistyles';
 
+import {Chevron} from '../../../components/Chevron';
 import {Sheet} from '../../../components/Sheet';
 import {Text} from '../../../components/Text';
 import {
@@ -16,11 +17,13 @@ import {
 import {weekdayShort} from '../../../lib/format';
 import {t} from '../../../lib/strings';
 import {appTheme} from '../../../theme/theme';
-import {BAR_HEIGHT, TAP_TARGET_MIN} from '../../../theme/tokens';
+import {
+  BAR_HEIGHT,
+  SHEET_CHEVRON_SIZE,
+  TAP_TARGET_MIN,
+} from '../../../theme/tokens';
 import {useBusyDays} from '../hooks/useBusyDays';
 
-const PREV_GLYPH = '‹';
-const NEXT_GLYPH = '›';
 const WEEK_LENGTH = 7;
 
 export interface DatePickerSheetProps {
@@ -82,7 +85,7 @@ export function DatePickerSheet({
           accessibilityLabel={t('calendar.previousMonth')}
           onPress={() => setAnchor(shiftMonth(anchor, -1))}
           style={styles.monthArrow}>
-          <Text style={styles.monthArrowGlyph}>{PREV_GLYPH}</Text>
+          <Chevron direction="left" size={SHEET_CHEVRON_SIZE} />
         </Pressable>
         <Text style={styles.monthLabel}>
           {t('calendar.month', {
@@ -95,7 +98,7 @@ export function DatePickerSheet({
           accessibilityLabel={t('calendar.nextMonth')}
           onPress={() => setAnchor(shiftMonth(anchor, 1))}
           style={styles.monthArrow}>
-          <Text style={styles.monthArrowGlyph}>{NEXT_GLYPH}</Text>
+          <Chevron direction="right" size={SHEET_CHEVRON_SIZE} />
         </Pressable>
       </View>
 
@@ -191,10 +194,6 @@ const styles = StyleSheet.create(raw => {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    monthArrowGlyph: {
-      ...theme.typography.title,
-      color: theme.color.onBackground,
-    },
     monthLabel: {
       ...theme.typography.body,
       color: theme.color.onBackground,
@@ -203,6 +202,7 @@ const styles = StyleSheet.create(raw => {
     footerAction: {
       minHeight: BAR_HEIGHT.action,
       justifyContent: 'center',
+      alignItems: 'center',
       paddingHorizontal: theme.spacing.md,
       backgroundColor: theme.appColor.accentFill,
     },

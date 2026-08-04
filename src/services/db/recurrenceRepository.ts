@@ -34,6 +34,12 @@ export type OverridePatch = Partial<
   Omit<RecurrenceOverride, 'ruleId' | 'occurrenceDate'>
 >;
 
+/** A whole series and its per-session edits, as one restorable unit. */
+export interface RuleSnapshot {
+  rule: RecurringRule;
+  overrides: readonly RecurrenceOverride[];
+}
+
 export interface RecurrenceRepository {
   listRulesEffectiveOn(date: LocalDate): Promise<RecurringRule[]>;
   findRule(id: string): Promise<RecurringRule | null>;
@@ -41,6 +47,16 @@ export interface RecurrenceRepository {
   updateRule(id: string, patch: Partial<NewRecurringRule>): Promise<RecurringRule>;
   /** Removes the rule AND its overrides in one transaction. */
   deleteRuleCascade(id: string): Promise<void>;
+  /**
+   * Everything `deleteRuleCascade` would remove, read before it runs.
+   *
+   * A series is deleted outright rather than soft-deleted, so undo has nothing
+   * on disk to restore from — this is what it restores from instead. Null when
+   * the rule is already gone.
+   */
+  snapshotRule(id: string): Promise<RuleSnapshot | null>;
+  /** Puts a snapshot back under its original ids, so references still hold. */
+  restoreRule(snapshot: RuleSnapshot): Promise<void>;
 
   listOverridesOn(date: LocalDate): Promise<RecurrenceOverride[]>;
   findOverride(
@@ -57,6 +73,8 @@ export interface RecurrenceRepository {
   /** Whole-collection reads, for rebuilding the reminder schedule (FR-041). */
   listAllRules(): Promise<RecurringRule[]>;
   listAllOverrides(): Promise<RecurrenceOverride[]>;
+  /** How many series exist. Each counts as one thing the user created. */
+  countAllRules(): Promise<number>;
 }
 
 /**
@@ -142,6 +160,43 @@ export function createRecurrenceRepository(
       }
     },
 
+    async snapshotRule(id) {
+      try {
+        const record = await rules.find(id);
+        if (!record) {
+          return null;
+        }
+        const page = await overrides.list({
+          filter: {op: 'eq', field: 'ruleId', value: id},
+          page: {size: 500},
+        });
+        return {rule: toRule(record), overrides: page.records.map(toOverride)};
+      } catch (error) {
+        throw toDataError(error, 'recurrence.snapshotRule');
+      }
+    },
+
+    async restoreRule(snapshot) {
+      try {
+        // One transaction, mirroring the delete: a rule restored without its
+        // per-session edits is not the series the user had.
+        await handle.transaction(async tx => {
+          await tx.collection(COLLECTION.rules).insert({
+            id: snapshot.rule.id,
+            data: toRuleRow(snapshot.rule),
+          });
+          for (const override of snapshot.overrides) {
+            await tx.collection(COLLECTION.overrides).upsert({
+              id: overrideId(override.ruleId, override.occurrenceDate),
+              data: toOverrideRow(override),
+            });
+          }
+        });
+      } catch (error) {
+        throw toDataError(error, 'recurrence.restoreRule');
+      }
+    },
+
     async listOverridesOn(date) {
       try {
         const page = await overrides.list({
@@ -203,6 +258,14 @@ export function createRecurrenceRepository(
       }
     },
 
+    async countAllRules() {
+      try {
+        return await rules.count();
+      } catch (error) {
+        throw toDataError(error, 'recurrence.countAllRules');
+      }
+    },
+
     async clearOverride(ruleId, date) {
       try {
         await overrides.delete(overrideId(ruleId, date));
@@ -253,6 +316,37 @@ function toRule(record: StoredRecord<RuleRow>): RecurringRule {
     reminderOffsetMinutes: asOffset(data.reminderOffsetMinutes),
   };
 }
+
+/**
+ * The inverse of `toOverride`: writes back ONLY the keys the override actually
+ * carries. Filling the rest with null would turn "inherits from the rule" into
+ * "deliberately has no value", which is the distinction R7 exists to protect.
+ */
+function toOverrideRow(
+  override: RecurrenceOverride,
+): Record<string, StorableValue> {
+  const out: Record<string, StorableValue> = {
+    ruleId: override.ruleId,
+    occurrenceDate: override.occurrenceDate,
+    isSkipped: override.isSkipped,
+  };
+  for (const key of OVERRIDE_VALUE_FIELDS) {
+    if (key in override) {
+      out[key] = override[key] as StorableValue;
+    }
+  }
+  return out;
+}
+
+const OVERRIDE_VALUE_FIELDS = [
+  'title',
+  'note',
+  'startTime',
+  'endTime',
+  'status',
+  'reminderEnabled',
+  'reminderOffsetMinutes',
+] as const;
 
 /**
  * Rebuilds the override with ONLY the keys the record actually holds, so the

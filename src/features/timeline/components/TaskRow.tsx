@@ -15,7 +15,7 @@ import {
 } from '../../../lib/format';
 import {t} from '../../../lib/strings';
 import {appTheme} from '../../../theme/theme';
-import {ROW_MIN_HEIGHT, TAP_TARGET_MIN} from '../../../theme/tokens';
+import {GLYPH_ALIGN, ROW_MIN_HEIGHT, TAP_TARGET_MIN} from '../../../theme/tokens';
 import {useTaskDrag} from '../hooks/useTaskDrag';
 
 /** Placeholders until the icon set is chosen (decisions.md D-06). */
@@ -304,7 +304,8 @@ const styles = StyleSheet.create(raw => {
       justifyContent: 'center',
     },
     handleGlyph: {
-      ...theme.typography.label,
+      ...theme.typography.title,
+      ...GLYPH_ALIGN,
       color: theme.appColor.textMuted,
     },
     more: {

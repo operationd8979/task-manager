@@ -230,6 +230,7 @@ const styles = StyleSheet.create(raw => {
     primary: {
       minHeight: BAR_HEIGHT.action,
       justifyContent: 'center',
+      alignItems: 'center',
       paddingHorizontal: theme.spacing.md,
       backgroundColor: theme.appColor.accentFill,
     },

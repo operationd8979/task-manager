@@ -307,6 +307,8 @@ export function TimelineScreen() {
         write
           .then(() => {
             reload();
+            // The fire times moved, so the schedule has to be re-derived.
+            reminders.sync();
             // The toast restates the scope that was applied, because that is
             // the thing the user most needs to confirm (ux-ui-spec §4).
             undo.offer({
@@ -326,6 +328,7 @@ export function TimelineScreen() {
                   });
                 }
                 reload();
+                reminders.sync();
               },
               commit: async () => undefined,
             });
@@ -339,11 +342,13 @@ export function TimelineScreen() {
           .upsertOverride(rule.id, occurrenceDate, {isSkipped: true})
           .then(() => {
             reload();
+            reminders.sync();
             undo.offer({
               message: t('undo.scopeThisOnly', {change: t('scope.skipped')}),
               undo: async () => {
                 await recurrence.clearOverride(rule.id, occurrenceDate);
                 reload();
+                reminders.sync();
               },
               commit: async () => undefined,
             });
@@ -352,12 +357,37 @@ export function TimelineScreen() {
         return;
       }
 
-      // Deleting a whole series is a hard cascade, so no undo is offered.
-      // Every other branch here is reversible; pretending this one is too
-      // would be worse than saying nothing.
-      recurrence.deleteRuleCascade(rule.id).then(reload).catch(reload);
+      /**
+       * Deleting a whole series is the largest thing this sheet can do, so it
+       * gets the same five-second escape as deleting a task (FR-011a).
+       *
+       * The cascade is a hard delete with nothing left on disk to restore from,
+       * so the snapshot is READ FIRST and undo replays it. Taken before the
+       * delete rather than after, for the obvious reason.
+       */
+      recurrence
+        .snapshotRule(rule.id)
+        .then(async snapshot => {
+          await recurrence.deleteRuleCascade(rule.id);
+          reload();
+          reminders.sync();
+          if (!snapshot) {
+            return;
+          }
+          undo.offer({
+            message: t('undo.seriesDeleted', {title: rule.title}),
+            undo: async () => {
+              await recurrence.restoreRule(snapshot);
+              reload();
+              reminders.sync();
+            },
+            // Nothing to finalise: the rows are already gone.
+            commit: async () => undefined,
+          });
+        })
+        .catch(reload);
     },
-    [pendingScope, recurrence, reload, undo],
+    [pendingScope, recurrence, reload, undo, reminders],
   );
 
   /**
@@ -677,6 +707,7 @@ const styles = StyleSheet.create(raw => {
     action: {
       minHeight: BAR_HEIGHT.action,
       justifyContent: 'center',
+      alignItems: 'center',
       paddingHorizontal: theme.spacing.md,
     },
     actionLabel: {

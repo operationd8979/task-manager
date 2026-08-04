@@ -110,6 +110,7 @@ const CATALOG = {
   'undo.deleted': 'Đã xóa {title}.',
   'undo.scopeThisOnly': 'Chỉ lần này: {change}',
   'undo.scopeWholeSeries': 'Toàn bộ chuỗi: {change}',
+  'undo.seriesDeleted': 'Đã xóa toàn bộ chuỗi {title}.',
 
   // Unsaved changes
   'unsaved.title': 'Còn thay đổi chưa lưu',
@@ -189,7 +190,7 @@ const CATALOG = {
   'settings.itemCount': 'Đang lưu {count} công việc.',
   'settings.destroyAll': 'XÓA TOÀN BỘ DỮ LIỆU',
   'settings.destroyTitle': 'Xóa toàn bộ dữ liệu?',
-  'settings.destroyBody': 'Thao tác này không hoàn tác được. {count} công việc cùng mọi lịch lặp và nhắc nhở sẽ bị xóa.',
+  'settings.destroyBody': 'Thao tác này không hoàn tác được. {count} công việc cùng mọi nhắc nhở sẽ bị xóa.',
   'settings.destroyConfirm': 'XÓA',
   'settings.saveFailed': 'Chưa lưu được lựa chọn',
 

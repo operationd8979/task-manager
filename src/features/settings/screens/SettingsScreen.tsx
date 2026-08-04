@@ -5,6 +5,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {StyleSheet} from 'react-native-unistyles';
 
 import {useReminders} from '../../../app/providers/ReminderProvider';
+import {Chevron} from '../../../components/Chevron';
 import {Chip, ChipRow} from '../../../components/Chip';
 import {ErrorState} from '../../../components/ErrorState';
 import {Segmented} from '../../../components/Segmented';
@@ -19,12 +20,11 @@ import {appTheme} from '../../../theme/theme';
 import {
   BAR_HEIGHT,
   DAY_ICON_SIZE,
-  NAV_GLYPH,
+  GLYPH_ALIGN,
+  NAV_CHEVRON_SIZE,
   TAP_TARGET_MIN,
 } from '../../../theme/tokens';
 import {useSettings} from '../hooks/useSettings';
-
-const BACK_GLYPH = '‹';
 
 export function SettingsScreen() {
   const navigation = useNavigation();
@@ -40,7 +40,7 @@ export function SettingsScreen() {
           accessibilityLabel={t('settings.back')}
           onPress={() => navigation.goBack()}
           style={styles.back}>
-          <Text style={styles.backGlyph}>{BACK_GLYPH}</Text>
+          <Chevron direction="left" size={NAV_CHEVRON_SIZE} />
         </Pressable>
         <Text style={styles.barTitle}>{t('day.settings')}</Text>
       </View>
@@ -273,13 +273,9 @@ const styles = StyleSheet.create(raw => {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    backGlyph: {
-      ...theme.typography.headline,
-      ...NAV_GLYPH,
-      color: theme.color.onBackground,
-    },
     barTitle: {
       ...theme.typography.body,
+      ...GLYPH_ALIGN,
       color: theme.color.onBackground,
       fontWeight: '800',
     },

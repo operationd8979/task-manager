@@ -3,6 +3,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useDatabase} from '../../../app/providers/DatabaseProvider';
 import type {AppSettings} from '../../../domain/settings';
 import {DataError} from '../../../services/db/errors';
+import {createRecurrenceRepository} from '../../../services/db/recurrenceRepository';
 import {createSettingsRepository} from '../../../services/db/settingsRepository';
 import {createTaskRepository} from '../../../services/db/taskRepository';
 
@@ -31,6 +32,10 @@ export function useSettings(): UseSettings {
     [handle],
   );
   const tasks = useMemo(() => createTaskRepository(handle), [handle]);
+  const recurrence = useMemo(
+    () => createRecurrenceRepository(handle),
+    [handle],
+  );
 
   const [state, setState] = useState<SettingsState>({status: 'loading'});
   const [saving, setSaving] = useState<keyof AppSettings | null>(null);
@@ -43,10 +48,17 @@ export function useSettings(): UseSettings {
     let cancelled = false;
     setState({status: 'loading'});
 
-    Promise.all([repository.getAll(), tasks.countAll()])
-      .then(([settings, taskCount]) => {
+    Promise.all([
+      repository.getAll(),
+      tasks.countAll(),
+      // A series is one thing the user created, so it belongs in this count.
+      // Counting only the tasks collection reported "0 công việc" to someone
+      // whose whole schedule was recurring.
+      recurrence.countAllRules(),
+    ])
+      .then(([settings, taskCount, ruleCount]) => {
         if (!cancelled) {
-          setState({status: 'ready', settings, taskCount});
+          setState({status: 'ready', settings, taskCount: taskCount + ruleCount});
         }
       })
       .catch((error: unknown) => {
@@ -63,7 +75,7 @@ export function useSettings(): UseSettings {
     return () => {
       cancelled = true;
     };
-  }, [repository, tasks, errorLog, attempt]);
+  }, [repository, tasks, recurrence, errorLog, attempt]);
 
   /**
    * Optimistic, then confirmed.

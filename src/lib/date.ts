@@ -103,6 +103,22 @@ export function compareTime(a: LocalTime, b: LocalTime): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
+/**
+ * The next whole hour after `now`, as a wall-clock time.
+ *
+ * The default start time for a new task. A fixed 09:00 was wrong for most of
+ * the day — anyone adding something at 14:20 had to change it before they could
+ * change anything else.
+ *
+ * Clamped to the last hour of the day rather than wrapping past midnight:
+ * 00:00 belongs to the START of the same day, so wrapping would hand back a
+ * time twenty-three hours in the past — the opposite of "next".
+ */
+export function nextWholeHour(now: Date = new Date()): LocalTime {
+  const next = (now.getHours() + 1) * 60;
+  return timeFromMinutes(Math.min(next, MINUTES_PER_DAY - 60));
+}
+
 /** Snap a time to a grid, used by drag-to-reschedule (FR-018a, 15 minutes). */
 export function snapToGrid(time: LocalTime, stepMinutes: number): LocalTime {
   const snapped = Math.round(minutesOf(time) / stepMinutes) * stepMinutes;
