@@ -56,18 +56,26 @@ npm run android
 yarn android
 ```
 
-To build a release-variant APK for local testing without starting Metro:
+To build a release-variant artifact without starting Metro:
 
 ```powershell
+# APK — installable on a device, for testing and sideloading.
 npm run build:apk
+
+# AAB — the format Google Play requires. Cannot be installed by hand.
+npm run build:aab
 ```
 
-The APK is copied to `.artifacts/android/` with its version in the file name. The
-script reads Gradle's `output-metadata.json`, so it does not depend on the default
-`app-release.apk` file name. Useful options can be passed after `--`:
+Both are copied to `.artifacts/android/` with the version in the file name. For
+APKs the script reads Gradle's `output-metadata.json`, so it does not depend on
+the default `app-release.apk` name; bundles have no such metadata file, so the
+`.aab` is located by listing `build/outputs/bundle/<variant>/`.
+
+Useful options can be passed after `--`:
 
 ```powershell
 # Faster device-only artifact; keep just the common 64-bit Android ABI.
+# APK only — a bundle must carry every ABI, since Play splits it per device.
 npm run build:apk "--" -Architectures arm64-v8a
 
 # Reuse Gradle outputs and overwrite an existing copied artifact.
@@ -78,7 +86,29 @@ npm run build:apk "--" -DeepClean -Force
 ```
 
 The current Android `release` build type uses the debug signing configuration, so
-this artifact is suitable for development/sideload testing, not store distribution.
+**neither artifact is store-ready yet**. Uploading to Play needs a real upload
+keystore wired into `android/app/build.gradle` first; see "Publishing" below.
+
+### App icon
+
+The launcher mark lives in two forms that have to stay in step:
+
+- `res/mipmap-anydpi-v26/ic_launcher.xml` — the adaptive icon used from Android
+  8 up, built from `res/drawable/ic_launcher_foreground.xml`, a monochrome layer
+  for Android 13 themed icons, and a background colour.
+- `res/mipmap-*/ic_launcher*.png` — raster fallbacks for Android 7, which
+  predates adaptive icons.
+
+Regenerate the PNGs (and a 512×512 for the Play listing) after changing the
+vector:
+
+```sh
+npm run icons:android
+```
+
+`scripts/generate-android-icons.mjs` redraws the same geometry the vector uses.
+Editing one without the other leaves old and new icons on different Android
+versions.
 
 ### iOS
 

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon, used from Android 8 (API 26) up.
+
+  Without this file the launcher takes the legacy PNG and letterboxes it inside
+  whatever mask the device uses — which is why the icon looked boxed on a
+  modern device. The mipmap-anydpi-v26 folder wins over every density folder on
+  API 26+, and the PNGs stay for API 24–25, which this app still supports.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The launcher background is the brand accent from
+  specs/001-timeline-task-manager/design/design-system.md §1 — the same colour
+  the app uses for its primary action.
+
+  It lives here rather than in src/theme because the launcher is drawn by the
+  system before any JavaScript runs, so it cannot read the app's token set.
+  This is the one hex outside src/theme/, and it is a copy of BRAND_COLORS.primary
+  in src/theme/brand.ts — change both together.
+-->
+<resources>
+    <color name="ic_launcher_background">#EC3013</color>
+</resources>

@@ -12,6 +12,15 @@
       android:name="android.permission.WRITE_EXTERNAL_STORAGE"
       tools:node="remove" />
 
+    <!--
+      READ_EXTERNAL_STORAGE arrives the same way and had been missed: removing
+      only the write half still left "Photos and media" on the listing. The app
+      reads nothing outside its own sandbox either.
+    -->
+    <uses-permission
+      android:name="android.permission.READ_EXTERNAL_STORAGE"
+      tools:node="remove" />
+
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"

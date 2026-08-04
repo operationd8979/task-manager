@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "build:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-android-apk.ps1",
+    "build:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-android.ps1 -Format apk",
+    "build:aab": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-android.ps1 -Format aab",
+    "icons:android": "node scripts/generate-android-icons.mjs",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "postinstall": "node scripts/sync-sdk-skills.mjs && node scripts/check-native-deps.mjs",
