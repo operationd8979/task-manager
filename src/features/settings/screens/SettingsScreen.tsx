@@ -11,7 +11,7 @@ import {ErrorState} from '../../../components/ErrorState';
 import {Segmented} from '../../../components/Segmented';
 import {Skeleton, SkeletonGroup} from '../../../components/Skeleton';
 import {Text} from '../../../components/Text';
-import {REMINDER_OFFSETS} from '../../../domain/reminder';
+import {COUNTDOWN_OFFSETS} from '../../../domain/countdown';
 import type {DisplayMode} from '../../../domain/settings';
 import type {Weekday} from '../../../lib/date';
 import {t} from '../../../lib/strings';
@@ -91,33 +91,35 @@ export function SettingsScreen() {
             />
           ) : null}
 
+          {/* Its own section, away from the reminder rows above it. The two
+              were one setting once, and the countdown kept being read as
+              "when the phone rings" — which it has nothing to do with. */}
+          <Text style={styles.sectionTitle}>{t('settings.countdown')}</Text>
+
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>{t('settings.defaultOffset')}</Text>
+            <Text style={styles.rowLabel}>{t('settings.countdownOffset')}</Text>
             <ChipRow>
-              {REMINDER_OFFSETS.map(offset => (
+              {COUNTDOWN_OFFSETS.map(offset => (
                 <Chip
                   key={offset}
-                  label={
-                    offset === 0
-                      ? t('form.reminderOnTime')
-                      : t('form.reminderBefore', {minutes: offset})
-                  }
+                  label={t('settings.countdownBefore', {minutes: offset})}
                   selected={
                     settings.state.status === 'ready' &&
-                    settings.state.settings.defaultReminderOffset === offset
+                    settings.state.settings.countdownMinutes === offset
                   }
                   onPress={() => {
                     settings
-                      .update('defaultReminderOffset', offset)
+                      .update('countdownMinutes', offset)
                       .catch(() => undefined);
                   }}
                 />
               ))}
             </ChipRow>
-            {/* Says what it does NOT do — changing the default must not touch
-                anything already created (FR-052a). */}
-            <Text style={styles.hint}>{t('settings.defaultOffsetHint')}</Text>
-            {settings.saveFailed === 'defaultReminderOffset' ? (
+            {/* Says what it covers AND what it does not touch: this is the one
+                setting that changes every row at once, so "mọi công việc" has
+                to be stated rather than inferred. */}
+            <Text style={styles.hint}>{t('settings.countdownHint')}</Text>
+            {settings.saveFailed === 'countdownMinutes' ? (
               <Text style={styles.failed}>{t('settings.saveFailed')}</Text>
             ) : null}
           </View>

@@ -4,10 +4,15 @@ import {GestureDetector, type GestureType} from 'react-native-gesture-handler';
 import {StyleSheet} from 'react-native-unistyles';
 
 import {Text} from '../../../components/Text';
+import {
+  countdownSeconds,
+  type CountdownOffset,
+} from '../../../domain/countdown';
 import {isOverdue, overdueByMinutes} from '../../../domain/task';
 import type {TimelineItem} from '../../../domain/timeline';
 import type {LocalTime} from '../../../lib/date';
 import {
+  countdownLabel,
   durationLabel,
   reminderOffsetLabel,
   timeRangeLabel,
@@ -20,13 +25,27 @@ import {useTaskDrag} from '../hooks/useTaskDrag';
 
 /** Placeholders until the icon set is chosen (decisions.md D-06). */
 const CHECK_GLYPH = '✓';
+const RESTORE_GLYPH = '↺';
 const DRAG_GLYPH = '⣿';
 const MORE_GLYPH = '⋯';
+
+/**
+ * The one visual state a row is in, in precedence order.
+ *
+ * Mutually exclusive by construction rather than by three booleans that could
+ * contradict each other: a skipped session is not "overdue", and a finished
+ * task cannot be late (`isOverdue` already returns false for it).
+ */
+type RowState = 'skipped' | 'done' | 'overdue' | 'normal';
 
 export interface TaskRowProps {
   task: TimelineItem;
   now: Date;
+  /** The app-wide countdown window, from settings. Not a reminder offset. */
+  countdownMinutes: CountdownOffset;
   onToggleStatus: (task: TimelineItem) => void;
+  /** Un-skips a session; the only way back from "Chỉ lần này" on a delete. */
+  onRestoreSkipped: (task: TimelineItem) => void;
   onOpen: (task: TimelineItem) => void;
   onMore: (task: TimelineItem) => void;
   /** Drag-to-reschedule within the day (FR-018a). */
@@ -42,7 +61,9 @@ export interface TaskRowProps {
  * on one row and still be scannable.
  *
  * Rule: compress the normal, spell out the abnormal. No attribute is carried by
- * colour alone (Principle V, FR-016) — every one has a shape or a word.
+ * colour alone (Principle V, FR-016) — every one has a shape or a word. The
+ * status colours added on top of that (red overdue, green done, grey skipped)
+ * are an accelerator for people who can use them, never the only signal.
  *
  * Conditional styling goes through Unistyles variants. Style arrays do not
  * typecheck against its style objects, and a dynamic function anywhere in a
@@ -51,16 +72,39 @@ export interface TaskRowProps {
 export function TaskRow({
   task,
   now,
+  countdownMinutes,
   onToggleStatus,
+  onRestoreSkipped,
   onOpen,
   onMore,
   onShiftTime,
   remindersMayBeLate = false,
   swipeRef,
 }: TaskRowProps) {
+  const skipped = task.isSkipped;
   const done = task.status === 'done';
-  const overdue = isOverdue(task, now);
+  const overdue = !skipped && isOverdue(task, now);
   const lateBy = overdue ? overdueByMinutes(task, now) : 0;
+
+  const state: RowState = skipped
+    ? 'skipped'
+    : done
+    ? 'done'
+    : overdue
+    ? 'overdue'
+    : 'normal';
+
+  /**
+   * Seconds to the start, or null when this row is not in its window.
+   *
+   * Every task counts down on the same app-wide window — having a reminder has
+   * nothing to do with it. The exclusions are only rows that are not going to
+   * happen: counting down to something already ticked off, or to a session the
+   * user cancelled, is noise dressed up as urgency. (`overdue` is excluded for
+   * the same reason as `done` — its start is already behind us.)
+   */
+  const remaining =
+    state === 'normal' ? countdownSeconds(task, now, countdownMinutes) : null;
 
   const {gesture, previewTime} = useTaskDrag({
     task,
@@ -69,10 +113,13 @@ export function TaskRow({
   });
   const dragging = previewTime !== null;
 
-  styles.useVariants({done, overdue, dragging});
+  styles.useVariants({state, dragging});
 
   const labels = useMemo(() => {
     const out: string[] = [];
+    if (skipped) {
+      out.push(t('row.skipped'));
+    }
     if (done) {
       out.push(t('row.done'));
     }
@@ -91,7 +138,9 @@ export function TaskRow({
     if (task.hasOverride) {
       out.push(t('row.edited'));
     }
-    if (task.reminderEnabled) {
+    // A skipped session has no reminder — reconcile.ts refuses to schedule one
+    // — so claiming otherwise on the row would be a lie the user acts on.
+    if (task.reminderEnabled && !skipped) {
       const base =
         task.reminderOffsetMinutes === 0
           ? t('row.reminderOnTime')
@@ -107,6 +156,7 @@ export function TaskRow({
     }
     return out;
   }, [
+    skipped,
     done,
     overdue,
     lateBy,
@@ -117,38 +167,70 @@ export function TaskRow({
     remindersMayBeLate,
   ]);
 
-  // Screen readers get the row as one sentence rather than four fragments.
+  // Screen readers get the row as one sentence rather than four fragments. The
+  // countdown is spelled out in words here: "04:59" is read as a time of day.
   const rowLabel = [
     timeRangeLabel(task.startTime, task.endTime),
     task.title,
     ...labels,
+    ...(remaining === null
+      ? []
+      : [
+          t('row.countdownLabel', {
+            minutes: Math.floor(remaining / 60),
+            seconds: remaining % 60,
+          }),
+        ]),
   ].join(', ');
 
   return (
     <View style={styles.row}>
-      <Pressable
-        accessibilityRole="checkbox"
-        accessibilityState={{checked: done}}
-        accessibilityLabel={
-          done
-            ? t('row.toggleProcessing', {title: task.title})
-            : t('row.toggleDone', {title: task.title})
-        }
-        onPress={() => onToggleStatus(task)}
-        style={styles.checkTarget}>
-        <View style={styles.checkBox}>
-          {done ? <Text style={styles.checkGlyph}>{CHECK_GLYPH}</Text> : null}
-        </View>
-      </Pressable>
+      <View style={styles.accent} />
+
+      {skipped ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('row.restoreSkipped', {title: task.title})}
+          onPress={() => onRestoreSkipped(task)}
+          style={styles.checkTarget}>
+          <View style={styles.checkBox}>
+            <Text style={styles.restoreGlyph}>{RESTORE_GLYPH}</Text>
+          </View>
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{checked: done}}
+          accessibilityLabel={
+            done
+              ? t('row.toggleProcessing', {title: task.title})
+              : t('row.toggleDone', {title: task.title})
+          }
+          onPress={() => onToggleStatus(task)}
+          style={styles.checkTarget}>
+          <View style={styles.checkBox}>
+            {done ? <Text style={styles.checkGlyph}>{CHECK_GLYPH}</Text> : null}
+          </View>
+        </Pressable>
+      )}
 
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={rowLabel}
         onPress={() => onOpen(task)}
         style={styles.body}>
-        <Text style={styles.clock}>
-          {timeRangeLabel(task.startTime, task.endTime)}
-        </Text>
+        <View style={styles.clockRow}>
+          <Text style={styles.clock}>
+            {timeRangeLabel(task.startTime, task.endTime)}
+          </Text>
+          {/* Beside the clock, not down with the labels: it is a fact about
+              this time, and it has to be found without reading the row. */}
+          {remaining === null ? null : (
+            <Text style={styles.countdown}>
+              {t('row.countdown', {time: countdownLabel(remaining)})}
+            </Text>
+          )}
+        </View>
         <Text style={styles.title}>{task.title}</Text>
         {task.note ? (
           <Text style={styles.note} numberOfLines={1}>
@@ -171,15 +253,21 @@ export function TaskRow({
         ) : null}
       </Pressable>
 
-      {/* Only the handle starts a drag; the whole row would fight the scroll. */}
-      <GestureDetector gesture={gesture}>
-        <View
-          accessibilityRole="adjustable"
-          accessibilityLabel={t('row.dragHandle', {title: task.title})}
-          style={styles.handle}>
-          <Text style={styles.handleGlyph}>{DRAG_GLYPH}</Text>
-        </View>
-      </GestureDetector>
+      {/* Only the handle starts a drag; the whole row would fight the scroll.
+          A skipped session keeps the space but not the gesture: rescheduling
+          something that is not happening writes an override nobody asked for. */}
+      {skipped ? (
+        <View style={styles.handle} />
+      ) : (
+        <GestureDetector gesture={gesture}>
+          <View
+            accessibilityRole="adjustable"
+            accessibilityLabel={t('row.dragHandle', {title: task.title})}
+            style={styles.handle}>
+            <Text style={styles.handleGlyph}>{DRAG_GLYPH}</Text>
+          </View>
+        </GestureDetector>
+      )}
 
       <Pressable
         accessibilityRole="button"
@@ -202,16 +290,39 @@ const styles = StyleSheet.create(raw => {
       borderBottomWidth: 1,
       borderBottomColor: theme.color.border,
       variants: {
-        done: {
+        state: {
           // A completed row recedes, but stays fully legible.
-          true: {backgroundColor: theme.color.surface, opacity: 0.72},
-          false: {backgroundColor: theme.color.background, opacity: 1},
+          done: {backgroundColor: theme.color.surface, opacity: 0.72},
+          // A skipped one recedes further: it is the only row on the day that
+          // is not going to happen.
+          skipped: {backgroundColor: theme.color.surface, opacity: 0.6},
+          overdue: {backgroundColor: theme.color.background, opacity: 1},
+          normal: {backgroundColor: theme.color.background, opacity: 1},
         },
         dragging: {
-          // Wins over `done`: the row being dragged has to stand out from the
+          // Wins over `state`: the row being dragged has to stand out from the
           // rest of the list while the finger is down.
           true: {backgroundColor: theme.color.surface, opacity: 1},
           false: {},
+        },
+      },
+    },
+    /**
+     * The status stripe down the leading edge.
+     *
+     * Full-bleed and only 4pt wide, so a scan down the day answers "what needs
+     * me" before any word is read. It duplicates a label that is always present
+     * rather than replacing one.
+     */
+    accent: {
+      alignSelf: 'stretch',
+      width: 4,
+      variants: {
+        state: {
+          overdue: {backgroundColor: theme.color.error},
+          done: {backgroundColor: theme.color.success},
+          skipped: {backgroundColor: theme.color.disabled},
+          normal: {backgroundColor: 'transparent'},
         },
       },
     },
@@ -228,12 +339,20 @@ const styles = StyleSheet.create(raw => {
       alignItems: 'center',
       justifyContent: 'center',
       variants: {
-        done: {
-          true: {
-            backgroundColor: theme.color.primary,
-            borderColor: theme.color.primary,
+        state: {
+          done: {
+            backgroundColor: theme.color.success,
+            borderColor: theme.color.success,
           },
-          false: {
+          skipped: {
+            backgroundColor: 'transparent',
+            borderColor: theme.color.disabled,
+          },
+          overdue: {
+            backgroundColor: 'transparent',
+            borderColor: theme.color.error,
+          },
+          normal: {
             backgroundColor: 'transparent',
             borderColor: theme.color.onBackground,
           },
@@ -245,23 +364,66 @@ const styles = StyleSheet.create(raw => {
       color: theme.appColor.onAccent,
       fontWeight: '800',
     },
+    restoreGlyph: {
+      ...theme.typography.caption,
+      ...GLYPH_ALIGN,
+      color: theme.color.disabled,
+      fontWeight: '800',
+    },
     body: {
       flex: 1,
       paddingVertical: theme.spacing.sm,
+      paddingLeft: theme.spacing.xs,
       paddingRight: theme.spacing.xs,
       gap: 2,
     },
+    clockRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: theme.spacing.xs,
+    },
     clock: {
       ...theme.appType.clock,
-      color: theme.appColor.textMuted,
+      variants: {
+        state: {
+          overdue: {color: theme.color.error},
+          done: {color: theme.color.success},
+          skipped: {color: theme.color.disabled},
+          normal: {color: theme.appColor.textMuted},
+        },
+      },
+    },
+    /**
+     * Tabular numerals are not optional here: this value changes every second,
+     * and proportional digits make the whole row jitter as they do.
+     */
+    countdown: {
+      ...theme.appType.clock,
+      color: theme.appColor.accentInk,
+      backgroundColor: theme.appColor.accentSoft,
+      paddingHorizontal: theme.spacing.xs,
     },
     title: {
       ...theme.typography.body,
-      color: theme.color.onBackground,
       variants: {
-        done: {
-          true: {textDecorationLine: 'line-through'},
-          false: {textDecorationLine: 'none'},
+        state: {
+          done: {
+            color: theme.color.onBackground,
+            textDecorationLine: 'line-through',
+          },
+          skipped: {
+            color: theme.color.disabled,
+            textDecorationLine: 'line-through',
+          },
+          overdue: {
+            color: theme.color.onBackground,
+            textDecorationLine: 'none',
+          },
+          normal: {
+            color: theme.color.onBackground,
+            textDecorationLine: 'none',
+          },
         },
       },
     },
@@ -283,13 +445,23 @@ const styles = StyleSheet.create(raw => {
     label: {
       ...theme.typography.caption,
       variants: {
-        overdue: {
-          true: {
-            color: theme.appColor.accentInk,
+        state: {
+          overdue: {
+            color: theme.color.error,
             backgroundColor: theme.appColor.accentSoft,
             paddingHorizontal: theme.spacing.xs,
           },
-          false: {
+          done: {
+            color: theme.color.success,
+            backgroundColor: 'transparent',
+            paddingHorizontal: 0,
+          },
+          skipped: {
+            color: theme.color.disabled,
+            backgroundColor: 'transparent',
+            paddingHorizontal: 0,
+          },
+          normal: {
             color: theme.appColor.textMuted,
             backgroundColor: 'transparent',
             paddingHorizontal: 0,

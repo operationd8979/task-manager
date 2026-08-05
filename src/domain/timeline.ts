@@ -32,6 +32,8 @@ export interface TimelineItem {
   repeatsOn?: readonly Weekday[];
   /** Occurrence has content edited for this session only (FR-029). */
   hasOverride: boolean;
+  /** This session was skipped. Always false for a one-off task. */
+  isSkipped: boolean;
 }
 
 export function fromTask(task: Task): TimelineItem {
@@ -47,6 +49,7 @@ export function fromTask(task: Task): TimelineItem {
     reminderEnabled: task.reminderEnabled,
     reminderOffsetMinutes: task.reminderOffsetMinutes,
     hasOverride: false,
+    isSkipped: false,
   };
 }
 
@@ -71,6 +74,7 @@ export function fromOccurrence(
     reminderOffsetMinutes: occurrence.reminderOffsetMinutes,
     repeatsOn: rule.daysOfWeek,
     hasOverride: occurrence.hasOverride,
+    isSkipped: occurrence.isSkipped,
   };
 }
 

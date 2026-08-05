@@ -53,7 +53,18 @@ export function RecurrenceSheet({
   onClose,
 }: RecurrenceSheetProps) {
   const [repeats, setRepeats] = useState(value !== null);
-  const [days, setDays] = useState<readonly Weekday[]>(value?.daysOfWeek ?? []);
+  /**
+   * Every weekday is the starting point for a repeat that has not been set up
+   * yet (`value === null`).
+   *
+   * Someone who has just said "Lặp theo thứ" wants a repeat; handing them seven
+   * empty chips and the "Chọn ít nhất một thứ" error makes the first thing they
+   * see a validation failure. Daily is the most common answer and the easiest
+   * to subtract from — deselecting the two weekend chips is two taps.
+   */
+  const [days, setDays] = useState<readonly Weekday[]>(
+    value?.daysOfWeek ?? ALL_WEEKDAYS,
+  );
   const [startDate, setStartDate] = useState(
     value?.startDate ?? defaultStartDate,
   );
@@ -125,7 +136,14 @@ export function RecurrenceSheet({
       <Segmented<'none' | 'weekly'>
         accessibilityLabel={t('repeat.title')}
         value={repeats ? 'weekly' : 'none'}
-        onChange={next => setRepeats(next === 'weekly')}
+        onChange={next => {
+          // Turning the repeat back on after clearing every chip lands on
+          // daily again rather than on the empty-selection error.
+          if (next === 'weekly' && days.length === 0) {
+            setDays(ALL_WEEKDAYS);
+          }
+          setRepeats(next === 'weekly');
+        }}
         options={[
           {value: 'none', label: t('repeat.none')},
           {value: 'weekly', label: t('repeat.byWeekday')},

@@ -55,6 +55,18 @@ không phải sắp lại trong JavaScript. Đây là điều kiện của SC-00
 là thứ biến "đóng ứng dụng trong lúc hoàn tác còn hiệu lực" thành xóa vĩnh viễn, đúng như
 edge case đã chốt.
 
+Hai ràng buộc của lượt quét này, cả hai đều từng bị vi phạm và làm ứng dụng không khởi
+động được:
+
+- Nó **không được dùng `handle.batch`**. Batch phân giải mọi `id` theo điều kiện
+  `deleted_at IS NULL`, nên với nó một bản ghi đã xóa mềm là *không tồn tại* và lệnh xóa
+  ném `RECORD_NOT_FOUND`. Dùng `collection.delete` trong một transaction — `delete` không
+  có ràng buộc đó, và transaction giữ tính nguyên tử.
+- Thất bại của nó **không được chặn khởi động**. Đây là việc dọn dẹp trên các bản ghi vốn
+  đã vô hình với mọi truy vấn đọc; lỗi được ghi vào nhật ký lỗi rồi bỏ qua. Cho nó quyền
+  quyết định ứng dụng có chạy hay không nghĩa là một lần xóa chưa dọn cũng đủ làm hỏng
+  vĩnh viễn, và nút "Thử lại" đọc đúng những bản ghi đó rồi hỏng y hệt.
+
 ## Kho quy tắc lặp và điều chỉnh riêng
 
 ```ts

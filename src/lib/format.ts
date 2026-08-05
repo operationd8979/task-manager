@@ -66,6 +66,20 @@ export function reminderOffsetLabel(minutes: number): string {
   return minutes === 0 ? 'đúng giờ' : `−${minutes}′`;
 }
 
+/**
+ * "04:59" — the row countdown, always mm:ss.
+ *
+ * Fixed width on purpose: the value changes every second, and a label that
+ * switches between "5:00" and "59" makes the whole row twitch. Pair it with the
+ * tabular-numeral clock token or the digits still shift inside that width.
+ */
+export function countdownLabel(seconds: number): string {
+  const whole = Math.max(seconds, 0);
+  const minutes = Math.floor(whole / 60);
+  const rest = whole % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+}
+
 /** "09:00–10:00" or "09:00" when the task is a single moment. */
 export function timeRangeLabel(
   start: string,

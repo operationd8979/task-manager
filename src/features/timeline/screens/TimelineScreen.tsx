@@ -22,6 +22,7 @@ import {ErrorState} from '../../../components/ErrorState';
 import {EmptyState} from '../../../components/EmptyState';
 import {Skeleton, SkeletonGroup} from '../../../components/Skeleton';
 import {Text} from '../../../components/Text';
+import {countdownOpensAt} from '../../../domain/countdown';
 import {DEFAULT_SETTINGS, type AppSettings} from '../../../domain/settings';
 import {withStartTime, type Task} from '../../../domain/task';
 import type {RecurringRule} from '../../../domain/recurrence';
@@ -51,6 +52,10 @@ import {DayBar} from '../components/DayBar';
 import {TaskRow} from '../components/TaskRow';
 import {useCreateSwipe} from '../hooks/useCreateSwipe';
 import {useDaySwipe} from '../hooks/useDaySwipe';
+import {
+  useTimelineClock,
+  type CountdownWindow,
+} from '../hooks/useTimelineClock';
 import {useTimelineDay} from '../hooks/useTimelineDay';
 
 const SKELETON_ROWS = ['s1', 's2', 's3', 's4', 's5', 's6'];
@@ -168,9 +173,40 @@ export function TimelineScreen() {
     reminders.clearPendingTarget();
   }, [reminders, goTo]);
 
-  // Recomputed per render rather than ticking: overdue is derived, and a timer
-  // firing every minute would wake the JS thread for nothing.
-  const now = useMemo(() => new Date(), []);
+  /**
+   * When each row would start counting down, for the screen's single clock.
+   *
+   * Built here rather than in the rows because the clock has to know about all
+   * of them at once to decide whether to tick at all — see useTimelineClock.
+   * EVERY task gets a window off the one app-wide setting, reminder or not;
+   * only rows that are done or skipped are left out, because neither is still
+   * going to happen.
+   */
+  const countdownWindows = useMemo<CountdownWindow[]>(() => {
+    if (state.status !== 'ready') {
+      return [];
+    }
+    const window = settings.countdownMinutes;
+    const out: CountdownWindow[] = [];
+    for (const item of state.items) {
+      if (item.status === 'done' || item.isSkipped) {
+        continue;
+      }
+      const opensAt = countdownOpensAt(item, window);
+      if (opensAt === null) {
+        continue;
+      }
+      out.push({
+        opensAt: opensAt.getTime(),
+        startsAt: opensAt.getTime() + window * 60_000,
+      });
+    }
+    return out;
+  }, [state, settings.countdownMinutes]);
+
+  // One timer for the whole screen. It also refreshes the QUÁ HẠN labels at
+  // least once a minute, which a value computed per render never did.
+  const now = useTimelineClock(countdownWindows);
 
   const goPrevious = useCallback(() => goTo(d => addDays(d, -1)), [goTo]);
   const goNext = useCallback(() => goTo(d => addDays(d, 1)), [goTo]);
@@ -206,6 +242,31 @@ export function TimelineScreen() {
       setStatus(item, item.status === 'done' ? 'processing' : 'done');
     },
     [setStatus],
+  );
+
+  /**
+   * Puts a skipped session back on the day.
+   *
+   * The inverse of "Chỉ lần này" on a delete, and deliberately NOT routed
+   * through the apply-scope sheet: it touches exactly the one session whose
+   * button was pressed, so there is no scope to ask about (FR-026a).
+   */
+  const restoreSkipped = useCallback(
+    (item: TimelineItem) => {
+      if (item.source.kind !== 'occurrence') {
+        return;
+      }
+      const {ruleId, date: occurrenceDate} = item.source;
+      recurrence
+        .upsertOverride(ruleId, occurrenceDate, {isSkipped: false})
+        .then(() => {
+          reload();
+          // The session is happening again, so its reminder has to come back.
+          reminders.sync();
+        })
+        .catch(reload);
+    },
+    [recurrence, reload, reminders],
   );
 
   /**
@@ -587,7 +648,9 @@ export function TimelineScreen() {
                   <TaskRow
                     task={item}
                     now={now}
+                    countdownMinutes={settings.countdownMinutes}
                     onToggleStatus={toggleStatus}
+                    onRestoreSkipped={restoreSkipped}
                     onOpen={openEdit}
                     onMore={openActions}
                     onShiftTime={shiftTime}
@@ -599,6 +662,10 @@ export function TimelineScreen() {
                   />
                 )}
                 contentContainerStyle={styles.listContent}
+                // The clock is not part of `data`, so the list is told
+                // explicitly that a tick invalidates the rendered rows —
+                // otherwise the countdown freezes on whatever it first drew.
+                extraData={now}
                 // No entrance animations, no shadows: the list has to hold
                 // 60 FPS on a low-end device (SC-006).
                 removeClippedSubviews
@@ -630,7 +697,6 @@ export function TimelineScreen() {
         <TaskFormSheet
           task={overlay.task}
           viewingDate={date}
-          defaultReminderOffset={settings.defaultReminderOffset}
           onSaved={handleSaved}
           onClose={closeOverlay}
         />

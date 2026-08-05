@@ -1,6 +1,9 @@
 import type {DatabaseHandle} from '@chipmobilesdk/rn-local-db';
 
-import {isReminderOffset, type ReminderOffset} from '../../domain/reminder';
+import {
+  isCountdownOffset,
+  type CountdownOffset,
+} from '../../domain/countdown';
 import {
   DEFAULT_SETTINGS,
   isDisplayMode,
@@ -35,7 +38,7 @@ export function createSettingsRepository(
         // Defaults are filled here so no screen ever has to branch on an
         // undefined preference — one fewer state in the UI.
         return {
-          defaultReminderOffset: readOffset(raw.get('defaultReminderOffset')),
+          countdownMinutes: readCountdown(raw.get('countdownMinutes')),
           firstDayOfWeek: readWeekday(raw.get('firstDayOfWeek')),
           displayMode: readDisplayMode(raw.get('displayMode')),
         };
@@ -54,11 +57,19 @@ export function createSettingsRepository(
   };
 }
 
-function readOffset(value: string | undefined): ReminderOffset {
+/**
+ * Read under its own key, not the old `defaultReminderOffset`.
+ *
+ * That key held a REMINDER default and was allowed to be 0; reusing it would
+ * import "đúng giờ" as a countdown window of zero — a setting that is no longer
+ * offered and would silently switch the countdown off for anyone upgrading.
+ * The stale key is simply left unread.
+ */
+function readCountdown(value: string | undefined): CountdownOffset {
   const n = Number(value);
-  return Number.isFinite(n) && isReminderOffset(n)
+  return Number.isFinite(n) && isCountdownOffset(n)
     ? n
-    : DEFAULT_SETTINGS.defaultReminderOffset;
+    : DEFAULT_SETTINGS.countdownMinutes;
 }
 
 function readWeekday(value: string | undefined): Weekday {

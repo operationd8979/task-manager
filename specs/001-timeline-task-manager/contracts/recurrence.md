@@ -58,6 +58,8 @@ interface Occurrence {
   reminderOffsetMinutes: ReminderOffset;
   /** Điều khiển nhãn "✎ ĐÃ CHỈNH RIÊNG" trên dòng. */
   hasOverride: boolean;
+  /** Buổi bị bỏ qua ("chỉ lần này" khi xóa). Vẫn được sinh, nhưng vẽ mờ. */
+  isSkipped: boolean;
 }
 ```
 
@@ -69,7 +71,9 @@ function ruleOccursOn(rule: RecurringRule, date: LocalDate): boolean;
 
 /**
  * Sinh các lần xuất hiện cho ĐÚNG MỘT ngày.
- * Buổi bị đánh dấu bỏ qua không xuất hiện trong kết quả.
+ * Buổi bị đánh dấu bỏ qua VẪN xuất hiện, mang `isSkipped: true` — dòng thời
+ * gian vẽ nó mờ đi thay vì để lại một khoảng trống không giải thích được.
+ * Bên đặt nhắc nhở phải tự lọc `isSkipped` trước khi lên lịch (FR-037).
  * Thứ tự trả về không đảm bảo — việc sắp xếp thuộc về tầng gọi.
  */
 function buildOccurrences(
@@ -109,7 +113,7 @@ Với mỗi quy tắc thỏa `ruleOccursOn`, tìm điều chỉnh riêng theo kh
 | Trường hợp | Kết quả |
 |---|---|
 | Không có điều chỉnh riêng | Buổi lấy toàn bộ giá trị từ quy tắc, `hasOverride: false` |
-| Có, `isSkipped: true` | **Không trả về buổi nào** (FR-027, "chỉ lần này" khi xóa) |
+| Có, `isSkipped: true` | Buổi **vẫn** được trả về với `isSkipped: true` (FR-027, "chỉ lần này" khi xóa); dòng vẽ mờ, không có nhắc nhở |
 | Có, trường **vắng mặt** | Lấy giá trị từ quy tắc |
 | Có, trường **có mặt** (kể cả `null`) | Lấy giá trị từ điều chỉnh riêng |
 
@@ -156,7 +160,7 @@ sheet là công việc vô ích trên JS thread ngay tại thời điểm ngư�
 | `endDate = null` | Buổi tiếp tục sinh ở ngày rất xa trong tương lai |
 | Điều chỉnh riêng đặt `endTime` có mặt và `null` | Buổi không có giờ kết thúc, **không** kế thừa từ quy tắc |
 | Điều chỉnh riêng vắng `endTime` | Buổi kế thừa `defaultEndTime` |
-| `isSkipped: true` | Không có buổi nào trong kết quả |
+| `isSkipped: true` | Buổi có trong kết quả với `isSkipped: true`; `desiredReminders` không lên lịch cho nó |
 | Điều chỉnh riêng chỉ có `status` | `hasOverride: false` — không hiện nhãn chỉnh riêng |
 | Điều chỉnh riêng rơi ngoài phạm vi quy tắc sau khi sửa | Không sinh buổi, nhưng bản ghi **vẫn còn** trong dữ liệu |
 | `daysOfWeek` rỗng | Không sinh buổi nào; tầng kiểm tra chặn trạng thái này trước khi lưu |

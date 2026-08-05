@@ -1,7 +1,10 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {useDatabase} from '../../../app/providers/DatabaseProvider';
-import type {ReminderOffset} from '../../../domain/reminder';
+import {
+  DEFAULT_REMINDER_OFFSET,
+  type ReminderOffset,
+} from '../../../domain/reminder';
 import {
   validateTask,
   type FieldError,
@@ -40,8 +43,6 @@ export interface UseTaskFormOptions {
   task?: Task;
   /** The day the timeline is showing; the default for a new task. */
   viewingDate: LocalDate;
-  /** From settings, so a new task inherits the user's chosen offset (FR-036c). */
-  defaultReminderOffset: ReminderOffset;
   /**
    * Reports the date the record landed on, not the record itself: saving may
    * produce a task or a recurring rule, and the screen only needs to know
@@ -53,7 +54,6 @@ export interface UseTaskFormOptions {
 export function useTaskForm({
   task,
   viewingDate,
-  defaultReminderOffset,
   onSaved,
 }: UseTaskFormOptions) {
   const {handle, errorLog} = useDatabase();
@@ -96,12 +96,19 @@ export function useTaskForm({
             taskDate: viewingDate,
             startTime: nextWholeHour(openedAt),
             endTime: null,
+            // Not offered on the create form at all: nothing being created has
+            // already been done. The field is edit-only now.
             status: 'processing',
             reminderEnabled: false,
-            reminderOffsetMinutes: defaultReminderOffset,
+            reminderOffsetMinutes: DEFAULT_REMINDER_OFFSET,
+            // A new task does NOT repeat. Most tasks are one-offs, and a
+            // default that quietly writes a recurring rule would make the
+            // ordinary case the one that has to be undone (FR-008). "Hằng
+            // ngày" is what the recurrence sheet opens on once the user has
+            // said they want a repeat at all.
             recurrence: null,
           },
-    [task, viewingDate, defaultReminderOffset, openedAt],
+    [task, viewingDate, openedAt],
   );
 
   const [values, setValues] = useState<TaskFormValues>(initial);

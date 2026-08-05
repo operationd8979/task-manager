@@ -140,11 +140,19 @@ Khóa dùng trong phiên bản đầu:
 
 | Khóa | Miền giá trị | Mặc định | Requirement |
 |---|---|---|---|
-| `defaultReminderOffset` | `0|5|10|15|30|60` | `0` | FR-052a |
+| `countdownMinutes` | `5|10|15|30|60` | `5` | FR-052a |
 | `firstDayOfWeek` | `1` (Thứ Hai) hoặc `7` (Chủ Nhật) | `1` | FR-052 |
 | `displayMode` | `auto|light|dark` | `auto` | FR-052b |
 
 Không `softDelete`, không `timestamps`.
+
+`countdownMinutes` là cửa sổ đếm ngược **toàn ứng dụng**, không phải mốc nhắc nhở. Nó áp
+dụng cho mọi công việc trên dòng thời gian, kể cả công việc không bật nhắc nhở, và không
+ảnh hưởng đến thông báo nào. Mốc nhắc nhở được chọn **chỉ** ở màn hình tạo công việc và
+lưu trên chính bản ghi công việc (`reminderOffsetMinutes`).
+
+Khóa cũ `defaultReminderOffset` không còn được đọc. Nó cho phép giá trị `0`, còn cửa sổ
+đếm ngược thì không — dùng lại khóa đó sẽ lặng lẽ tắt đếm ngược của người đang nâng cấp.
 
 ### 2.5 `error_log` — nhật ký lỗi cục bộ
 

@@ -13,7 +13,6 @@ import {
   isInPast,
   reminderFireAt,
   REMINDER_OFFSETS,
-  type ReminderOffset,
 } from '../../../domain/reminder';
 import type {Task, TaskStatus} from '../../../domain/task';
 import {minutesOf, timeFromMinutes, type LocalDate} from '../../../lib/date';
@@ -23,7 +22,10 @@ import {appTheme} from '../../../theme/theme';
 import {BAR_HEIGHT, TAP_TARGET_MIN} from '../../../theme/tokens';
 import {DateTimeField} from '../components/DateTimeField';
 import {Field} from '../components/Field';
-import {RecurrenceSheet} from '../components/RecurrenceSheet';
+import {
+  RecurrenceSheet,
+  type RecurrenceValue,
+} from '../components/RecurrenceSheet';
 import {useTaskForm} from '../hooks/useTaskForm';
 
 /** Durations offered as one-tap end times (Principle I: selection over typing). */
@@ -36,7 +38,6 @@ const DURATION_CHIPS: ReadonlyArray<{minutes: number; key: StringKey}> = [
 export interface TaskFormSheetProps {
   task?: Task;
   viewingDate: LocalDate;
-  defaultReminderOffset: ReminderOffset;
   onSaved: (savedDate: LocalDate) => void;
   onClose: () => void;
 }
@@ -44,16 +45,10 @@ export interface TaskFormSheetProps {
 export function TaskFormSheet({
   task,
   viewingDate,
-  defaultReminderOffset,
   onSaved,
   onClose,
 }: TaskFormSheetProps) {
-  const form = useTaskForm({
-    task,
-    viewingDate,
-    defaultReminderOffset,
-    onSaved,
-  });
+  const form = useTaskForm({task, viewingDate, onSaved});
   // The sheet owns the scrolling now, so this reaches into it rather than
   // wrapping the fields in a second scroll view.
   const scroll = useRef<BottomSheetScrollViewMethods>(null);
@@ -273,17 +268,24 @@ export function TaskFormSheet({
             />
           </ChipRow>
 
-          <Field label={t('form.status')}>
-            <Segmented<TaskStatus>
-              accessibilityLabel={t('form.status')}
-              value={form.values.status}
-              onChange={next => form.setField('status', next)}
-              options={[
-                {value: 'processing', label: t('form.statusProcessing')},
-                {value: 'done', label: t('form.statusDone')},
-              ]}
-            />
-          </Field>
+          {/* Status is an EDIT-only field. A task being created has not been
+              done yet by definition, so offering the choice was a decision
+              with one sensible answer — `useTaskForm` defaults it to
+              "Đang thực hiện" and the timeline's checkbox is where it changes
+              from then on. */}
+          {task === undefined ? null : (
+            <Field label={t('form.status')}>
+              <Segmented<TaskStatus>
+                accessibilityLabel={t('form.status')}
+                value={form.values.status}
+                onChange={next => form.setField('status', next)}
+                options={[
+                  {value: 'processing', label: t('form.statusProcessing')},
+                  {value: 'done', label: t('form.statusDone')},
+                ]}
+              />
+            </Field>
+          )}
 
           {/* Creating a series is a different write path, so the row is only
               offered on a new task. Converting an existing task into a series
@@ -299,15 +301,10 @@ export function TaskFormSheet({
                 }}
                 style={styles.repeatRow}>
                 <Text style={styles.repeatValue}>
-                  {form.values.recurrence === null
-                    ? t('form.noRepeat')
-                    : t('repeat.summary', {
-                        days: [...form.values.recurrence.daysOfWeek]
-                          .sort((a, b) => a - b)
-                          .map(weekdayShort)
-                          .join(', '),
-                        time: form.values.startTime,
-                      })}
+                  {repeatSummary(
+                    form.values.recurrence,
+                    form.values.startTime,
+                  )}
                 </Text>
               </Pressable>
             </Field>
@@ -404,6 +401,33 @@ export function TaskFormSheet({
       ) : null}
     </Sheet>
   );
+}
+
+/**
+ * What the Lặp lại row reads.
+ *
+ * All seven weekdays get their own sentence: since a new task now defaults to
+ * repeating daily, the literal listing — "Lặp T2, T3, T4, T5, T6, T7, CN" — is
+ * the first thing most people would see, and it takes a second read to work out
+ * that it just means every day.
+ */
+function repeatSummary(
+  value: RecurrenceValue | null,
+  startTime: string,
+): string {
+  if (value === null) {
+    return t('form.noRepeat');
+  }
+  if (value.daysOfWeek.length === 7) {
+    return t('repeat.summaryDaily', {time: startTime});
+  }
+  return t('repeat.summary', {
+    days: [...value.daysOfWeek]
+      .sort((a, b) => a - b)
+      .map(weekdayShort)
+      .join(', '),
+    time: startTime,
+  });
 }
 
 const styles = StyleSheet.create(raw => {

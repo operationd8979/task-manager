@@ -54,8 +54,18 @@ describe('buildOccurrences merge semantics', () => {
     expect(occurrence.endTime).toBe('10:00');
   });
 
-  it('returns no occurrence at all when the session is skipped', () => {
-    expect(build([override({isSkipped: true})])).toHaveLength(0);
+  it('still produces a skipped session, flagged rather than dropped', () => {
+    // Dropping it left a hole in the day with nothing to explain it. The row is
+    // drawn greyed out instead; `isSkipped` is what every consumer branches on,
+    // and reconcile.ts is the one that must never schedule it.
+    const [occurrence] = build([override({isSkipped: true})]);
+    expect(occurrence.isSkipped).toBe(true);
+    expect(occurrence.title).toBe('Tập thể dục');
+  });
+
+  it('leaves isSkipped false when no override says otherwise', () => {
+    expect(build([])[0].isSkipped).toBe(false);
+    expect(build([override({status: 'done'})])[0].isSkipped).toBe(false);
   });
 
   it('does not mark a status-only override as edited', () => {

@@ -44,6 +44,10 @@ const CATALOG = {
   // Row labels
   'row.done': 'HOÀN THÀNH',
   'row.overdue': 'QUÁ HẠN {duration}',
+  'row.skipped': 'ĐÃ BỎ QUA',
+  'row.countdown': 'CÒN {time}',
+  'row.countdownLabel': 'Còn {minutes} phút {seconds} giây nữa đến giờ',
+  'row.restoreSkipped': 'Bỏ đánh dấu bỏ qua {title}',
   'row.repeats': 'LẶP {days}',
   'row.edited': 'ĐÃ CHỈNH RIÊNG',
   'row.reminder': 'NHẮC {offset}',
@@ -135,6 +139,7 @@ const CATALOG = {
   'repeat.previewOpenEnded': ' và không có ngày kết thúc',
   'repeat.previewUntil': ' đến {end}',
   'repeat.summary': 'Lặp {days} lúc {time}',
+  'repeat.summaryDaily': 'Lặp hằng ngày lúc {time}',
 
   // Apply-scope sheet (S-05)
   'scope.title': 'Áp dụng thay đổi cho?',
@@ -173,8 +178,11 @@ const CATALOG = {
   'settings.granted': '✓ Đã cấp',
   'settings.notGranted': '⚠ Chưa cấp',
   'settings.mayBeLate': 'Nhắc nhở có thể bị phát trễ.',
-  'settings.defaultOffset': 'Mốc nhắc mặc định',
-  'settings.defaultOffsetHint': 'Chỉ áp dụng cho công việc tạo mới.',
+  'settings.countdown': 'ĐẾM NGƯỢC',
+  'settings.countdownOffset': 'Bắt đầu đếm ngược trước',
+  'settings.countdownBefore': '{minutes} phút',
+  'settings.countdownHint':
+    'Áp dụng cho mọi công việc, kể cả công việc không bật nhắc nhở. Đến mốc này, dòng công việc hiện đồng hồ đếm ngược từng giây. Không ảnh hưởng đến thông báo.',
   'settings.display': 'HIỂN THỊ',
   'settings.displayMode': 'Chế độ',
   'settings.modeAuto': 'Tự động',

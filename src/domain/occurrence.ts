@@ -28,6 +28,14 @@ export interface Occurrence {
   reminderOffsetMinutes: ReminderOffset;
   /** Drives the "✎ ĐÃ CHỈNH RIÊNG" label. Status-only edits do not set it. */
   hasOverride: boolean;
+  /**
+   * "Chỉ lần này" on a delete: this session is off, the series is not.
+   *
+   * It is still produced, and still drawn — greyed out, so the day reads as
+   * "this was going to happen and is not" rather than as a gap the user has to
+   * remember the reason for. Nothing may schedule a reminder for it.
+   */
+  isSkipped: boolean;
 }
 
 /**
@@ -54,12 +62,7 @@ export function buildOccurrences(
     if (!ruleOccursOn(rule, date)) {
       continue;
     }
-    const override = byRule.get(rule.id);
-    if (override?.isSkipped === true) {
-      // "Chỉ lần này" on a delete: the session is gone, the series is not.
-      continue;
-    }
-    out.push(merge(rule, date, override));
+    out.push(merge(rule, date, byRule.get(rule.id)));
   }
   return out;
 }
@@ -87,6 +90,7 @@ function merge(
     reminderEnabled: rule.reminderEnabled,
     reminderOffsetMinutes: rule.reminderOffsetMinutes,
     hasOverride: false,
+    isSkipped: false,
   };
 
   if (!override) {
@@ -115,5 +119,6 @@ function merge(
         ? (override.reminderOffsetMinutes as ReminderOffset)
         : base.reminderOffsetMinutes,
     hasOverride: overridesContent(override),
+    isSkipped: override.isSkipped,
   };
 }

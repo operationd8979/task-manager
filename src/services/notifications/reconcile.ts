@@ -70,7 +70,10 @@ export function desiredReminders(input: ReconcileInput): ReminderRequest[] {
       input.overrides,
       date,
     )) {
-      if (occurrence.status === 'done') {
+      // A skipped session still comes out of buildOccurrences — it has to, or
+      // the timeline could not draw it greyed out — so it is filtered HERE.
+      // Nothing about a session the user cancelled may reach the OS (FR-037).
+      if (occurrence.isSkipped || occurrence.status === 'done') {
         continue;
       }
       const fireAt = reminderFireAt({

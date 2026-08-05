@@ -5,6 +5,15 @@ export const REMINDER_OFFSETS = [0, 5, 10, 15, 30, 60] as const;
 
 export type ReminderOffset = (typeof REMINDER_OFFSETS)[number];
 
+/**
+ * Where the reminder chips start on a new task.
+ *
+ * A constant rather than a setting: the reminder is chosen ON the create screen
+ * and nowhere else, so a second place to configure its default would be a
+ * preference for a value the user is already looking at.
+ */
+export const DEFAULT_REMINDER_OFFSET: ReminderOffset = 5;
+
 export function isReminderOffset(value: number): value is ReminderOffset {
   return (REMINDER_OFFSETS as readonly number[]).includes(value);
 }

@@ -35,7 +35,19 @@ export function Chip({label, selected, onPress, accessibilityLabel}: ChipProps) 
         onPress();
       }}
       style={styles.chip}>
-      <Text style={styles.label}>{label}</Text>
+      {/*
+        One line, always.
+
+        A chip is measured from its own label, so the text can never legitimately
+        need a second line — and when Android disagreed with that measurement by
+        a hair it broke "Đúng giờ" at the space and drew only "Đúng", with "giờ"
+        on a second line clipped out of a 44pt box. Pinning the line count means
+        a disagreement shows up as an ellipsis, which is a visible bug, instead
+        of a missing word, which reads as a missing translation.
+      */}
+      <Text numberOfLines={1} style={styles.label}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -54,6 +66,10 @@ const styles = StyleSheet.create(raw => { const theme = appTheme(raw); return ({
     // 44pt even when the label is short — the tap target is the point.
     minHeight: TAP_TARGET_MIN,
     minWidth: TAP_TARGET_MIN,
+    // A wrapping row must never buy a line by squeezing a chip narrower than
+    // its own label. RN already defaults to 0; it is written out because the
+    // failure it prevents is silent — the label just loses its last word.
+    flexShrink: 0,
     paddingHorizontal: theme.spacing.md,
     justifyContent: 'center',
     alignItems: 'center',

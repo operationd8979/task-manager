@@ -136,24 +136,42 @@ export function createTaskRepository(handle: DatabaseHandle): TaskRepository {
 
     async purgeAllSoftDeleted() {
       try {
-        const page = await tasks.list({
-          includeSoftDeleted: true,
-          page: {size: 500},
-        });
-        const stale = page.records.filter(
-          r => r.deletedAt !== undefined && r.deletedAt !== null,
-        );
+        // `deletedAt` is a system column, not a declared field, so it cannot be
+        // filtered on — the whole collection is paged through and the stale
+        // rows are picked out here. Paged rather than a single read: stopping
+        // at 500 would leave the rest on disk for the next launch to find.
+        const stale: string[] = [];
+        let cursor: string | undefined;
+        do {
+          const page = await tasks.list({
+            includeSoftDeleted: true,
+            page: cursor === undefined ? {size: 500} : {size: 500, cursor},
+          });
+          for (const record of page.records) {
+            if (record.deletedAt !== undefined && record.deletedAt !== null) {
+              stale.push(record.id);
+            }
+          }
+          cursor = page.hasMore ? page.cursor : undefined;
+        } while (cursor !== undefined);
+
         if (stale.length === 0) {
           return 0;
         }
-        const outcome = await handle.batch(
-          stale.map(r => ({
-            type: 'delete' as const,
-            collection: COLLECTION.tasks,
-            id: r.id,
-          })),
-        );
-        return outcome.applied;
+
+        // Deliberately NOT handle.batch. A batch resolves every id against
+        // `deleted_at IS NULL`, so a soft-deleted record does not exist as far
+        // as one is concerned and the delete raises RECORD_NOT_FOUND — which,
+        // running at boot, turned "closed the app during the undo window" into
+        // an app that never started again. `delete` on the collection carries
+        // no such guard, and the transaction keeps the sweep atomic.
+        await handle.transaction(async tx => {
+          const collection = tx.collection(COLLECTION.tasks);
+          for (const id of stale) {
+            await collection.delete(id);
+          }
+        });
+        return stale.length;
       } catch (error) {
         throw toDataError(error, 'task.purgeAllSoftDeleted');
       }

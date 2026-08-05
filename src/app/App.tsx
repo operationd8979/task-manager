@@ -64,7 +64,20 @@ export default function App() {
         // Anything still soft-deleted belongs to an undo window that never
         // closed because the app was killed. FR-011a's edge case says that
         // deletion is permanent, so the sweep runs before the first screen.
-        await createTaskRepository(gateway.handle).purgeAllSoftDeleted();
+        //
+        // Its failure is recorded and swallowed rather than raised: a
+        // housekeeping pass over rows that are already invisible to every read
+        // has no business deciding whether the app starts. It got that vote
+        // once, and a single undone delete on disk was enough to brick boot
+        // permanently — Retry re-read the same rows and failed the same way.
+        try {
+          await createTaskRepository(gateway.handle).purgeAllSoftDeleted();
+        } catch (error) {
+          gateway.errorLog.report({
+            code: error instanceof DataError ? error.code : 'UNKNOWN',
+            operation: 'task.purgeAllSoftDeleted',
+          });
+        }
 
         if (cancelled) {
           await gateway.close();

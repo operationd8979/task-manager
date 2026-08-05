@@ -66,6 +66,12 @@ export const BASE_COLOR_LIGHT = {
   onBackground: '#201E1D',
   onSurface: '#201E1D',
   border: '#D6D2D2',
+  // The SDK's semantic greens and greys are picked for #FFFFFF/#121212 and are
+  // used here as TEXT on a row, so they are re-derived against this app's
+  // surfaces. `success` at 4.59:1 and `disabled` at 4.77:1 on #F3F2F2 — the
+  // SDK's #9E9E9E reaches 2.3:1 and would fail Principle V outright.
+  success: '#2E7D32',
+  disabled: '#6B6B6B',
 } as const;
 
 export const BASE_COLOR_DARK = {
@@ -75,6 +81,10 @@ export const BASE_COLOR_DARK = {
   onBackground: '#F3F2F2',
   onSurface: '#F3F2F2',
   border: '#403C3A',
+  // 6.05:1 and 4.77:1 on #201E1D. The SDK's dark values (#1B5E20, #4A4A4A) are
+  // container fills — as text they land near 1.5:1 and are illegible.
+  success: '#4CAF6A',
+  disabled: '#8A8A8A',
 } as const;
 
 /** The 4pt step the design system uses; the SDK scale is missing 12. */
