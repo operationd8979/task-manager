@@ -32,6 +32,22 @@
       },
       "registered_skills": [],
       "installed_at": "2026-08-01T09:20:28.538504+00:00"
+    },
+    "design": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:a76e3c632570c7bb49f333727adf5ad760add393feb96fc37fcef70357d2c6ac",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.design.brief",
+          "speckit.design.import",
+          "speckit.design.check"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-08-02T06:18:03.321+00:00"
     }
   }
 }

@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "status": "imported",
+  "feature_dir": "specs/001-timeline-task-manager",
+  "source": {
+    "provider": "claude-design",
+    "project_id": "537c8234-5867-43f3-84c9-e20a8413d3fd",
+    "project_url": "https://claude.ai/design/p/537c8234-5867-43f3-84c9-e20a8413d3fd",
+    "files": [
+      "Design Artifacts.dc.html",
+      "artifacts/theme.ts",
+      "Timeline App.dc.html"
+    ],
+    "last_verified_at": "2026-08-02T07:16:24.113Z",
+    "divergence": "Repo is AHEAD of the Claude Design project. The 2026-08-02 update was applied in place from the /speckit-clarify decisions (D-01..D-05); the upstream project was verified unchanged and does not contain them. The 2026-08-10 update (FR-033a: every task notifies, the reminder switch only picks the tone) was likewise applied in place and touches ux-ui-spec.md, ia-screens-flows.md, traceability.md and decisions.md (D-07). Re-importing verbatim from source would regress these artifacts. Reconcile upstream before treating it as authoritative again."
+  },
+  "spec_hash_at_brief": null,
+  "spec_hash_at_import": "b3df03ef09df27ce854798c166c6cd8b0a7a996b5e548f720d70bce589ee6865",
+  "brief_generated_at": null,
+  "imported_at": "2026-08-02T07:25:14.803Z",
+  "notes": "No brief.md exists for this feature: the design predates the design extension. Regenerate with /speckit-design-brief before the next external design round. design-system.md carries a hash from the import that no longer matches the file: that drift predates the 2026-08-10 update and was left as-is rather than silently blessed, because overwriting it would erase the only record that the file was edited outside an import.",
+  "artifacts": {
+    "README.md": "0dd7ebdae5159a36c7da31fb0647eafbbf2b9f53e473595faf561afc7a7e00ec",
+    "design-system.md": "c94d495393fc3322d6488520a67ea1ddd1c20052eafe42300d8c93ea1fa9ed41",
+    "ia-screens-flows.md": "de544c6facacfbeea4d1ab7a0b2a60616aeb1177c046c31df97138d508a58055",
+    "wireframes.md": "16830c6d8dca0103cef1ab15138234260fca5ab2c30b196bdb1ee92568288f9d",
+    "ux-ui-spec.md": "c1c86d5f5a7af88242ef8458177fd8433eb30917db6677c3643605fbecee1c00",
+    "decisions.md": "4ff0f8bd1c080ee7a603176e44d788520ef19ad2975ca4579090c6f790e9da32",
+    "traceability.md": "5999a326c71006fa75089713160f7eff278972ee0c56e81a509190fe7c53cd05"
+  }
+}

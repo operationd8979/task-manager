@@ -55,5 +55,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Ứng dụng dùng thông báo để nhắc bạn khi đến giờ công việc. Nhắc nhở chạy hoàn toàn trên máy này.</string>
 </dict>
 </plist>

@@ -1,0 +1,32 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Release-only removals.
+
+      Neither permission is declared by this app. Both arrive from prebuilt
+      AARs in the dependency graph, and both are dead weight in a build that
+      never opens a socket: reminders are scheduled by the OS, storage is local
+      SQLite, and there is no server anywhere in the feature (FR-034, FR-058).
+
+      Left in place they would show "Full network access" on the Play listing —
+      directly contradicting the Data safety answers this app gives, which is
+      the kind of mismatch that costs trust for no benefit.
+
+      The debug source set adds INTERNET back, because Metro serves the JS
+      bundle over the network during development. That split is the whole point
+      of putting these here rather than in the main manifest.
+
+      NOTE: verify with a real release build before shipping. If a native
+      module turns out to touch the network at startup it will throw a
+      SecurityException, and the fix is to delete the matching line below.
+    -->
+    <uses-permission
+      android:name="android.permission.INTERNET"
+      tools:node="remove" />
+
+    <uses-permission
+      android:name="android.permission.ACCESS_NETWORK_STATE"
+      tools:node="remove" />
+
+</manifest>

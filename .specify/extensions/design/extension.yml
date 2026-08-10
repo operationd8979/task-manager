@@ -1,0 +1,75 @@
+schema_version: "1.0"
+
+extension:
+  id: design
+  name: "UX/UI Design Phase"
+  version: "1.0.0"
+  description: "Inserts a traceable UX/UI design phase between specification and technical planning: generate a design brief from the spec, import design artifacts back from an external design tool, and gate planning on requirement/design consistency."
+  author: project-local
+  license: MIT
+
+requires:
+  speckit_version: ">=0.2.0"
+  tools:
+    - name: pwsh
+      required: true
+
+provides:
+  commands:
+    - name: speckit.design.brief
+      file: commands/speckit.design.brief.md
+      description: "Generate a self-contained UX/UI design brief from the feature spec, ready to paste into an external design tool"
+    - name: speckit.design.import
+      file: commands/speckit.design.import.md
+      description: "Import design artifacts back from the design tool, normalize them into the feature directory, and record provenance"
+    - name: speckit.design.check
+      file: commands/speckit.design.check.md
+      description: "Read-only consistency gate across spec, design artifacts, and constitution before technical planning"
+
+  templates:
+    - name: design-brief-template
+      file: templates/design-brief-template.md
+      description: "Structure of the generated design brief"
+    - name: design-artifacts-template
+      file: templates/design-artifacts-template.md
+      description: "Required structure of imported design artifacts"
+    - name: design-traceability-template
+      file: templates/design-traceability-template.md
+      description: "Requirement to screen/flow traceability matrix"
+
+  scripts:
+    - name: check-design-prerequisites
+      file: ../../scripts/powershell/check-design-prerequisites.ps1
+      description: "Path resolution, artifact inventory, and hash-based staleness detection"
+
+  config:
+    - name: "design-config.yml"
+      template: "config-template.yml"
+      description: "Design provider, artifact set, and validation strictness"
+      required: false
+
+# Both hooks are optional: they prompt, they never take over the run.
+# The design phase is a human-in-the-loop step and must stay opt-in per feature.
+hooks:
+  after_clarify:
+    command: speckit.design.brief
+    optional: true
+    prompt: "Generate the UX/UI design brief from the clarified spec?"
+    description: "Produce the design brief once requirements are stable"
+  before_plan:
+    command: speckit.design.check
+    optional: true
+    prompt: "Validate design artifacts against the spec before planning?"
+    description: "Gate technical planning on requirement/design consistency"
+
+tags:
+  - "design"
+  - "ux"
+  - "ui"
+  - "traceability"
+
+config:
+  defaults:
+    provider: manual
+    artifacts_directory: design
+    validation_strictness: standard
