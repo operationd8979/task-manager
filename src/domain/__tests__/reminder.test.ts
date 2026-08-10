@@ -1,5 +1,6 @@
 import {
 	isInPast,
+	notificationPlan,
 	reminderFireAt,
 	reminderId,
 	type TargetRef,
@@ -34,15 +35,43 @@ describe('reminderId', () => {
 	});
 });
 
-describe('reminderFireAt', () => {
-	const base = {
-		reminderEnabled: true,
-		reminderOffsetMinutes: 15 as const,
-		taskDate: '2026-08-03',
-		startTime: '09:00' as const,
-	};
+const base = {
+	reminderEnabled: true,
+	reminderOffsetMinutes: 15 as const,
+	taskDate: '2026-08-03',
+	startTime: '09:00' as const,
+};
 
-	it('is null when the reminder is off', () => {
+/**
+ * Every task notifies. The switch picks the tone — that is the whole contract
+ * this function carries, and the reason there is no null case.
+ */
+describe('notificationPlan', () => {
+	it('rings ahead of the start when the reminder is on', () => {
+		const plan = notificationPlan(base);
+		expect(plan.tone).toBe('alert');
+		expect(plan.fireAt).toEqual(new Date('2026-08-03T08:45:00'));
+	});
+
+	it('posts silently AT the start when the reminder is off', () => {
+		const plan = notificationPlan({ ...base, reminderEnabled: false });
+		expect(plan.tone).toBe('silent');
+		expect(plan.fireAt).toEqual(new Date('2026-08-03T09:00:00'));
+	});
+
+	it('ignores the offset entirely when the reminder is off', () => {
+		expect(
+			notificationPlan({
+				...base,
+				reminderEnabled: false,
+				reminderOffsetMinutes: 60,
+			}).fireAt,
+		).toEqual(new Date('2026-08-03T09:00:00'));
+	});
+});
+
+describe('reminderFireAt', () => {
+	it('is null when the reminder is off — the silent notice is not a reminder', () => {
 		expect(reminderFireAt({ ...base, reminderEnabled: false })).toBeNull();
 	});
 

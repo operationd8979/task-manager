@@ -48,8 +48,8 @@ bao giờ được ghi vào đây.
 | `startTime` | string | không | `LocalTime` |
 | `endTime` | string | có | `null` = chỉ là một mốc giờ (FR-002, edge case) |
 | `status` | string | không | `'processing' | 'done'` (FR-014) |
-| `reminderEnabled` | boolean | không | |
-| `reminderOffsetMinutes` | number | không | Một trong `0, 5, 10, 15, 30, 60` (FR-036) |
+| `reminderEnabled` | boolean | không | Chọn **tông** thông báo, không chọn có thông báo hay không (FR-033a) |
+| `reminderOffsetMinutes` | number | không | Một trong `0, 5, 10, 15, 30, 60` (FR-036); chỉ có tác dụng khi `reminderEnabled` |
 
 `timestamps: true` — gói tự duy trì `createdAt`/`updatedAt`.
 `softDelete: true` — **bắt buộc**, đây là cơ chế hoàn tác (R11).
@@ -63,6 +63,11 @@ bao giờ được ghi vào đây.
 
 Chỉ mục đầu là thứ giữ SC-004: một ngày được lấy bằng `eq` trên `taskDate`, và thứ tự giờ đến
 từ chính chỉ mục nên không phải sắp lại trong JavaScript.
+
+`tasks_by_reminder` **không còn là bộ lọc** cho phép hòa giải. Từ FR-033a mọi công việc chưa
+hoàn thành đều có thông báo, nên việc hòa giải đọc toàn bộ công việc chứ không chỉ những công
+việc bật nhắc nhở. Chỉ mục được giữ lại vì nó vẫn nhóm sẵn theo tông khi cần soát riêng một
+nhóm; nó không còn quyết định công việc nào được lên lịch.
 
 ### 2.2 `recurring_rules` — quy tắc lặp
 
@@ -212,8 +217,8 @@ processing ──tick──> done
 - Chuyển hai chiều, thực hiện ngay trên timeline, ghi ngay (FR-015, FR-046).
 - Với một lần xuất hiện, trạng thái ghi vào `status` của điều chỉnh riêng — **không hỏi phạm
   vi** (FR-026a) và **không ảnh hưởng buổi khác** (FR-032).
-- Chuyển sang `done` hủy nhắc nhở chưa phát; chuyển ngược lại đặt lại nếu thời điểm nhắc còn
-  ở tương lai (FR-037).
+- Chuyển sang `done` hủy thông báo chưa phát — cả tông chuông lẫn tông im lặng; chuyển ngược
+  lại đặt lại nếu thời điểm phát còn ở tương lai (FR-037).
 - **Quá hạn không phải một trạng thái lưu trữ.** Nó được tính khi hiển thị:
   `startTime đã qua AND status ≠ done` (FR-017). Lưu nó xuống sẽ tạo ra dữ liệu phải cập nhật
   theo đồng hồ, và sẽ sai ngay khi người dùng đổi múi giờ.

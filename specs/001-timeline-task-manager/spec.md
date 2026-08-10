@@ -37,6 +37,11 @@ Năm câu hỏi dưới đây phát sinh khi dùng bản dựng thật, không p
 - Q: Xóa toàn bộ một chuỗi lặp có được hoàn tác như xóa một công việc không? → A: Có. Đây là thao tác mất nhiều dữ liệu nhất trong ứng dụng nên nó cần cùng cửa sổ hoàn tác 5 giây.
 - Q: Nhắc nhở chỉ hiện thông báo im lặng thì có đạt yêu cầu không? → A: Không. Nhắc nhở MUST phát âm thanh và rung, và phải đủ dai để không bị bỏ lỡ khi máy đang ở xa người dùng.
 
+### Session 2026-08-10 — sau vòng dùng thử thứ hai
+
+- Q: Công việc **không** bật nhắc nhở thì có thông báo gì không? → A: Có. Mọi công việc chưa hoàn thành đều có thông báo; công tắc nhắc nhở chỉ quyết định **tông** của nó. Tắt → thông báo im lặng vào đúng giờ bắt đầu. Bật → chuông báo trước giờ bắt đầu theo mốc đã chọn. Một công việc đã được ghi xuống mà tới giờ hệ thống không nói gì thì việc ghi xuống không đem lại gì.
+- Q: Chuông nhắc nhở có reo được khi máy đang ở chế độ im lặng không? → A: Chưa, và không có cách nào đạt được chỉ bằng cấu hình kênh thông báo. `bypassDnd` chỉ xử lý chế độ Không làm phiền; chế độ im lặng tắt cứng luồng âm thanh thông báo. Muốn reo thì phải phát trên luồng **báo thức**, tức là tạo kênh ở tầng native với `AudioAttributes` USAGE_ALARM. Ghi nhận là hạng mục tiếp theo, chưa nằm trong phạm vi lần thay đổi này. Trên iOS thì bất khả thi nếu không có entitlement Critical Alerts do Apple duyệt riêng.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Lập kế hoạch công việc trong ngày (Priority: P1)
@@ -140,11 +145,11 @@ Khi một buổi cụ thể của công việc lặp lại cần đổi giờ, �
 
 ### User Story 6 - Nhận nhắc nhở kịp lúc (Priority: P6)
 
-Người dùng bật nhắc nhở cho một công việc và chọn mốc nhắc — đúng giờ bắt đầu hoặc trước đó 5, 10, 15, 30 hay 60 phút — rồi nhận được thông báo trên thiết bị vào đúng mốc đã chọn, kể cả khi ứng dụng đã đóng và thiết bị không có Internet. Chạm vào thông báo sẽ mở đúng công việc đó.
+Mọi công việc người dùng ghi xuống đều tự nhắc họ khi tới giờ. Nếu không bật nhắc nhở, thông báo hiện im lặng vào đúng giờ bắt đầu. Nếu bật, người dùng chọn mốc nhắc — đúng giờ bắt đầu hoặc trước đó 5, 10, 15, 30 hay 60 phút — và nhận chuông báo vào đúng mốc đã chọn. Cả hai đều hoạt động khi ứng dụng đã đóng và thiết bị không có Internet, và chạm vào thông báo sẽ mở đúng công việc đó.
 
 **Why this priority**: Nhắc nhở biến ứng dụng từ nơi ghi kế hoạch thành công cụ thực thi kế hoạch. Nó phụ thuộc vào dữ liệu công việc và lịch lặp đã ổn định nên nằm sau các story trên.
 
-**Independent Test**: Bật chế độ máy bay, tạo một công việc có nhắc nhở sau vài phút, đóng hẳn ứng dụng, chờ tới giờ và xác nhận thông báo xuất hiện; chạm vào thông báo và xác nhận ứng dụng mở đúng ngày và làm nổi bật đúng công việc.
+**Independent Test**: Bật chế độ máy bay, tạo hai công việc sau vài phút — một có bật nhắc nhở, một không — đóng hẳn ứng dụng, chờ tới giờ và xác nhận cả hai thông báo đều xuất hiện, chỉ khác nhau ở chỗ có chuông hay không; chạm vào thông báo và xác nhận ứng dụng mở đúng ngày và làm nổi bật đúng công việc.
 
 **Acceptance Scenarios**:
 
@@ -152,10 +157,12 @@ Người dùng bật nhắc nhở cho một công việc và chọn mốc nhắc
 2. **Given** ứng dụng lần đầu cần gửi thông báo, **When** người dùng được hỏi quyền và từ chối, **Then** công việc vẫn được lưu, ứng dụng không gặp sự cố, hiển thị rõ rằng nhắc nhở đang bị vô hiệu hóa và cung cấp lối tắt mở cài đặt hệ thống.
 3. **Given** người dùng bật nhắc nhở lần đầu trên nền tảng đòi hỏi quyền riêng cho nhắc đúng thời điểm, **When** người dùng từ chối quyền đó, **Then** nhắc nhở vẫn được đặt ở chế độ gần đúng và giao diện cho biết nhắc nhở có thể bị phát trễ.
 4. **Given** người dùng chọn mốc nhắc trước 15 phút cho một công việc lúc 09:00, **When** tới 08:45, **Then** thông báo được phát, và mốc nhắc này không ảnh hưởng tới mốc nhắc của các công việc khác.
+4a. **Given** người dùng tạo một công việc lúc 09:00 và **không** bật nhắc nhở, **When** tới 09:00, **Then** thông báo vẫn xuất hiện với tên và giờ của công việc, nhưng không phát âm thanh và không rung.
 5. **Given** một công việc có nhắc nhở, **When** người dùng đổi giờ hoặc đổi ngày của công việc, **Then** nhắc nhở cũ bị hủy và nhắc nhở mới được đặt theo thời gian mới.
-6. **Given** một công việc có nhắc nhở chưa phát, **When** người dùng đánh dấu hoàn thành hoặc xóa công việc hoặc tắt nhắc nhở, **Then** nhắc nhở bị hủy.
+6. **Given** một công việc có thông báo chưa phát, **When** người dùng đánh dấu hoàn thành hoặc xóa công việc, **Then** thông báo bị hủy.
+6a. **Given** một công việc đang bật nhắc nhở, **When** người dùng tắt nhắc nhở rồi lưu, **Then** chuông báo trước giờ bị thay bằng thông báo im lặng vào đúng giờ bắt đầu — không phải bị hủy hoàn toàn.
 7. **Given** một công việc đã hoàn thành có nhắc nhở, **When** người dùng chuyển nó về đang thực hiện và thời điểm nhắc vẫn ở tương lai, **Then** nhắc nhở được đặt lại.
-8. **Given** thời điểm nhắc đã nằm trong quá khứ, **When** người dùng lưu công việc, **Then** ứng dụng không đặt nhắc nhở và cảnh báo cho người dùng biết.
+8. **Given** thời điểm phát thông báo đã nằm trong quá khứ — mốc nhắc nếu có bật nhắc nhở, giờ bắt đầu nếu không — **When** người dùng lưu công việc, **Then** ứng dụng không đặt thông báo và cảnh báo cho người dùng biết.
 9. **Given** người dùng chạm vào thông báo của một công việc đã bị xóa, **When** ứng dụng mở, **Then** ứng dụng hiển thị timeline của ngày hiện tại và không hiển thị lỗi hệ thống.
 10. **Given** thiết bị vừa khởi động lại hoặc vừa đổi múi giờ, **When** người dùng mở lại ứng dụng, **Then** ứng dụng đối chiếu và đặt lại các nhắc nhở tương lai còn thiếu hoặc sai giờ.
 
@@ -183,7 +190,7 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 
 ### Edge Cases
 
-- **Di chuyển công việc về quá khứ**: Ứng dụng vẫn cho lưu, không đặt nhắc nhở, và hiển thị công việc là quá hạn nếu chưa hoàn thành.
+- **Di chuyển công việc về quá khứ**: Ứng dụng vẫn cho lưu, không đặt thông báo nào — cả chuông lẫn im lặng — và hiển thị công việc là quá hạn nếu chưa hoàn thành.
 - **Công việc không có giờ kết thúc**: Vẫn hợp lệ, hiển thị như một mốc thời gian đơn.
 - **Nhiều công việc trùng hoặc chồng giờ**: Được phép; timeline phải hiển thị tất cả, không ẩn hay gộp mất dữ liệu.
 - **Đổi ngày hoặc thoát khi form còn dữ liệu chưa lưu**: Cảnh báo trước khi đóng để tránh mất nhập liệu.
@@ -191,7 +198,8 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 - **Quy tắc lặp bắt đầu giữa tuần**: Chỉ sinh lần xuất hiện từ ngày bắt đầu trở đi.
 - **Ngày kết thúc của quy tắc lặp**: Lần xuất hiện đúng ngày kết thúc vẫn được sinh nếu ngày đó nằm trong các ngày lặp.
 - **Đổi múi giờ hoặc giờ mùa hè**: Công việc giữ nguyên giờ hiển thị theo giờ địa phương; ứng dụng kiểm tra và đặt lại nhắc nhở khi được mở lại.
-- **Người dùng tắt quyền thông báo từ cài đặt hệ thống**: Công việc vẫn tồn tại; ứng dụng hiển thị rằng nhắc nhở không hoạt động cho tới khi quyền được bật lại.
+- **Người dùng tắt quyền thông báo từ cài đặt hệ thống**: Công việc vẫn tồn tại; ứng dụng hiển thị rằng nhắc nhở không hoạt động cho tới khi quyền được bật lại. Thông báo im lặng cũng dừng theo — không có quyền thì không có tông nào phát được.
+- **Thiết bị đang ở chế độ im lặng**: Chuông nhắc nhở không kêu. Chế độ im lặng tắt luồng âm thanh thông báo ở tầng hệ điều hành, và `bypassDnd` không giải quyết việc này — nó chỉ áp dụng cho chế độ Không làm phiền. Muốn kêu thì phải phát trên luồng báo thức, xem Out of Scope.
 - **Người dùng từ chối hoặc thu hồi quyền đặt nhắc nhở đúng thời điểm**: Nhắc nhở vẫn được đặt ở chế độ gần đúng; ứng dụng cho biết nhắc nhở có thể bị phát trễ và cung cấp lối tắt cấp lại quyền, thay vì tắt nhắc nhở.
 - **Thiết bị khởi động lại**: Công việc vẫn còn; các nhắc nhở tương lai được khôi phục sau khi khởi động lại hoặc chậm nhất khi ứng dụng được mở lại.
 - **Lỗi đọc hoặc ghi dữ liệu trên thiết bị**: Người dùng nhận thông báo dễ hiểu kèm hành động thử lại; ứng dụng không hiển thị mã lỗi kỹ thuật và không mất dữ liệu đã lưu trước đó.
@@ -224,7 +232,7 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 #### Tạo, chỉnh sửa và xóa công việc
 
 - **FR-007**: Người dùng MUST có thể tạo công việc với các trường bắt buộc là tên, ngày thực hiện và giờ bắt đầu; các trường tùy chọn là ghi chú, giờ kết thúc, trạng thái ban đầu, nhắc nhở và quy tắc lặp lại.
-- **FR-008**: Khi tạo công việc mới, hệ thống MUST đặt giá trị mặc định: ngày là ngày đang xem, trạng thái là đang thực hiện, không lặp lại, nhắc nhở tắt.
+- **FR-008**: Khi tạo công việc mới, hệ thống MUST đặt giá trị mặc định: ngày là ngày đang xem, trạng thái là đang thực hiện, không lặp lại, nhắc nhở tắt. Nhắc nhở tắt KHÔNG có nghĩa là không có thông báo — xem FR-033a — nên giao diện MUST nói rõ điều này ngay cạnh công tắc, vì một công tắc ghi "tắt" mặc nhiên hứa rằng sẽ không có gì xảy ra.
 - **FR-008a**: Giờ bắt đầu mặc định của công việc mới MUST là giờ tròn kế tiếp so với thời điểm mở form, không phải một giờ cố định. Khi giờ tròn kế tiếp vượt quá nửa đêm, hệ thống MUST giữ giá trị trong cùng ngày thay vì vòng về đầu ngày — một mặc định nằm ở quá khứ tệ hơn một mặc định thô. Giá trị này MUST được lấy một lần lúc mở form và MUST KHÔNG tự đổi trong lúc người dùng đang nhập.
 - **FR-009**: Hệ thống MUST từ chối lưu công việc khi tên trống, khi giờ kết thúc sớm hơn hoặc bằng giờ bắt đầu, hoặc khi ngày/giờ không hợp lệ, và MUST hiển thị lỗi ngay tại trường tương ứng.
 - **FR-010**: Người dùng MUST có thể chỉnh sửa tên, ghi chú, ngày, giờ bắt đầu, giờ kết thúc, trạng thái, nhắc nhở và quy tắc lặp lại của một công việc.
@@ -280,33 +288,44 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 #### Nhắc nhở
 
 - **FR-033**: Người dùng MUST có thể bật hoặc tắt nhắc nhở, và chọn mốc nhắc, cho từng công việc và cho từng quy tắc lặp lại.
+- **FR-033a**: Mọi công việc chưa hoàn thành MUST có một thông báo, kể cả khi nhắc nhở đang tắt. Công tắc nhắc nhở quyết định **tông** của thông báo chứ không quyết định có thông báo hay không:
+
+  | Nhắc nhở | Thời điểm phát | Cách phát |
+  | --- | --- | --- |
+  | Tắt | Đúng giờ bắt đầu của công việc | Im lặng — hiện thông báo, không âm thanh, không rung |
+  | Bật | Trước giờ bắt đầu theo mốc đã chọn | Chuông báo và rung theo FR-035a, FR-035b |
+
+  Lý do: một công việc đã được ghi xuống mà tới giờ hệ thống không nói gì thì hoàn toàn không khác một công việc chưa từng được ghi. Mốc nhắc là thứ người dùng chọn khi họ muốn được **báo trước và nghe thấy**, không phải thứ quyết định việc ứng dụng có lên tiếng hay không.
+- **FR-033b**: Hai tông thông báo MUST nằm trên hai kênh thông báo riêng của hệ điều hành. Cài đặt kênh thuộc về người dùng, nên gộp chung sẽ khiến "tắt chuông cho thông báo thường" và "tắt chuông cho nhắc nhở" trở thành cùng một công tắc trong cài đặt hệ thống. Kênh im lặng MUST KHÔNG được phép vượt qua chế độ Không làm phiền — một công việc người dùng không xin được nhắc thì cũng không có quyền cắt ngang.
 - **FR-034**: Nhắc nhở MUST hoạt động hoàn toàn trên thiết bị, không phụ thuộc vào máy chủ, dịch vụ đẩy thông báo từ xa hoặc kết nối Internet.
-- **FR-035**: Nội dung nhắc nhở MUST gồm tối thiểu tên ứng dụng, tên công việc, thời gian công việc, và đủ thông tin định danh để mở đúng công việc khi người dùng chạm vào.
-- **FR-035a**: Nhắc nhở MUST phát âm thanh và rung, không chỉ hiện thông báo im lặng. Một lời nhắc không nghe thấy không hoàn thành được việc mà nó tồn tại để làm.
+- **FR-035**: Nội dung thông báo MUST gồm tối thiểu tên ứng dụng, tên công việc, thời gian công việc, và đủ thông tin định danh để mở đúng công việc khi người dùng chạm vào. Yêu cầu này áp dụng cho cả hai tông ở FR-033a.
+- **FR-035a**: Nhắc nhở — tức thông báo của công việc **có bật** nhắc nhở — MUST phát âm thanh và rung. Một lời nhắc không nghe thấy không hoàn thành được việc mà nó tồn tại để làm. Thông báo im lặng ở FR-033a là một thứ khác và cố ý không phát âm thanh: nó chỉ có nhiệm vụ hiện ra.
 - **FR-035b**: Nhắc nhở MUST được trình bày như một cảnh báo theo thời điểm chứ không phải một tin nhắn: âm báo lặp lại cho tới khi người dùng xử lý, rung dứt khoát, và được phép phát cả khi thiết bị đang ở chế độ Không làm phiền. Chạm hoặc gạt bỏ thông báo MUST dừng âm báo ngay.
-- **FR-035c**: Khi cấu hình âm báo của kênh thông báo thay đổi giữa các phiên bản, hệ thống MUST bảo đảm các nhắc nhở đã đặt từ trước cũng nhận cấu hình mới. Nền tảng khóa cấu hình kênh sau khi tạo và phép hòa giải (FR-041) cố ý không đụng vào nhắc nhở đã đúng lịch, nên nếu không xử lý riêng thì thay đổi chỉ có tác dụng với người cài mới.
+- **FR-035c**: Khi cấu hình âm báo của kênh thông báo thay đổi giữa các phiên bản, hệ thống MUST bảo đảm các nhắc nhở đã đặt từ trước cũng nhận cấu hình mới. Nền tảng khóa cấu hình kênh sau khi tạo và phép hòa giải (FR-041) cố ý không đụng vào nhắc nhở đã đúng thời điểm và đúng tông, nên nếu không xử lý riêng thì thay đổi chỉ có tác dụng với người cài mới.
 - **FR-036**: Hệ thống MUST hỗ trợ các mốc nhắc sau, tính theo giờ bắt đầu của công việc: đúng giờ, trước 5 phút, trước 10 phút, trước 15 phút, trước 30 phút và trước 1 giờ.
 - **FR-036c**: Khi người dùng bật nhắc nhở cho một công việc mới, hệ thống MUST áp dụng mốc nhắc mặc định lấy từ cài đặt ứng dụng, và người dùng MUST có thể đổi mốc đó riêng cho công việc hoặc quy tắc lặp đang chỉnh sửa.
 - **FR-036a**: Trên nền tảng đòi hỏi quyền riêng để đặt nhắc nhở đúng thời điểm, hệ thống MUST xin quyền đó vào lần đầu người dùng bật nhắc nhở, chứ không phải khi khởi động ứng dụng lần đầu.
+- **FR-036d**: Quyền hiện thông báo MUST được xin vào lần đầu người dùng bật nhắc nhở **hoặc** lần đầu người dùng lưu một công việc, tùy điều nào đến trước. Từ FR-033a, việc lưu một công việc đã đủ để ứng dụng cần quyền thông báo, nên xin quyền chỉ ở công tắc nhắc nhở sẽ để người chưa từng bật nhắc nhở không bao giờ nhận được gì. Nguyên tắc của FR-036a vẫn giữ nguyên: không xin lúc khởi động lần đầu, chỉ xin sau khi người dùng đã nói ra ý định bằng một hành động. Việc xin quyền MUST KHÔNG làm chậm hay chặn thao tác lưu (FR-039).
 - **FR-036b**: Khi quyền đặt nhắc nhở đúng thời điểm bị từ chối hoặc bị thu hồi, hệ thống MUST vẫn đặt nhắc nhở ở chế độ gần đúng, MUST hiển thị rõ cho người dùng rằng nhắc nhở có thể bị phát trễ, và MUST cung cấp lối tắt để cấp lại quyền.
-- **FR-037**: Hệ thống MUST đồng bộ nhắc nhở với mọi thay đổi của công việc theo bảng sau:
+- **FR-037**: Hệ thống MUST đồng bộ thông báo với mọi thay đổi của công việc theo bảng sau. "Thông báo" ở đây là thông báo theo đúng tông mà FR-033a quy định cho công việc đó:
 
-  | Thao tác | Xử lý nhắc nhở |
+  | Thao tác | Xử lý thông báo |
   | --- | --- |
-  | Tạo công việc có bật nhắc nhở | Đặt nhắc nhở |
-  | Đổi giờ hoặc đổi ngày công việc | Hủy nhắc nhở cũ và đặt lại theo thời gian mới |
-  | Đánh dấu hoàn thành | Hủy nhắc nhở chưa phát |
-  | Chuyển từ hoàn thành về đang thực hiện | Đặt lại nếu thời điểm nhắc còn ở tương lai |
-  | Xóa công việc | Hủy nhắc nhở |
-  | Tắt nhắc nhở | Hủy nhắc nhở |
-  | Bật nhắc nhở | Đặt nhắc nhở |
-  | Di chuyển một lần xuất hiện lặp lại | Chỉ cập nhật nhắc nhở của lần xuất hiện đó |
-  | Xóa toàn bộ chuỗi lặp lại | Hủy mọi nhắc nhở tương lai của chuỗi |
+  | Tạo công việc | Đặt thông báo, tông theo FR-033a |
+  | Đổi giờ hoặc đổi ngày công việc | Đặt lại theo thời gian mới |
+  | Đánh dấu hoàn thành | Hủy thông báo chưa phát |
+  | Chuyển từ hoàn thành về đang thực hiện | Đặt lại nếu thời điểm phát còn ở tương lai |
+  | Xóa công việc | Hủy thông báo |
+  | Tắt nhắc nhở | Đặt lại thành thông báo im lặng vào giờ bắt đầu |
+  | Bật nhắc nhở | Đặt lại thành chuông báo trước giờ bắt đầu theo mốc đã chọn |
+  | Di chuyển một lần xuất hiện lặp lại | Chỉ cập nhật thông báo của lần xuất hiện đó |
+  | Xóa toàn bộ chuỗi lặp lại | Hủy mọi thông báo tương lai của chuỗi |
 
-- **FR-038**: Khi thời điểm nhắc đã nằm trong quá khứ tại lúc lưu, hệ thống MUST KHÔNG đặt nhắc nhở và MUST hiển thị cảnh báo cho người dùng.
+- **FR-038**: Khi thời điểm phát thông báo đã nằm trong quá khứ tại lúc lưu, hệ thống MUST KHÔNG đặt thông báo và MUST hiển thị cảnh báo cho người dùng. Thời điểm được xét là mốc nhắc nếu công việc có bật nhắc nhở, và là giờ bắt đầu nếu không. Cảnh báo MUST nói đúng trường hợp nào trong hai trường hợp đó, vì "thời điểm nhắc đã qua" là câu vô nghĩa với công việc không đặt nhắc nhở.
 - **FR-039**: Hệ thống MUST xin quyền gửi thông báo theo quy định của nền tảng. Nếu người dùng từ chối, công việc vẫn được lưu, ứng dụng vẫn hoạt động bình thường, hiển thị rõ nhắc nhở đang bị vô hiệu hóa, và cung cấp hướng dẫn mở cài đặt hệ thống.
 - **FR-040**: Với công việc lặp lại, hệ thống MUST đặt trước nhắc nhở cho một khoảng thời gian giới hạn ở phía trước thay vì đăng ký lặp vô hạn, và MUST làm mới khoảng này khi ứng dụng mở, khi ứng dụng quay lại tiền cảnh, và khi quy tắc lặp thay đổi.
-- **FR-041**: Khi ứng dụng khởi động, hệ thống MUST đối chiếu công việc đã lưu với nhắc nhở đang được đặt và MUST đặt lại những nhắc nhở bị thiếu hoặc sai thời gian. Việc đối chiếu MUST cho cùng kết quả khi chạy nhiều lần.
+- **FR-041**: Khi ứng dụng khởi động, hệ thống MUST đối chiếu công việc đã lưu với thông báo đang được đặt và MUST đặt lại những thông báo bị thiếu, sai thời gian, hoặc sai tông. Việc đối chiếu MUST cho cùng kết quả khi chạy nhiều lần.
+- **FR-041a**: Phép đối chiếu MUST so sánh **thời điểm phát và tông**, không chỉ so sánh định danh. Định danh được tính ra từ công việc nên nó không đổi khi người dùng dời giờ hay bật/tắt nhắc nhở; nếu chỉ so định danh thì thông báo cũ bị coi là đã đúng và người dùng sẽ mãi được báo theo giờ họ đã bỏ đi. Việc đặt lại MUST ghi đè trên chính định danh cũ chứ không hủy rồi đặt lại, để không mở ra khoảng thời gian không có thông báo nào tồn tại.
 - **FR-042**: Sau khi thiết bị khởi động lại, hệ thống MUST khôi phục các nhắc nhở tương lai nếu nền tảng đã xóa chúng.
 - **FR-043**: Khi người dùng chạm vào nhắc nhở, hệ thống MUST mở ứng dụng, điều hướng tới ngày chứa công việc và làm nổi bật hoặc mở chi tiết công việc đó. Nếu công việc đã bị xóa, hệ thống MUST mở timeline của ngày hiện tại mà không hiển thị lỗi hệ thống.
 - **FR-044**: Lỗi khi đặt nhắc nhở MUST KHÔNG làm thao tác lưu công việc thất bại.
@@ -376,6 +395,8 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 - **SC-015**: 100% lỗi đọc/ghi dữ liệu và lỗi đặt nhắc nhở được ghi vào nhật ký cục bộ; số mục nhật ký chứa tên hoặc ghi chú công việc bằng 0; số byte dữ liệu chẩn đoán rời khỏi thiết bị bằng 0.
 - **SC-016**: 100% thao tác đổi giờ — kéo-thả, "Di chuyển", và sheet phạm vi — giữ nguyên thời lượng của công việc; số công việc có giờ kết thúc trở nên bằng hoặc sớm hơn giờ bắt đầu sau một thao tác đổi giờ bằng 0.
 - **SC-017**: 100% nhắc nhở được phát kèm âm thanh và rung, kể cả những nhắc nhở đã được đặt trước khi cập nhật ứng dụng.
+- **SC-019**: 100% công việc chưa hoàn thành có thời điểm phát ở tương lai đều nhận được một thông báo; số công việc trôi qua giờ bắt đầu mà hệ thống không nói gì bằng 0.
+- **SC-020**: Sau khi đổi giờ hoặc bật/tắt nhắc nhở của một công việc đã lưu, 100% thông báo đang được hệ điều hành giữ khớp với thời điểm và tông mới; số thông báo còn phát theo giá trị cũ bằng 0.
 - **SC-018**: Trong mọi lớp phủ, 100% trường nhập và nút bấm chạm tới được — không có nội dung nào bị thanh hệ thống hoặc thanh hành động che vĩnh viễn, ở cả cỡ chữ mặc định và cỡ chữ hệ thống 170%.
 
 ## Out of Scope
@@ -393,6 +414,7 @@ Những nội dung sau nằm ngoài phạm vi phiên bản đầu tiên:
 - Phạm vi chỉnh sửa "Lần này và các lần sau" cho công việc lặp lại.
 - **Sửa nội dung riêng một buổi lặp** — tên, ghi chú và cấu hình nhắc nhở của đúng một buổi. Mô hình dữ liệu đã lưu được (FR-029) nhưng phiên bản đầu tiên không có màn hình cho nó, nên mục "Sửa" vắng mặt trong cửa sổ thao tác của buổi lặp (FR-029a). Đổi giờ, đổi trạng thái và bỏ qua một buổi vẫn dùng được đầy đủ.
 - Nhắc nhở lặp lại nhiều lần cho cùng một công việc, hoặc mốc nhắc tùy ý ngoài danh sách đã quy định.
+- **Reo chuông khi thiết bị đang ở chế độ im lặng.** Việc này đòi hỏi phát âm trên luồng **báo thức** chứ không phải luồng thông báo, tức là tạo kênh thông báo ở tầng native với `AudioAttributes` USAGE_ALARM — không cấu hình được từ JavaScript. Trên iOS thì cần entitlement Critical Alerts do Apple duyệt riêng. Đã ghi nhận là hạng mục kế tiếp; phiên bản đầu tiên chấp nhận chuông im theo chế độ im lặng của máy.
 - Kéo và thả để chuyển công việc sang một ngày khác (kéo-thả chỉ áp dụng trong phạm vi một ngày).
 - Thao tác nhanh trên một công việc bằng cách vuốt ngang trên dòng — cử chỉ vuốt ngang đã được dành cho việc chuyển ngày (FR-003a).
 - Quy tắc lặp lại theo chu kỳ khác ngày trong tuần, ví dụ theo ngày trong tháng hoặc cách N ngày.

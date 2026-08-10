@@ -53,6 +53,18 @@ nhau giữa các nhà sản xuất. **Kế hoạch không dựa vào nó**: FR-0
 là đường bảo đảm, bộ nhận boot chỉ là cải thiện. Thiết kế theo thứ tự đó thì FR-042 vẫn đạt
 kể cả trên máy có tối ưu pin hung hãn.
 
+**Bổ sung 2026-08-10 — hai kênh, một cổng**: FR-033a chia thông báo thành hai tông, và cả hai
+vẫn đi qua đúng cổng này. Adapter Notifee giữ hai kênh Android (`task-reminders-alarm` cho
+tông chuông, `task-notices` cho tông im lặng) và chọn kênh theo trường `tone` của yêu cầu.
+Quy tắc chọn tông nằm ở tầng domain, nên nó kiểm thử được mà không cần Notifee — đúng lý do
+cổng này tồn tại.
+
+Điều này cũng buộc `listScheduled()` phải trả về `{id, fireAt, tone}` thay vì danh sách định
+danh: định danh sống sót qua mọi lần sửa công việc, nên chỉ so định danh thì hòa giải không
+bao giờ phát hiện được một thông báo đã lệch giờ hoặc lệch tông (FR-041a).
+`notifee.getTriggerNotifications()` cung cấp đủ dữ liệu đó, `getTriggerNotificationIds()` thì
+không — nên adapter đổi sang hàm thứ nhất.
+
 ---
 
 ## R3 · Cử chỉ, hoạt ảnh và bottom sheet

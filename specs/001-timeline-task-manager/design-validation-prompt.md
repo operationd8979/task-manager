@@ -67,7 +67,9 @@ Khi người dùng sửa, di chuyển hoặc xóa một lần xuất hiện, app
 
 - **Di chuyển công việc**: kéo-thả để đổi khung giờ **trong cùng một ngày**. Đổi sang ngày khác thì dùng hành động "Di chuyển" hoặc sửa trong form — không kéo-thả xuyên ngày. Mọi việc làm được bằng kéo-thả đều phải có lối thay thế không cần cử chỉ, dùng được với trình đọc màn hình.
 - **Mốc nhắc nhở**: đúng giờ bắt đầu, hoặc trước 5 / 10 / 15 / 30 / 60 phút. Đặt được cho từng công việc và từng quy tắc lặp, cộng một giá trị mặc định đổi được trong Cài đặt. Đổi mặc định chỉ ảnh hưởng công việc tạo mới về sau.
+- **Công tắc nhắc nhở chọn tông, không chọn có hay không**: mọi công việc chưa hoàn thành đều có thông báo. Tắt → thông báo im lặng vào đúng giờ bắt đầu; bật → chuông báo trước giờ theo mốc đã chọn. Trạng thái tắt phải có một dòng chữ phụ nói rõ điều đó, vì một công tắc ghi "tắt" mặc nhiên hứa rằng sẽ không có gì xảy ra. Dòng công việc **không** gắn dấu hiệu nào cho tông im lặng — nó là mặc định của mọi công việc.
 - **Quyền nhắc đúng thời điểm**: chỉ xin vào lần đầu người dùng bật nhắc nhở, không xin lúc mở app lần đầu. Bị từ chối thì vẫn đặt nhắc ở chế độ gần đúng và nói rõ nhắc nhở có thể trễ, kèm lối cấp lại quyền.
+- **Quyền hiện thông báo**: xin ở lần đầu bật nhắc nhở **hoặc** lần đầu lưu một công việc, tùy cái nào đến trước, và không bao giờ chặn hay làm chậm nút lưu.
 - **Phạm vi sửa công việc lặp lại**: chỉ có "Chỉ lần này" và "Toàn bộ chuỗi". Không có "Lần này và các lần sau".
 - **Ngôn ngữ**: chỉ tiếng Việt.
 - **Công việc chồng giờ**: được phép và phải hiển thị đủ, không gộp, không ẩn bớt.

@@ -14,6 +14,7 @@ tải chỉ bằng màu (Constitution V, `spec.md` FR-016).
 | Là buổi của chuỗi | Ký hiệu ⟳ | "LẶP T2–T6" — ký hiệu **không bao giờ đứng một mình** | Không |
 | Đã chỉnh riêng | Ký hiệu ✎ | "ĐÃ CHỈNH RIÊNG" | Không |
 | Nhắc nhở bật | **Không** có biểu tượng chuông | Mốc cụ thể: "NHẮC −10′" hoặc "NHẮC ĐÚNG GIỜ" | Không |
+| Nhắc nhở tắt | Không có dấu hiệu gì | Không nhãn. Công việc **vẫn** có thông báo im lặng (FR-033a), nhưng đó là mặc định của mọi công việc — một nhãn dán trên mọi dòng chỉ là nhiễu | Không |
 | Nhắc có thể trễ | Viền nhãn đổi sang `accentInk` | Nối thêm "· CÓ THỂ TRỄ" — chữ, không phải dấu ⚠ đơn độc | `accentInk` |
 
 Ô tick 22×22 là **hình vẽ**, vùng chạm bao quanh nó vẫn phải đủ 44×44.
@@ -131,8 +132,10 @@ triển khai cụ thể — mỗi hàng là một trạng thái phải có thi�
 
 ### Công tắc nhắc nhở
 - Kèm nhãn chữ "Nhắc nhở bật / tắt" — người dùng không phải suy ra từ vị trí nút gạt.
-- Bật lần đầu là **điểm duy nhất** xin quyền hệ thống (`spec.md` FR-036a).
+- **Khi tắt, một dòng chữ phụ ngay dưới công tắc** nói rõ: *"Vẫn hiện thông báo vào giờ bắt đầu, nhưng không reo chuông."* Công tắc quyết định tông chứ không quyết định có thông báo hay không (`spec.md` FR-033a), và một công tắc ghi "tắt" mà không nói gì thêm thì mặc nhiên hứa rằng sẽ không có gì xảy ra.
+- Bật lần đầu là điểm xin quyền **báo thức chính xác** (`spec.md` FR-036a). Quyền **hiện thông báo** xin ở đây hoặc ở lần lưu công việc đầu tiên, tùy cái nào đến trước (FR-036d) — nó không được chặn hay làm chậm nút lưu.
 - Khi thiếu quyền chính xác, khối cảnh báo hiện ngay dưới, kèm liên kết Cấp quyền — **không phải toast biến mất**.
+- Cảnh báo "thời điểm đã qua" phải nói đúng trường hợp: *"Thời điểm nhắc đã qua…"* khi bật, *"Giờ bắt đầu đã qua…"* khi tắt. Câu thứ nhất vô nghĩa với công việc không đặt nhắc nhở (FR-038).
 
 ## 5. Interaction notes
 

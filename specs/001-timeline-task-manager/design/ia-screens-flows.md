@@ -134,19 +134,29 @@ khi ghi — không hỏi trước khi người dùng biết mình sẽ sửa gì
 Kéo-thả **không đi xuyên ngày** (`spec.md` FR-018b). Đổi ngày chỉ nằm ở ⋯ → Di chuyển và ở
 trường Ngày trong form — và cả hai chỗ đều nói rõ điều đó bằng chữ, để người dùng thôi cố kéo.
 
-### F-5 · Bật nhắc nhở lần đầu — **2 thao tác + hộp thoại hệ thống**
-*Một lần trong đời máy.*
+### F-5 · Xin quyền thông báo lần đầu — **không thêm thao tác nào**
+*Một lần trong đời máy, ở điểm nào tới trước.*
 
 ```
-Bật công tắc Nhắc nhở trong form (đúng lúc người dùng vừa nói ra ý định)
-  → Xin quyền thông báo (KHÔNG xin lúc mở app lần đầu)
+Bật công tắc Nhắc nhở trong form ─┐
+                                  ├→ Xin quyền thông báo (KHÔNG xin lúc mở app lần đầu)
+Lưu công việc đầu tiên ───────────┘     → [Được cấp?]
+                                           └ Bị từ chối → công việc vẫn lưu,
+                                             nói rõ nhắc nhở đang bị vô hiệu hóa
+                                             + lối mở cài đặt hệ thống
+
+Bật công tắc Nhắc nhở → thêm: xin quyền báo thức chính xác
   → [Được cấp?]
      └ Bị từ chối → vẫn đặt nhắc gần đúng, nói rõ "có thể trễ vài phút" + lối cấp lại quyền
   → Dòng công việc mang nhãn "NHẮC −10′ · CÓ THỂ TRỄ"
 ```
 
+Hai lối vào chứ không phải một, vì từ FR-033a mọi công việc đều có thông báo: người chưa từng
+bật nhắc nhở mà chỉ xin quyền ở công tắc thì sẽ không bao giờ nhận được gì. Ở lối "lưu công
+việc", hộp thoại quyền **không được await** — nó không được làm chậm hay chặn nút lưu.
+
 Từ chối quyền **không bao giờ** chặn việc lưu công việc. App tiếp tục làm được phần nó làm
-được, và nói thật phần nó không đảm bảo. Khớp `spec.md` FR-036a, FR-036b, FR-039.
+được, và nói thật phần nó không đảm bảo. Khớp `spec.md` FR-036a, FR-036b, FR-036d, FR-039.
 
 ### F-6 · Xóa — **2–3 thao tác tùy loại**
 *Hiếm — nhưng không hoàn tác được nếu làm sai.*

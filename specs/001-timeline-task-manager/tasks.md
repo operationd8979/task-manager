@@ -374,6 +374,39 @@ ký thay đổi này.
 
 ---
 
+## Phase 12: Mọi công việc đều có thông báo (2026-08-10)
+
+**Mục tiêu**: FR-033a — công tắc nhắc nhở chọn **tông** thông báo chứ không chọn có thông báo
+hay không. Phát sinh từ vòng dùng thử thứ hai: một công việc đã ghi xuống mà tới giờ hệ thống
+không nói gì thì hoàn toàn không khác một công việc chưa từng được ghi.
+
+### Tầng miền
+
+- [X] T161 [US6] `notificationPlan()` trong `src/domain/reminder.ts` trả về `{fireAt, tone}` và **không bao giờ** trả `null`: tắt → `silent` đúng giờ bắt đầu, bật → `alert` trừ mốc nhắc. `reminderFireAt()` giữ lại nhưng định nghĩa lại theo nó, chỉ để form biết có chuông hay không (FR-033a)
+- [X] T162 [P] [US6] Ba trường hợp `notificationPlan` trong `src/domain/__tests__/reminder.test.ts`, gồm việc mốc nhắc bị bỏ qua hoàn toàn khi công tắc tắt
+
+### Hòa giải — chỗ hỏng im lặng của phase này
+
+- [X] T163 [US6] `listScheduled()` đổi kiểu trả về thành `ScheduledReminder[]` (`{id, fireAt, tone}`); adapter đọc qua `notifee.getTriggerNotifications()` thay cho `getTriggerNotificationIds()`, và tông được ghi vào `data` lúc đặt để đọc lại được (FR-041a)
+- [X] T164 [US6] `reconcileReminders` so **cả ba trường**, không chỉ định danh. Đây là lỗi có sẵn mà phase này làm lộ ra: định danh sống sót qua mọi lần sửa, nên phiên bản cũ không bao giờ đặt lại một công việc đã dời giờ. Đặt lại bằng cách ghi đè cùng id, **không** cancel trước — cancel mở ra khoảng trống (FR-041a, L-6)
+- [X] T165 [US6] Thiếu tông trong `data` đọc là `alert`: phiên bản cũ chỉ từng đặt nhắc có chuông, nên mặc định đó khiến lần chạy đầu sau cập nhật không đặt lại vô ích toàn bộ nhắc nhở trên máy
+- [X] T166 [P] [US6] Bốn ca mới trong `src/services/notifications/__tests__/reconcile.test.ts`: thông báo im lặng khi tắt nhắc, chuông khi bật, đặt lại khi dời giờ, đặt lại khi đổi tông. Bản giả `listScheduled` phải trả object chứ không phải danh sách id
+
+### Adapter và giao diện
+
+- [X] T167 [US6] Kênh thứ hai `task-notices` trong `notifeeScheduler.ts`: importance HIGH nên vẫn hiện nổi, **không khai trường `sound`** (khai `'default'` rồi mong importance giữ im là không được), `vibration: false`, `bypassDnd: false`. Hai kênh chứ không một, vì cài đặt kênh thuộc về người dùng (FR-033b)
+- [X] T168 [US6] Xin quyền hiện thông báo ở **lần lưu công việc đầu tiên**, không chỉ ở công tắc nhắc nhở — người chưa từng bật nhắc nhở sẽ không bao giờ nhận được gì. Không `await` trong đường lưu (FR-036d)
+- [X] T169 [US6] Dòng chữ phụ dưới công tắc khi nó tắt, và cảnh báo "đã qua" tách thành hai câu theo tông: `validate.reminderInPast` khi bật, `validate.startInPast` khi tắt — câu đầu vô nghĩa với công việc không đặt nhắc nhở (FR-008, FR-038)
+
+### Giới hạn còn lại
+
+- [ ] T170 [US6] **Chưa xác minh trên thiết bị**: hai tông trên máy thật, hai kênh hiện riêng trong cài đặt hệ thống, và hành vi dưới Không làm phiền (SC-019, SC-020, [quickstart V6a, V7a](./quickstart.md))
+- [ ] T171 [US6] Chuông không kêu ở chế độ **im lặng**. Cần tạo kênh ở tầng native (`MainApplication.kt`) với `AudioAttributes` USAGE_ALARM, dùng lại đúng id `task-reminders-alarm` để Notifee nhận kênh đã có. Đánh đổi: âm lượng theo thanh trượt Báo thức. Đã ghi vào Out of Scope; là hạng mục kế tiếp (L-7)
+
+**Checkpoint**: Hành vi và tài liệu đã khớp; T170/T171 cần thiết bị thật hoặc một vòng native
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -477,6 +510,10 @@ nên thống nhất chữ ký hai file đó ngay khi Foundational xong.
   Android khóa sau khi tạo, nên một thay đổi về âm báo **biên dịch sạch, chạy sạch, và không
   có tác dụng gì** với mọi người dùng đã cài. Không có kiểm thử nào bắt được điều đó; chỉ có
   việc thử trên máy đã cài bản cũ mới bắt được.
+- Phase 12 bổ sung chỗ thứ năm, cùng họ với T157 nhưng ở tầng logic: T164. Hòa giải chỉ so
+  định danh **biên dịch sạch, chạy sạch, và bộ test cũ vẫn xanh** — vì định danh thật sự ổn
+  định, đúng như hợp đồng nói. Cái nó bỏ lỡ là việc định danh ổn định qua cả những lần sửa
+  cần đặt lại thông báo. Chỉ một bài test dời giờ **rồi hòa giải lần hai** mới bắt được.
 - Bốn task Phase 11 khác cũng thuộc loại "chỉ lộ ra trên thiết bị": T137, T138, T139, T140.
   Cả bốn đều là hành vi mặc định của thư viện, đều hợp lệ về kiểu, và đều không có bài kiểm
   thử nào ở tầng này chạm tới — xem bảng *Ràng buộc thư viện* trong [plan.md](./plan.md).

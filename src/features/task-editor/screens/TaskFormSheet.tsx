@@ -11,7 +11,7 @@ import { Sheet } from '../../../components/Sheet';
 import { Text } from '../../../components/Text';
 import {
 	isInPast,
-	reminderFireAt,
+	notificationPlan,
 	REMINDER_OFFSETS,
 } from '../../../domain/reminder';
 import type { Task, TaskStatus } from '../../../domain/task';
@@ -73,13 +73,27 @@ export function TaskFormSheet({
 		[form, reminders],
 	);
 
-	const fireAt = reminderFireAt({
+	/**
+	 * Saving is what commits the app to notifying about this task, so it is also
+	 * where permission is asked when the reminder switch never was (FR-036a still
+	 * holds: nothing is asked at first launch, only once the user has written a
+	 * task down). Deliberately not awaited — a refusal must not delay or block
+	 * the save (FR-039).
+	 */
+	const submitAndNotify = useCallback(() => {
+		reminders.ensurePermission().catch(() => undefined);
+		form.submit();
+	}, [form, reminders]);
+
+	const plan = notificationPlan({
 		reminderEnabled: form.values.reminderEnabled,
 		reminderOffsetMinutes: form.values.reminderOffsetMinutes,
 		taskDate: form.values.taskDate,
 		startTime: form.values.startTime,
 	});
-	const reminderInPast = fireAt !== null && isInPast(fireAt, new Date());
+	// Now worth saying for a task with no reminder too: the silent notice is
+	// still a notification, and a moment already gone still gets none (FR-038).
+	const notifyInPast = isInPast(plan.fireAt, new Date());
 	const mayBeLate =
 		form.values.reminderEnabled &&
 		reminders.exactAlarm.required &&
@@ -134,7 +148,7 @@ export function TaskFormSheet({
 						saving ? t('form.saving') : task ? t('form.saveEdit') : t('form.save')
 					}
 					disabled={saving}
-					onPress={form.submit}
+					onPress={submitAndNotify}
 					style={styles.primary}>
 					<Text style={styles.primaryLabel}>
 						{saving ? t('form.saving') : task ? t('form.saveEdit') : t('form.save')}
@@ -152,7 +166,7 @@ export function TaskFormSheet({
 						accessibilityLabel={t('unsaved.saveAndClose')}
 						onPress={() => {
 							setConfirmDiscard(false);
-							form.submit();
+							submitAndNotify();
 						}}
 						style={styles.unsavedPrimary}>
 						<Text style={styles.unsavedPrimaryLabel}>
@@ -324,6 +338,13 @@ export function TaskFormSheet({
 								onValueChange={setReminderEnabled}
 							/>
 						</View>
+						{/* Off no longer means silence — it means a notification without
+                the chime. Said here because a switch labelled "tắt" otherwise
+                promises nothing will happen. */}
+						{form.values.reminderEnabled ? null : (
+							<Text style={styles.reminderHint}>{t('form.reminderOffHint')}</Text>
+						)}
+
 						{/* A block that stays put, not a toast that disappears
                 (design/ux-ui-spec.md §4). */}
 						{mayBeLate ? (
@@ -349,9 +370,11 @@ export function TaskFormSheet({
 
 						{/* FR-038: the app will not schedule a moment that has passed, and
                 says so rather than letting the OS fire it immediately. */}
-						{reminderInPast ? (
+						{notifyInPast ? (
 							<Text style={styles.reminderWarningText}>
-								{t('validate.reminderInPast')}
+								{plan.tone === 'alert'
+									? t('validate.reminderInPast')
+									: t('validate.startInPast')}
 							</Text>
 						) : null}
 
@@ -487,6 +510,12 @@ const styles = StyleSheet.create(raw => {
 		switchLabel: {
 			...theme.typography.body,
 			color: theme.color.onBackground,
+		},
+		reminderHint: {
+			...theme.typography.label,
+			// The muted grey, re-derived for these surfaces at 4.77:1 — a hint that
+			// fails contrast is not a hint (Principle V).
+			color: theme.color.disabled,
 		},
 		reminderWarning: {
 			borderWidth: 1,

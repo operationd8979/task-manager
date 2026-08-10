@@ -61,17 +61,21 @@ Ký hiệu: `—` nghĩa là requirement không có bề mặt giao diện; luô
 | FR-031 "toàn bộ chuỗi" khi xóa | S-05 | F-6 | [wireframes W-04](./wireframes.md) | |
 | FR-032 tick không lan sang buổi khác | S-01 | F-1 | [decisions D-01](./decisions.md) | Cơ sở cho quyết định D-01 |
 | FR-033 bật/tắt + chọn mốc nhắc | S-03, S-04 | F-5 | [wireframes W-03](./wireframes.md) | Chip 0/5/10/15/30/60 |
+| FR-033a mọi công việc đều có thông báo | S-03 | F-5 | [ux-ui-spec §4 Công tắc](./ux-ui-spec.md) | Dòng chữ phụ khi công tắc tắt |
+| FR-033b hai kênh thông báo riêng | — | — | [contracts/reminders.md](../contracts/reminders.md) | Bề mặt nằm ở cài đặt hệ thống, không trong app |
 | FR-034 nhắc nhở chạy trên máy | — | — | — | Ràng buộc kỹ thuật, không có bề mặt UI |
 | FR-035 nội dung nhắc nhở | — | — | [ux-ui-spec §5.6](./ux-ui-spec.md) | Chuỗi thuộc danh mục tập trung |
 | FR-036 sáu mốc nhắc | S-03, S-04, S-08 | F-5 | [wireframes W-03, W-06](./wireframes.md) | |
-| FR-036a xin quyền đúng lúc | S-03 | F-5 | [ia §5 F-5](./ia-screens-flows.md) | Chỉ khi bật lần đầu |
+| FR-036a xin quyền đúng lúc | S-03 | F-5 | [ia §5 F-5](./ia-screens-flows.md) | Quyền báo thức chính xác: chỉ khi bật lần đầu |
+| FR-036d quyền thông báo ở lần lưu đầu | S-03 | F-5 | [ia §5 F-5](./ia-screens-flows.md) | Lối vào thứ hai; không chặn nút lưu |
 | FR-036b nhắc gần đúng + báo trễ | S-01, S-03, S-08 | F-5 | [ux-ui-spec §1, §3](./ux-ui-spec.md) | Nhãn "· CÓ THỂ TRỄ" |
 | FR-036c mốc mặc định từ Cài đặt | S-03, S-08 | F-2 | [wireframes W-06](./wireframes.md) | |
-| FR-037 đồng bộ nhắc theo thay đổi | — | F-1, F-4, F-6 | — | Dẫn xuất; UI chỉ phản ánh qua nhãn NHẮC |
-| FR-038 mốc nhắc ở quá khứ | S-03 | F-2 | [ux-ui-spec §3 Form](./ux-ui-spec.md) | Cảnh báo, vẫn lưu |
+| FR-037 đồng bộ thông báo theo thay đổi | — | F-1, F-4, F-6 | — | Dẫn xuất; UI chỉ phản ánh qua nhãn NHẮC |
+| FR-038 thời điểm phát ở quá khứ | S-03 | F-2 | [ux-ui-spec §4 Công tắc](./ux-ui-spec.md) | Cảnh báo hai câu tùy tông, vẫn lưu |
 | FR-039 quyền thông báo bị từ chối | S-01, S-08 | F-5 | [ux-ui-spec §3](./ux-ui-spec.md) | Banner trong luồng, không modal |
 | FR-040 đặt trước theo cửa sổ | — | — | [ux-ui-spec §5.5](./ux-ui-spec.md) | Ràng buộc kỹ thuật |
 | FR-041 đối chiếu khi khởi động | — | — | — | Không có bề mặt UI |
+| FR-041a so thời điểm và tông, không chỉ định danh | — | — | [contracts/reminders.md](../contracts/reminders.md) | Không có bề mặt UI; kiểm bằng V7a |
 | FR-042 khôi phục sau reboot | — | — | — | Không có bề mặt UI |
 | FR-043 chạm nhắc mở đúng việc | S-01 | — | [ia §2 "Ngày là địa chỉ"](./ia-screens-flows.md) | Ngoại lệ: mở app không về hôm nay |
 | FR-044 lỗi nhắc không chặn lưu | S-03 | F-5 | [ux-ui-spec §3 Form](./ux-ui-spec.md) | Báo riêng |
@@ -123,7 +127,7 @@ Không có màn hình nào không phục vụ requirement nào. S-09 không còn
 | F-2 | Tạo công việc thường | US-1, FR-007, FR-008 | 2 | ✅ |
 | F-3 | Sửa một buổi của chuỗi | US-5, FR-026, FR-027, FR-030 | 3 | ⚠️ Vượt có chủ đích — [ia §5 F-3](./ia-screens-flows.md) |
 | F-4 | Dời giờ trong ngày | US-3, FR-018a, FR-018c | 1 cử chỉ / 3 thao tác | ✅ theo lối cử chỉ |
-| F-5 | Bật nhắc nhở lần đầu | US-6, FR-036a, FR-036b | 2 + hộp thoại hệ thống | ✅ |
+| F-5 | Xin quyền thông báo lần đầu | US-6, FR-036a, FR-036b, FR-036d | 0 thao tác thêm + hộp thoại hệ thống | ✅ |
 | F-6 | Xóa | US-3, FR-011, FR-011a, FR-031 | 2 | ✅ sau khi bỏ bước xác nhận |
 | F-7 | Chuyển ngày bằng vuốt | US-1, FR-003a, FR-003c | 1 cử chỉ | ✅ |
 | F-8 | Thiết lập công việc lặp lại | US-4, FR-020, FR-021, FR-022, FR-024 | 4 thao tác | ⚠️ Vượt có chủ đích — [ia §5 F-8](./ia-screens-flows.md) |

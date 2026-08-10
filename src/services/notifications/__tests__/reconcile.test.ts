@@ -41,7 +41,14 @@ function fakeScheduler() {
 			held.delete(id);
 			calls.cancelled.push(id);
 		},
-		listScheduled: async () => [...held.keys()],
+		// Mirrors the real adapter: what the OS holds is the last thing written
+		// under that id, so a re-schedule replaces rather than duplicates.
+		listScheduled: async () =>
+			[...held.values()].map(r => ({
+				id: r.id,
+				fireAt: r.fireAt,
+				tone: r.tone,
+			})),
 	};
 
 	return {
@@ -132,6 +139,64 @@ describe('reconcileReminders', () => {
 			input({ tasks: [task({ startTime: '05:00' })] }),
 		);
 		expect(held.size).toBe(0);
+	});
+
+	/**
+	 * The reminder switch chooses the TONE, not whether the user hears about the
+	 * task at all: a task with no reminder still has to surface, or writing it
+	 * down bought nothing.
+	 */
+	it('still notifies a task with no reminder, silently and at the start time', async () => {
+		const { scheduler, held } = fakeScheduler();
+		await reconcileReminders(
+			scheduler,
+			input({ tasks: [task({ reminderEnabled: false })] }),
+		);
+		const request = held.get('task:t1');
+		expect(request?.tone).toBe('silent');
+		expect(request?.fireAt).toEqual(new Date('2026-08-03T09:00:00'));
+	});
+
+	it('offsets and rings when the reminder is on', async () => {
+		const { scheduler, held } = fakeScheduler();
+		await reconcileReminders(scheduler, input());
+		const request = held.get('task:t1');
+		expect(request?.tone).toBe('alert');
+		expect(request?.fireAt).toEqual(new Date('2026-08-03T08:45:00'));
+	});
+
+	/**
+	 * Ids are derived from the task, so they survive an edit unchanged. Comparing
+	 * ids alone would leave the user being alerted at the time they moved away
+	 * from — the failure this pair of tests exists to catch.
+	 */
+	it('re-registers a task whose time moved', async () => {
+		const fake = fakeScheduler();
+		await reconcileReminders(fake.scheduler, input());
+		fake.reset();
+
+		await reconcileReminders(
+			fake.scheduler,
+			input({ tasks: [task({ startTime: '11:00' })] }),
+		);
+		expect(fake.calls.scheduled).toEqual(['task:t1']);
+		expect(fake.calls.cancelled).toEqual([]);
+		expect(fake.held.get('task:t1')?.fireAt).toEqual(
+			new Date('2026-08-03T10:45:00'),
+		);
+	});
+
+	it('re-registers a task whose reminder was switched off', async () => {
+		const fake = fakeScheduler();
+		await reconcileReminders(fake.scheduler, input());
+		fake.reset();
+
+		await reconcileReminders(
+			fake.scheduler,
+			input({ tasks: [task({ reminderEnabled: false })] }),
+		);
+		expect(fake.calls.scheduled).toEqual(['task:t1']);
+		expect(fake.held.get('task:t1')?.tone).toBe('silent');
 	});
 
 	it('pre-schedules a series across the window, one session per date', async () => {

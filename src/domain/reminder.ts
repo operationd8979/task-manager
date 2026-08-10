@@ -23,6 +23,17 @@ export type TargetRef =
 	| { kind: 'task'; taskId: string }
 	| { kind: 'occurrence'; ruleId: string; date: LocalDate };
 
+/**
+ * How loudly a scheduled notification arrives.
+ *
+ * Every task notifies; the reminder switch decides whether it also RINGS.
+ * `silent` posts at the start time with no sound and no vibration, so a task the
+ * user never asked to be nagged about still shows up on the lock screen instead
+ * of passing unnoticed. `alert` is the reminder proper: offset ahead of the
+ * start, with the alarm-like tone.
+ */
+export type ReminderTone = 'alert' | 'silent';
+
 export interface ReminderRequest {
 	id: string;
 	title: string;
@@ -31,6 +42,7 @@ export interface ReminderRequest {
 	taskDate: LocalDate;
 	/** The task's own start time — FR-035 requires it in the notification. */
 	startTime: LocalTime;
+	tone: ReminderTone;
 	targetRef: TargetRef;
 }
 
@@ -48,18 +60,49 @@ export function reminderId(target: TargetRef): string {
 		: `recurring:${target.ruleId}:${target.date}`;
 }
 
-/** The instant a reminder should fire, or null when it has no reminder. */
+export interface NotificationPlan {
+	fireAt: Date;
+	tone: ReminderTone;
+}
+
+/**
+ * When a task should reach the user, and how.
+ *
+ * There is no "no notification" answer any more. Turning the reminder off used
+ * to mean silence, which made a task the user had written down behave exactly
+ * like one they had not — the OS said nothing at the hour it was due. Off now
+ * means a silent notice AT the start time; on means the alarm-toned reminder,
+ * ahead of it by the chosen offset.
+ */
+export function notificationPlan(input: {
+	reminderEnabled: boolean;
+	reminderOffsetMinutes: ReminderOffset;
+	taskDate: LocalDate;
+	startTime: LocalTime;
+}): NotificationPlan {
+	const start = toDateTime(input.taskDate, input.startTime);
+	if (!input.reminderEnabled) {
+		return { fireAt: start, tone: 'silent' };
+	}
+	return {
+		fireAt: new Date(start.getTime() - input.reminderOffsetMinutes * 60_000),
+		tone: 'alert',
+	};
+}
+
+/**
+ * The instant the RINGING reminder should fire, or null when the task only gets
+ * the silent notice. The form asks this to decide what to say about the
+ * reminder; scheduling asks `notificationPlan`, which covers both cases.
+ */
 export function reminderFireAt(input: {
 	reminderEnabled: boolean;
 	reminderOffsetMinutes: ReminderOffset;
 	taskDate: LocalDate;
 	startTime: LocalTime;
 }): Date | null {
-	if (!input.reminderEnabled) {
-		return null;
-	}
-	const start = toDateTime(input.taskDate, input.startTime);
-	return new Date(start.getTime() - input.reminderOffsetMinutes * 60_000);
+	const plan = notificationPlan(input);
+	return plan.tone === 'alert' ? plan.fireAt : null;
 }
 
 /**

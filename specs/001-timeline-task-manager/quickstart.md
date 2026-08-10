@@ -116,7 +116,9 @@ hợp nhất đang xử lý chỉ hai trạng thái giá trị thay vì bốn.
 ### V6 · Nhắc nhở khi ngoại tuyến và khi thiếu quyền → SC-008, FR-036a/b, FR-039
 
 1. Bật chế độ máy bay. Tạo công việc có nhắc nhở sau 2 phút.
-2. Quyền được hỏi **đúng lúc này**, không phải lúc mở ứng dụng lần đầu.
+2. Quyền được hỏi **đúng lúc này**, không phải lúc mở ứng dụng lần đầu. Với người chưa từng
+   bật nhắc nhở, quyền hiện thông báo được hỏi ở lần lưu công việc đầu tiên (FR-036d) — và
+   hộp thoại đó **không** được chặn hay làm chậm việc lưu.
 3. **Từ chối** quyền báo thức chính xác (Android).
 
 **Kỳ vọng**: công việc vẫn lưu được; dòng công việc hiện nhãn "· CÓ THỂ TRỄ"; có lối mở cài
@@ -135,6 +137,32 @@ hợp nhất đang xử lý chỉ hai trạng thái giá trị thay vì bốn.
 
 **Kỳ vọng**: ứng dụng mở ở timeline hôm nay, **không** báo lỗi hệ thống.
 
+### V6a · Hai tông thông báo → FR-033a, FR-033b, FR-008
+
+1. Tạo hai công việc cách hiện tại vài phút: một **bật** nhắc nhở, một **không**.
+2. Đọc dòng chữ dưới công tắc khi nó đang tắt.
+
+**Kỳ vọng**: form nói rõ rằng vẫn sẽ có thông báo vào giờ bắt đầu, chỉ không có chuông. Một
+công tắc ghi "tắt" mà không giải thích gì thì mặc nhiên hứa rằng sẽ không có gì xảy ra.
+
+3. Buộc dừng ứng dụng. Chờ tới giờ của cả hai.
+
+**Kỳ vọng**: **cả hai** thông báo đều xuất hiện. Công việc bật nhắc nhở phát chuông trước giờ
+bắt đầu theo mốc đã chọn; công việc kia hiện im lặng vào **đúng** giờ bắt đầu, không âm thanh,
+không rung.
+
+4. Vào cài đặt thông báo của ứng dụng trong hệ điều hành.
+
+**Kỳ vọng**: hai kênh riêng — "Nhắc nhở công việc" và "Thông báo công việc". Tắt chuông của
+kênh này **không** ảnh hưởng kênh kia (FR-033b).
+
+5. Bật chế độ Không làm phiền, chờ tới giờ của cả hai.
+
+**Kỳ vọng**: chuông nhắc nhở vẫn phát; thông báo im lặng bị chặn theo đúng Không làm phiền.
+
+*Giới hạn đã biết*: ở chế độ **im lặng** (khác Không làm phiền) thì chuông không kêu. Đây là
+giới hạn nền tảng đã ghi trong Out of Scope, không phải lỗi của bước này.
+
 ### V7 · Hòa giải lịch nhắc là idempotent → FR-041
 
 1. Tạo vài công việc có nhắc nhở.
@@ -143,6 +171,24 @@ hợp nhất đang xử lý chỉ hai trạng thái giá trị thay vì bốn.
 
 **Kỳ vọng**: lần chạy thứ hai và thứ ba **không** gọi đặt hay hủy lần nào. Có gọi nghĩa là
 phép hòa giải đang hủy sạch rồi đặt lại, và nó sẽ tạo khoảng trống không có nhắc nhở nào.
+
+### V7a · Sửa công việc đã lưu phải đổi được thông báo → FR-041a, SC-020
+
+Bước này bắt đúng cái lỗi mà một phép hòa giải chỉ-so-định-danh sẽ để lọt.
+
+1. Tạo một công việc lúc 09:00, bật nhắc trước 15 phút. Đóng và mở lại ứng dụng.
+2. Sửa nó sang 11:00. Buộc dừng ứng dụng, chờ tới 08:45 và 10:45.
+
+**Kỳ vọng**: **không** có gì phát lúc 08:45; chuông phát lúc 10:45. Nếu vẫn nghe chuông lúc
+08:45 thì phép hòa giải đang so định danh — định danh không đổi khi công việc dời giờ.
+
+3. Mở lại, **tắt** nhắc nhở của chính công việc đó. Buộc dừng, chờ tới 10:45 và 11:00.
+
+**Kỳ vọng**: không có gì lúc 10:45; thông báo im lặng lúc 11:00.
+
+4. Bật lại nhắc nhở, chờ tới 10:45.
+
+**Kỳ vọng**: chuông trở lại đúng 10:45.
 
 ### V8 · Chế độ hiển thị ba giá trị → FR-052b, FR-052c
 

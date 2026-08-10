@@ -2,13 +2,13 @@ import { buildOccurrences } from '../../domain/occurrence';
 import type { RecurrenceOverride, RecurringRule } from '../../domain/recurrence';
 import {
 	isInPast,
-	reminderFireAt,
+	notificationPlan,
 	reminderId,
 	type ReminderRequest,
 } from '../../domain/reminder';
 import type { Task } from '../../domain/task';
 import { addDays, today, type LocalDate } from '../../lib/date';
-import type { ReminderScheduler } from './scheduler';
+import type { ReminderScheduler, ScheduledReminder } from './scheduler';
 
 /**
  * How far ahead reminders for a series are registered (FR-040).
@@ -33,10 +33,12 @@ export interface ReconcileReport {
 }
 
 /**
- * Builds the set of reminders that SHOULD exist in the window.
+ * Builds the set of notifications that SHOULD exist in the window.
  *
- * Occurrences are generated one day at a time, exactly as the timeline does —
- * there is no range-taking generator to reach for (FR-023).
+ * Every task that is still to happen gets one — the reminder switch only picks
+ * the tone (see `notificationPlan`). Occurrences are generated one day at a
+ * time, exactly as the timeline does — there is no range-taking generator to
+ * reach for (FR-023).
  */
 export function desiredReminders(input: ReconcileInput): ReminderRequest[] {
 	const now = input.now ?? new Date();
@@ -48,17 +50,18 @@ export function desiredReminders(input: ReconcileInput): ReminderRequest[] {
 			// A completed task keeps no pending reminder (FR-037).
 			continue;
 		}
-		const fireAt = reminderFireAt(task);
-		if (fireAt === null || isInPast(fireAt, now)) {
+		const plan = notificationPlan(task);
+		if (isInPast(plan.fireAt, now)) {
 			continue;
 		}
 		const targetRef = { kind: 'task' as const, taskId: task.id };
 		out.push({
 			id: reminderId(targetRef),
 			title: task.title,
-			fireAt,
+			fireAt: plan.fireAt,
 			taskDate: task.taskDate,
 			startTime: task.startTime,
+			tone: plan.tone,
 			targetRef,
 		});
 	}
@@ -76,13 +79,13 @@ export function desiredReminders(input: ReconcileInput): ReminderRequest[] {
 			if (occurrence.isSkipped || occurrence.status === 'done') {
 				continue;
 			}
-			const fireAt = reminderFireAt({
+			const plan = notificationPlan({
 				reminderEnabled: occurrence.reminderEnabled,
 				reminderOffsetMinutes: occurrence.reminderOffsetMinutes,
 				taskDate: occurrence.date,
 				startTime: occurrence.startTime,
 			});
-			if (fireAt === null || isInPast(fireAt, now)) {
+			if (isInPast(plan.fireAt, now)) {
 				continue;
 			}
 			const targetRef = {
@@ -93,9 +96,10 @@ export function desiredReminders(input: ReconcileInput): ReminderRequest[] {
 			out.push({
 				id: reminderId(targetRef),
 				title: occurrence.title,
-				fireAt,
+				fireAt: plan.fireAt,
 				taskDate: occurrence.date,
 				startTime: occurrence.startTime,
+				tone: plan.tone,
 				targetRef,
 			});
 		}
@@ -104,13 +108,30 @@ export function desiredReminders(input: ReconcileInput): ReminderRequest[] {
 	return out;
 }
 
+/** Whether what the OS holds already says what the data wants it to say. */
+function isCurrent(
+	held: ScheduledReminder,
+	wanted: ReminderRequest,
+): boolean {
+	return (
+		held.fireAt.getTime() === wanted.fireAt.getTime() &&
+		held.tone === wanted.tone
+	);
+}
+
 /**
  * Bring the OS into agreement with the data (FR-041, FR-042).
  *
- * The five steps matter, and step 5 in particular: anything present in both
- * sets is LEFT ALONE. Cancelling everything and rescheduling is simpler to
- * write but opens a window in which no reminder exists at all — and on a device
- * that reclaims the process mid-run, that window is permanent.
+ * Anything already correct is LEFT ALONE. Cancelling everything and
+ * rescheduling is simpler to write but opens a window in which no reminder
+ * exists at all — and on a device that reclaims the process mid-run, that
+ * window is permanent.
+ *
+ * "Correct" has to mean more than "present", though. Ids are derived from the
+ * task, so moving a task to another hour, or switching its reminder on, leaves
+ * the id untouched — comparing ids alone would call the stale notification fine
+ * and the user would be alerted at the old time forever. Re-scheduling replaces
+ * in place under the same id, so nothing is cancelled and no gap opens.
  */
 export async function reconcileReminders(
 	scheduler: ReminderScheduler,
@@ -118,10 +139,12 @@ export async function reconcileReminders(
 ): Promise<ReconcileReport> {
 	const desired = desiredReminders(input);
 	const desiredById = new Map(desired.map(r => [r.id, r]));
-	const existing = new Set(await scheduler.listScheduled());
+	const existing = new Map(
+		(await scheduler.listScheduled()).map(held => [held.id, held]),
+	);
 
 	let cancelled = 0;
-	for (const id of existing) {
+	for (const id of existing.keys()) {
 		if (!desiredById.has(id)) {
 			await scheduler.cancel(id);
 			cancelled += 1;
@@ -131,7 +154,8 @@ export async function reconcileReminders(
 	let scheduled = 0;
 	let unchanged = 0;
 	for (const request of desired) {
-		if (existing.has(request.id)) {
+		const held = existing.get(request.id);
+		if (held && isCurrent(held, request)) {
 			unchanged += 1;
 			continue;
 		}

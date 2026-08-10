@@ -10,11 +10,16 @@ import notifee, {
 	type TimestampTrigger,
 } from '@notifee/react-native';
 
-import type { ReminderRequest, TargetRef } from '../../domain/reminder';
+import type {
+	ReminderRequest,
+	ReminderTone,
+	TargetRef,
+} from '../../domain/reminder';
 import type {
 	PermissionState,
 	ReminderScheduler,
 	ReminderTarget,
+	ScheduledReminder,
 } from './scheduler';
 
 /**
@@ -29,6 +34,21 @@ import type {
 const CHANNEL_ID = 'task-reminders-alarm';
 const RETIRED_CHANNEL_IDS = ['task-reminders', 'task-reminders-sound'];
 const CHANNEL_NAME = 'Nhắc nhở công việc';
+
+/**
+ * The channel for tasks with no reminder set.
+ *
+ * Separate from the alarm channel on purpose, and not just because it is
+ * silent: channel settings are the user's, and one channel would force "stop
+ * ringing for the quiet ones" and "stop ringing for the reminders" to be the
+ * same switch in system settings.
+ *
+ * Importance HIGH so it still appears as a heads-up banner — the point is that
+ * the task is not missed — with no sound and no vibration, which is what makes
+ * it a notice rather than an alarm.
+ */
+const SILENT_CHANNEL_ID = 'task-notices';
+const SILENT_CHANNEL_NAME = 'Thông báo công việc';
 
 /**
  * The device's own notification tone.
@@ -86,6 +106,18 @@ async function migrateChannel(): Promise<void> {
 		// A missed reminder is the failure this feature exists to prevent, so it
 		// is allowed through Do Not Disturb the way an alarm is.
 		bypassDnd: true,
+	});
+
+	// No `sound` key at all — an omitted sound is what makes the channel silent;
+	// passing 'default' and hoping the importance keeps it quiet would not.
+	await notifee.createChannel({
+		id: SILENT_CHANNEL_ID,
+		name: SILENT_CHANNEL_NAME,
+		importance: AndroidImportance.HIGH,
+		vibration: false,
+		// A task the user did not ask to be reminded about has no business
+		// interrupting Do Not Disturb.
+		bypassDnd: false,
 	});
 
 	const stale = retired.filter((id): id is string => id !== null);
@@ -191,6 +223,7 @@ export function createNotifeeScheduler(): ReminderScheduler {
 
 		async schedule(request) {
 			await ensureChannel();
+			const alerting = request.tone === 'alert';
 			const { granted } = await this.getExactAlarmState();
 
 			const trigger: TimestampTrigger = {
@@ -209,25 +242,43 @@ export function createNotifeeScheduler(): ReminderScheduler {
 					id: request.id,
 					title: request.title,
 					body: formatBody(request),
-					// Enough to reopen the exact thing that was reminded about (FR-043).
-					data: encodeTarget(request.targetRef, request.taskDate),
-					android: {
-						channelId: CHANNEL_ID,
-						pressAction: { id: 'default' },
-						// The channel decides this from Android 8 on; the field still
-						// carries it on anything older.
-						sound: REMINDER_SOUND,
-						loopSound: LOOP_SOUND,
-						vibrationPattern: VIBRATION_PATTERN,
-						// Tells the system this is a time-critical alert rather than a
-						// message, which is what earns it alarm-like treatment.
-						category: AndroidCategory.ALARM,
-						// Stops looping the moment the user acts on it — without this the
-						// tone would keep going after it has been dealt with.
-						autoCancel: true,
+					// Enough to reopen the exact thing that was reminded about (FR-043),
+					// plus the tone, which is how reconciliation later recognises that a
+					// notification the OS holds no longer matches the task.
+					data: {
+						...encodeTarget(request.targetRef, request.taskDate),
+						tone: request.tone,
 					},
-					// iOS has no channels, so the sound is stated per notification.
-					ios: { sound: REMINDER_SOUND, critical: false },
+					android: alerting
+						? {
+							channelId: CHANNEL_ID,
+							pressAction: { id: 'default' },
+							// The channel decides this from Android 8 on; the field still
+							// carries it on anything older.
+							sound: REMINDER_SOUND,
+							loopSound: LOOP_SOUND,
+							vibrationPattern: VIBRATION_PATTERN,
+							// Tells the system this is a time-critical alert rather than a
+							// message, which is what earns it alarm-like treatment.
+							category: AndroidCategory.ALARM,
+							// Stops looping the moment the user acts on it — without this
+							// the tone would keep going after it has been dealt with.
+							autoCancel: true,
+						}
+						: {
+							channelId: SILENT_CHANNEL_ID,
+							pressAction: { id: 'default' },
+							// Every alarm-ish field is omitted, not set to a quiet value:
+							// on pre-Android 8 the notification itself still decides, and
+							// an empty vibration pattern is not a valid one.
+							category: AndroidCategory.REMINDER,
+							autoCancel: true,
+						},
+					// iOS has no channels, so the sound is stated per notification —
+					// and omitting it is what posts the notice silently.
+					ios: alerting
+						? { sound: REMINDER_SOUND, critical: false }
+						: { critical: false },
 				},
 				trigger,
 			);
@@ -238,12 +289,30 @@ export function createNotifeeScheduler(): ReminderScheduler {
 		},
 
 		async listScheduled() {
-			// Reconciliation reads this FIRST and then leaves every id it finds
-			// alone, so the channel migration has to have finished cancelling by the
-			// time this answers — otherwise it reports the stale reminders as fine
-			// and they are never rebuilt.
+			// Reconciliation reads this FIRST and then leaves everything it finds
+			// correct alone, so the channel migration has to have finished
+			// cancelling by the time this answers — otherwise it reports the stale
+			// reminders as fine and they are never rebuilt.
 			await ensureChannel();
-			return notifee.getTriggerNotificationIds();
+			const pending = await notifee.getTriggerNotifications();
+
+			const out: ScheduledReminder[] = [];
+			for (const { notification, trigger } of pending) {
+				// Anything without an id or without a timestamp is not ours; there is
+				// no way to reconcile it, so it is left exactly where it is.
+				if (
+					notification.id === undefined ||
+					trigger.type !== TriggerType.TIMESTAMP
+				) {
+					continue;
+				}
+				out.push({
+					id: notification.id,
+					fireAt: new Date(trigger.timestamp),
+					tone: toTone(notification.data),
+				});
+			}
+			return out;
 		},
 	};
 }
@@ -267,6 +336,19 @@ function toPermissionState(status: AuthorizationStatus): PermissionState {
  */
 function formatBody(request: ReminderRequest): string {
 	return `${request.startTime} · ${request.taskDate}`;
+}
+
+/**
+ * Reads the tone back off a notification the OS is holding.
+ *
+ * Missing means `alert`, and that default is deliberate: builds before the
+ * silent notice existed only ever scheduled ringing reminders, so reading their
+ * absent field as `alert` lets reconciliation recognise them as still correct
+ * and leave them be, instead of re-registering every reminder on the device the
+ * first time the updated app runs.
+ */
+function toTone(data: Record<string, unknown> | undefined): ReminderTone {
+	return data?.tone === 'silent' ? 'silent' : 'alert';
 }
 
 function encodeTarget(

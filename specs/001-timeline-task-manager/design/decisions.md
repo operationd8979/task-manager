@@ -1,8 +1,8 @@
 # Quyết định thiết kế
 
-Cập nhật 2026-08-02 sau phiên `/speckit-clarify`. Năm quyết định đầu **đã chốt** và đã được
-ghi vào [spec.md](../spec.md); phần ghi lại ở đây là lý do và hệ quả thiết kế, để lần sau
-không ai vô tình lật lại. D-06 vẫn mở nhưng không chặn planning.
+Cập nhật 2026-08-02 sau phiên `/speckit-clarify`, bổ sung D-07 ngày 2026-08-10. Năm quyết định
+đầu và D-07 **đã chốt** và đã được ghi vào [spec.md](../spec.md); phần ghi lại ở đây là lý do
+và hệ quả thiết kế, để lần sau không ai vô tình lật lại. D-06 vẫn mở nhưng không chặn planning.
 
 | | Quyết định | Trạng thái | Requirement |
 |---|---|---|---|
@@ -12,6 +12,7 @@ không ai vô tình lật lại. D-06 vẫn mở nhưng không chặn planning.
 | D-04 | Chế độ hiển thị ba giá trị | ✅ Chốt | FR-052b/c |
 | D-05 | Đếm buổi trong cửa sổ 365 ngày | ✅ Chốt | FR-026b/c |
 | D-06 | Bộ icon | ⏸ Hoãn tới Phase 1 | — |
+| D-07 | Công tắc nhắc nhở chọn tông, không chọn có/không | ✅ Chốt 2026-08-10 | FR-033a/b, FR-036d |
 
 ---
 
@@ -97,6 +98,32 @@ lặp, cảnh báo.
 **Vì sao hoãn được**: mọi icon đều bắt buộc có chữ đi kèm ([ux-ui-spec §1](./ux-ui-spec.md)),
 nên bộ icon chỉ là lớp trang trí — chọn bộ nào cũng không làm hỏng khả năng đọc hay khả năng
 tiếp cận. Ưu tiên bộ không kéo thêm dependency nặng.
+
+## D-07 · Công việc không bật nhắc nhở thì có thông báo không? — ✅ **Có, tông im lặng**
+
+Chốt 2026-08-10, sau vòng dùng thử thứ hai. Công tắc nhắc nhở chọn **tông** của thông báo:
+tắt → thông báo im lặng vào đúng giờ bắt đầu, bật → chuông báo trước giờ theo mốc đã chọn.
+
+**Lý do**: một công việc đã được ghi xuống mà tới giờ hệ thống không nói gì thì hoàn toàn
+không khác một công việc chưa từng được ghi. Mốc nhắc là thứ người dùng chọn khi họ muốn được
+**báo trước và nghe thấy** — không phải thứ quyết định ứng dụng có lên tiếng hay không.
+
+**Đã thay đổi trong spec**: FR-033a (hai tông), FR-033b (hai kênh riêng), FR-036d (xin quyền
+thông báo ở lần lưu đầu tiên), FR-038 (cảnh báo "đã qua" nói đúng tông), FR-041a (hòa giải so
+thời điểm và tông, không chỉ định danh).
+
+**Hệ quả thiết kế**:
+- Công tắc ở trạng thái tắt **phải** có một dòng chữ phụ giải thích. Một công tắc ghi "tắt"
+  mà không nói gì thêm thì mặc nhiên hứa rằng sẽ không có gì xảy ra — xem
+  [ux-ui-spec §4](./ux-ui-spec.md).
+- Dòng công việc **không** thêm dấu hiệu nào cho tông im lặng. Nó là mặc định của mọi công
+  việc, và một nhãn dán trên mọi dòng chỉ là nhiễu.
+- F-5 không còn là "bật nhắc nhở lần đầu" mà là "xin quyền lần đầu", với hai lối vào — xem
+  [ia §5 F-5](./ia-screens-flows.md).
+
+**Đã cân nhắc và loại**: *một kênh thông báo dùng chung, đổi âm theo từng thông báo.* Từ
+Android 8 kênh mới là nơi quyết định âm báo, và cài đặt kênh thuộc về người dùng — gộp chung
+biến "tắt chuông cho thông báo thường" thành cùng một công tắc với "tắt chuông cho nhắc nhở".
 
 ---
 

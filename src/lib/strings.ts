@@ -83,6 +83,8 @@ const CATALOG = {
 	'form.statusDone': 'Hoàn thành',
 	'form.reminderOn': 'Nhắc nhở bật',
 	'form.reminderOff': 'Nhắc nhở tắt',
+	'form.reminderOffHint':
+		'Vẫn hiện thông báo vào giờ bắt đầu, nhưng không reo chuông.',
 	'form.reminderOnTime': 'Đúng giờ',
 	'form.reminderBefore': 'Trước {minutes} phút',
 	'form.notePlaceholder': 'Thêm ghi chú',
@@ -104,6 +106,8 @@ const CATALOG = {
 	'validate.endDateBeforeStart': 'Ngày kết thúc phải từ {start} trở đi.',
 	'validate.reminderInPast':
 		'Thời điểm nhắc đã qua, nên ứng dụng sẽ không đặt nhắc nhở cho công việc này.',
+	'validate.startInPast':
+		'Giờ bắt đầu đã qua, nên sẽ không có thông báo cho công việc này.',
 
 	// Save failure
 	'save.failedTitle': 'Chưa lưu được',

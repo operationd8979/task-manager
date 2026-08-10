@@ -1,4 +1,4 @@
-import type { ReminderRequest } from '../../domain/reminder';
+import type { ReminderRequest, ReminderTone } from '../../domain/reminder';
 
 export type PermissionState = 'granted' | 'denied' | 'not-determined';
 
@@ -6,6 +6,19 @@ export interface ExactAlarmState {
 	/** Whether the platform demands a separate permission at all. iOS: false. */
 	required: boolean;
 	granted: boolean;
+}
+
+/**
+ * A notification the OS is already holding.
+ *
+ * Reconciliation needs more than the id: the id is derived from the task, so it
+ * stays the same when the time or the tone changes, and an id-only comparison
+ * would report a moved task as already correct and never re-register it.
+ */
+export interface ScheduledReminder {
+	id: string;
+	fireAt: Date;
+	tone: ReminderTone;
 }
 
 /** Where a notification tap points. */
@@ -37,8 +50,9 @@ export interface ReminderScheduler {
 	requestExactAlarm(): Promise<ExactAlarmState>;
 	openSystemSettings(target: 'notifications' | 'exact-alarm'): Promise<void>;
 
+	/** Registers the notification, replacing any earlier one with the same id. */
 	schedule(request: ReminderRequest): Promise<void>;
 	cancel(id: string): Promise<void>;
-	/** Ids of the FUTURE reminders the OS is currently holding. */
-	listScheduled(): Promise<readonly string[]>;
+	/** The FUTURE notifications the OS is currently holding. */
+	listScheduled(): Promise<readonly ScheduledReminder[]>;
 }
