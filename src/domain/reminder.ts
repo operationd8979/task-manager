@@ -1,4 +1,4 @@
-import {toDateTime, type LocalDate, type LocalTime} from '../lib/date';
+import { toDateTime, type LocalDate, type LocalTime } from '../lib/date';
 
 /** Reminder offsets the app supports, in minutes before the start (FR-036). */
 export const REMINDER_OFFSETS = [0, 5, 10, 15, 30, 60] as const;
@@ -15,23 +15,23 @@ export type ReminderOffset = (typeof REMINDER_OFFSETS)[number];
 export const DEFAULT_REMINDER_OFFSET: ReminderOffset = 5;
 
 export function isReminderOffset(value: number): value is ReminderOffset {
-  return (REMINDER_OFFSETS as readonly number[]).includes(value);
+	return (REMINDER_OFFSETS as readonly number[]).includes(value);
 }
 
 /** What a reminder points back at, so a tap can open the right thing. */
 export type TargetRef =
-  | {kind: 'task'; taskId: string}
-  | {kind: 'occurrence'; ruleId: string; date: LocalDate};
+	| { kind: 'task'; taskId: string }
+	| { kind: 'occurrence'; ruleId: string; date: LocalDate };
 
 export interface ReminderRequest {
-  id: string;
-  title: string;
-  /** Absolute instant, already offset from the start time. */
-  fireAt: Date;
-  taskDate: LocalDate;
-  /** The task's own start time — FR-035 requires it in the notification. */
-  startTime: LocalTime;
-  targetRef: TargetRef;
+	id: string;
+	title: string;
+	/** Absolute instant, already offset from the start time. */
+	fireAt: Date;
+	taskDate: LocalDate;
+	/** The task's own start time — FR-035 requires it in the notification. */
+	startTime: LocalTime;
+	targetRef: TargetRef;
 }
 
 /**
@@ -43,23 +43,23 @@ export interface ReminderRequest {
  * drift (contracts/reminders.md).
  */
 export function reminderId(target: TargetRef): string {
-  return target.kind === 'task'
-    ? `task:${target.taskId}`
-    : `recurring:${target.ruleId}:${target.date}`;
+	return target.kind === 'task'
+		? `task:${target.taskId}`
+		: `recurring:${target.ruleId}:${target.date}`;
 }
 
 /** The instant a reminder should fire, or null when it has no reminder. */
 export function reminderFireAt(input: {
-  reminderEnabled: boolean;
-  reminderOffsetMinutes: ReminderOffset;
-  taskDate: LocalDate;
-  startTime: LocalTime;
+	reminderEnabled: boolean;
+	reminderOffsetMinutes: ReminderOffset;
+	taskDate: LocalDate;
+	startTime: LocalTime;
 }): Date | null {
-  if (!input.reminderEnabled) {
-    return null;
-  }
-  const start = toDateTime(input.taskDate, input.startTime);
-  return new Date(start.getTime() - input.reminderOffsetMinutes * 60_000);
+	if (!input.reminderEnabled) {
+		return null;
+	}
+	const start = toDateTime(input.taskDate, input.startTime);
+	return new Date(start.getTime() - input.reminderOffsetMinutes * 60_000);
 }
 
 /**
@@ -70,5 +70,5 @@ export function reminderFireAt(input: {
  * reads as a bug.
  */
 export function isInPast(fireAt: Date, now: Date): boolean {
-  return fireAt.getTime() <= now.getTime();
+	return fireAt.getTime() <= now.getTime();
 }

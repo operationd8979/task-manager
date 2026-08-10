@@ -1,4 +1,4 @@
-import {Vibration} from 'react-native';
+import { Vibration } from 'react-native';
 
 /**
  * Three feedback levels (design/ux-ui-spec.md §5.4):
@@ -16,13 +16,13 @@ import {Vibration} from 'react-native';
  */
 
 const PATTERN = {
-  light: 10,
-  medium: 20,
-  warning: 40,
+	light: 10,
+	medium: 20,
+	warning: 40,
 } as const;
 
 export type HapticLevel = keyof typeof PATTERN;
 
 export function haptic(level: HapticLevel): void {
-  Vibration.vibrate(PATTERN[level]);
+	Vibration.vibrate(PATTERN[level]);
 }

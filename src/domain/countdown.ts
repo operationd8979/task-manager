@@ -1,4 +1,4 @@
-import {toDateTime, type LocalDate, type LocalTime} from '../lib/date';
+import { toDateTime, type LocalDate, type LocalTime } from '../lib/date';
 
 /**
  * The row countdown.
@@ -24,19 +24,19 @@ export type CountdownOffset = (typeof COUNTDOWN_OFFSETS)[number];
 export const DEFAULT_COUNTDOWN_MINUTES: CountdownOffset = 5;
 
 export function isCountdownOffset(value: number): value is CountdownOffset {
-  return (COUNTDOWN_OFFSETS as readonly number[]).includes(value);
+	return (COUNTDOWN_OFFSETS as readonly number[]).includes(value);
 }
 
 /** The instant a row starts counting down. */
 export function countdownOpensAt(
-  item: {taskDate: LocalDate; startTime: LocalTime},
-  windowMinutes: number,
+	item: { taskDate: LocalDate; startTime: LocalTime },
+	windowMinutes: number,
 ): Date | null {
-  if (windowMinutes <= 0) {
-    return null;
-  }
-  const start = toDateTime(item.taskDate, item.startTime);
-  return new Date(start.getTime() - windowMinutes * 60_000);
+	if (windowMinutes <= 0) {
+		return null;
+	}
+	const start = toDateTime(item.taskDate, item.startTime);
+	return new Date(start.getTime() - windowMinutes * 60_000);
 }
 
 /**
@@ -46,18 +46,18 @@ export function countdownOpensAt(
  * sits on zero for a second reads as stopped.
  */
 export function countdownSeconds(
-  item: {taskDate: LocalDate; startTime: LocalTime},
-  now: Date,
-  windowMinutes: number,
+	item: { taskDate: LocalDate; startTime: LocalTime },
+	now: Date,
+	windowMinutes: number,
 ): number | null {
-  const opensAt = countdownOpensAt(item, windowMinutes);
-  if (opensAt === null) {
-    return null;
-  }
-  const remaining =
-    opensAt.getTime() + windowMinutes * 60_000 - now.getTime();
-  if (remaining <= 0 || now.getTime() < opensAt.getTime()) {
-    return null;
-  }
-  return Math.ceil(remaining / 1000);
+	const opensAt = countdownOpensAt(item, windowMinutes);
+	if (opensAt === null) {
+		return null;
+	}
+	const remaining =
+		opensAt.getTime() + windowMinutes * 60_000 - now.getTime();
+	if (remaining <= 0 || now.getTime() < opensAt.getTime()) {
+		return null;
+	}
+	return Math.ceil(remaining / 1000);
 }

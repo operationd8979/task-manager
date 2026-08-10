@@ -1,6 +1,6 @@
-import {useMemo} from 'react';
-import {Gesture} from 'react-native-gesture-handler';
-import {runOnJS} from 'react-native-reanimated';
+import { useMemo } from 'react';
+import { Gesture } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 
 /** Upward travel that commits to opening the form. */
 const SWIPE_UP_PX = 40;
@@ -10,7 +10,7 @@ const SWIPE_UP_VELOCITY = 600;
 const ACTIVATE_AFTER_PX = 12;
 
 export interface UseCreateSwipeOptions {
-  onCreate: () => void;
+	onCreate: () => void;
 }
 
 /**
@@ -25,20 +25,20 @@ export interface UseCreateSwipeOptions {
  *
  * The bar is still a button. This is a shortcut to it, never the only way in.
  */
-export function useCreateSwipe({onCreate}: UseCreateSwipeOptions) {
-  return useMemo(
-    () =>
-      Gesture.Pan()
-        .activeOffsetY([-ACTIVATE_AFTER_PX, ACTIVATE_AFTER_PX])
-        .onEnd(event => {
-          'worklet';
-          const far = event.translationY <= -SWIPE_UP_PX;
-          const fast = event.velocityY <= -SWIPE_UP_VELOCITY;
-          if (!far && !fast) {
-            return;
-          }
-          runOnJS(onCreate)();
-        }),
-    [onCreate],
-  );
+export function useCreateSwipe({ onCreate }: UseCreateSwipeOptions) {
+	return useMemo(
+		() =>
+			Gesture.Pan()
+				.activeOffsetY([-ACTIVATE_AFTER_PX, ACTIVATE_AFTER_PX])
+				.onEnd(event => {
+					'worklet';
+					const far = event.translationY <= -SWIPE_UP_PX;
+					const fast = event.velocityY <= -SWIPE_UP_VELOCITY;
+					if (!far && !fast) {
+						return;
+					}
+					runOnJS(onCreate)();
+				}),
+		[onCreate],
+	);
 }

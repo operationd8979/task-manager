@@ -1,6 +1,6 @@
-import type {StyleTheme} from '@chipmobilesdk/rn-theme';
+import type { StyleTheme } from '@chipmobilesdk/rn-theme';
 
-import type {AppColors, APP_SPACING, APP_TYPE} from './tokens';
+import type { AppColors, APP_SPACING, APP_TYPE } from './tokens';
 
 /**
  * The theme as it actually exists at runtime.
@@ -11,9 +11,9 @@ import type {AppColors, APP_SPACING, APP_TYPE} from './tokens';
  * without them internally.
  */
 export type AppTheme = StyleTheme & {
-  appColor: AppColors;
-  appSpacing: typeof APP_SPACING;
-  appType: typeof APP_TYPE;
+	appColor: AppColors;
+	appSpacing: typeof APP_SPACING;
+	appType: typeof APP_TYPE;
 };
 
 /**
@@ -22,5 +22,5 @@ export type AppTheme = StyleTheme & {
  * scattering of `undefined` reads.
  */
 export function appTheme(theme: StyleTheme): AppTheme {
-  return theme as AppTheme;
+	return theme as AppTheme;
 }

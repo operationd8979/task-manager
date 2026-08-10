@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * Longest the clock will ever sleep.
@@ -11,10 +11,10 @@ const MAX_SLEEP_MS = 60_000;
 
 /** One row's countdown window, as absolute instants. */
 export interface CountdownWindow {
-  /** When the row starts counting. */
-  opensAt: number;
-  /** The start time it counts down to. */
-  startsAt: number;
+	/** When the row starts counting. */
+	opensAt: number;
+	/** The start time it counts down to. */
+	startsAt: number;
 }
 
 /**
@@ -30,29 +30,29 @@ export interface CountdownWindow {
  * so the digits change when the second changes instead of drifting away from it.
  */
 export function useTimelineClock(windows: readonly CountdownWindow[]): Date {
-  const [now, setNow] = useState(() => new Date());
+	const [now, setNow] = useState(() => new Date());
 
-  useEffect(() => {
-    const ms = now.getTime();
-    const counting = windows.some(w => ms >= w.opensAt && ms < w.startsAt);
+	useEffect(() => {
+		const ms = now.getTime();
+		const counting = windows.some(w => ms >= w.opensAt && ms < w.startsAt);
 
-    let sleep = MAX_SLEEP_MS;
-    if (counting) {
-      sleep = 1000 - (ms % 1000);
-    } else {
-      for (const window of windows) {
-        if (window.opensAt > ms) {
-          sleep = Math.min(sleep, window.opensAt - ms);
-        }
-      }
-      // A floor, so a window opening in three milliseconds cannot spin the
-      // effect into a re-render loop.
-      sleep = Math.max(sleep, 250);
-    }
+		let sleep = MAX_SLEEP_MS;
+		if (counting) {
+			sleep = 1000 - (ms % 1000);
+		} else {
+			for (const window of windows) {
+				if (window.opensAt > ms) {
+					sleep = Math.min(sleep, window.opensAt - ms);
+				}
+			}
+			// A floor, so a window opening in three milliseconds cannot spin the
+			// effect into a re-render loop.
+			sleep = Math.max(sleep, 250);
+		}
 
-    const timer = setTimeout(() => setNow(new Date()), sleep);
-    return () => clearTimeout(timer);
-  }, [now, windows]);
+		const timer = setTimeout(() => setNow(new Date()), sleep);
+		return () => clearTimeout(timer);
+	}, [now, windows]);
 
-  return now;
+	return now;
 }

@@ -1,20 +1,20 @@
-import {Platform} from 'react-native';
+import { Platform } from 'react-native';
 import notifee, {
-  AlarmType,
-  EventType,
-  AndroidCategory,
-  AndroidImportance,
-  AndroidNotificationSetting,
-  AuthorizationStatus,
-  TriggerType,
-  type TimestampTrigger,
+	AlarmType,
+	EventType,
+	AndroidCategory,
+	AndroidImportance,
+	AndroidNotificationSetting,
+	AuthorizationStatus,
+	TriggerType,
+	type TimestampTrigger,
 } from '@notifee/react-native';
 
-import type {ReminderRequest, TargetRef} from '../../domain/reminder';
+import type { ReminderRequest, TargetRef } from '../../domain/reminder';
 import type {
-  PermissionState,
-  ReminderScheduler,
-  ReminderTarget,
+	PermissionState,
+	ReminderScheduler,
+	ReminderTarget,
 } from './scheduler';
 
 /**
@@ -67,38 +67,38 @@ const VIBRATION_PATTERN = [300, 600, 300, 600];
  * actually still on the device.
  */
 async function migrateChannel(): Promise<void> {
-  const retired = await Promise.all(
-    RETIRED_CHANNEL_IDS.map(id =>
-      notifee
-        .getChannel(id)
-        .then(channel => (channel ? id : null))
-        .catch(() => null),
-    ),
-  );
+	const retired = await Promise.all(
+		RETIRED_CHANNEL_IDS.map(id =>
+			notifee
+				.getChannel(id)
+				.then(channel => (channel ? id : null))
+				.catch(() => null),
+		),
+	);
 
-  await notifee.createChannel({
-    id: CHANNEL_ID,
-    name: CHANNEL_NAME,
-    importance: AndroidImportance.HIGH,
-    sound: REMINDER_SOUND,
-    vibration: true,
-    vibrationPattern: VIBRATION_PATTERN,
-    // A missed reminder is the failure this feature exists to prevent, so it
-    // is allowed through Do Not Disturb the way an alarm is.
-    bypassDnd: true,
-  });
+	await notifee.createChannel({
+		id: CHANNEL_ID,
+		name: CHANNEL_NAME,
+		importance: AndroidImportance.HIGH,
+		sound: REMINDER_SOUND,
+		vibration: true,
+		vibrationPattern: VIBRATION_PATTERN,
+		// A missed reminder is the failure this feature exists to prevent, so it
+		// is allowed through Do Not Disturb the way an alarm is.
+		bypassDnd: true,
+	});
 
-  const stale = retired.filter((id): id is string => id !== null);
-  if (stale.length === 0) {
-    return;
-  }
+	const stale = retired.filter((id): id is string => id !== null);
+	if (stale.length === 0) {
+		return;
+	}
 
-  // Order matters: drop the notifications while their channel still exists,
-  // then remove the channel so it stops appearing in system settings.
-  await notifee.cancelTriggerNotifications();
-  for (const id of stale) {
-    await notifee.deleteChannel(id).catch(() => undefined);
-  }
+	// Order matters: drop the notifications while their channel still exists,
+	// then remove the channel so it stops appearing in system settings.
+	await notifee.cancelTriggerNotifications();
+	for (const id of stale) {
+		await notifee.deleteChannel(id).catch(() => undefined);
+	}
 }
 
 /**
@@ -108,156 +108,156 @@ async function migrateChannel(): Promise<void> {
  * reconciliation be tested against a fake (research.md R2).
  */
 export function createNotifeeScheduler(): ReminderScheduler {
-  let channelReady: Promise<void> | null = null;
+	let channelReady: Promise<void> | null = null;
 
-  const ensureChannel = async (): Promise<void> => {
-    if (Platform.OS !== 'android') {
-      return;
-    }
-    // The failure is deliberately not cached. Holding a rejected promise here
-    // would mean one bad call leaves the app unable to schedule anything for
-    // the rest of the run, with no way back short of a restart.
-    channelReady ??= migrateChannel().catch((error: unknown) => {
-      channelReady = null;
-      throw error;
-    });
-    await channelReady;
-  };
+	const ensureChannel = async (): Promise<void> => {
+		if (Platform.OS !== 'android') {
+			return;
+		}
+		// The failure is deliberately not cached. Holding a rejected promise here
+		// would mean one bad call leaves the app unable to schedule anything for
+		// the rest of the run, with no way back short of a restart.
+		channelReady ??= migrateChannel().catch((error: unknown) => {
+			channelReady = null;
+			throw error;
+		});
+		await channelReady;
+	};
 
-  return {
-    async consumeLaunchTarget() {
-      const initial = await notifee.getInitialNotification();
-      return initial ? toTarget(initial.notification.data) : null;
-    },
+	return {
+		async consumeLaunchTarget() {
+			const initial = await notifee.getInitialNotification();
+			return initial ? toTarget(initial.notification.data) : null;
+		},
 
-    onTap(listener) {
-      return notifee.onForegroundEvent(({type, detail}) => {
-        if (type !== EventType.PRESS) {
-          return;
-        }
-        const target = toTarget(detail.notification?.data);
-        if (target) {
-          listener(target);
-        }
-      });
-    },
+		onTap(listener) {
+			return notifee.onForegroundEvent(({ type, detail }) => {
+				if (type !== EventType.PRESS) {
+					return;
+				}
+				const target = toTarget(detail.notification?.data);
+				if (target) {
+					listener(target);
+				}
+			});
+		},
 
-    async getNotificationPermission() {
-      const settings = await notifee.getNotificationSettings();
-      return toPermissionState(settings.authorizationStatus);
-    },
+		async getNotificationPermission() {
+			const settings = await notifee.getNotificationSettings();
+			return toPermissionState(settings.authorizationStatus);
+		},
 
-    async requestNotificationPermission() {
-      // Asked only when the user first turns a reminder on, never at first
-      // launch (FR-036a) — asking before they state the intent is the surest
-      // way to be refused.
-      const settings = await notifee.requestPermission();
-      return toPermissionState(settings.authorizationStatus);
-    },
+		async requestNotificationPermission() {
+			// Asked only when the user first turns a reminder on, never at first
+			// launch (FR-036a) — asking before they state the intent is the surest
+			// way to be refused.
+			const settings = await notifee.requestPermission();
+			return toPermissionState(settings.authorizationStatus);
+		},
 
-    async getExactAlarmState() {
-      if (Platform.OS !== 'android') {
-        // iOS has no separate exact-alarm permission.
-        return {required: false, granted: true};
-      }
-      const settings = await notifee.getNotificationSettings();
-      return {
-        required: true,
-        granted: settings.android.alarm === AndroidNotificationSetting.ENABLED,
-      };
-    },
+		async getExactAlarmState() {
+			if (Platform.OS !== 'android') {
+				// iOS has no separate exact-alarm permission.
+				return { required: false, granted: true };
+			}
+			const settings = await notifee.getNotificationSettings();
+			return {
+				required: true,
+				granted: settings.android.alarm === AndroidNotificationSetting.ENABLED,
+			};
+		},
 
-    async requestExactAlarm() {
-      if (Platform.OS !== 'android') {
-        return {required: false, granted: true};
-      }
-      // The platform offers no in-app grant; it opens a settings screen, so the
-      // caller has to re-read the state when the app resumes.
-      await notifee.openAlarmPermissionSettings();
-      const settings = await notifee.getNotificationSettings();
-      return {
-        required: true,
-        granted: settings.android.alarm === AndroidNotificationSetting.ENABLED,
-      };
-    },
+		async requestExactAlarm() {
+			if (Platform.OS !== 'android') {
+				return { required: false, granted: true };
+			}
+			// The platform offers no in-app grant; it opens a settings screen, so the
+			// caller has to re-read the state when the app resumes.
+			await notifee.openAlarmPermissionSettings();
+			const settings = await notifee.getNotificationSettings();
+			return {
+				required: true,
+				granted: settings.android.alarm === AndroidNotificationSetting.ENABLED,
+			};
+		},
 
-    async openSystemSettings(target) {
-      if (target === 'exact-alarm' && Platform.OS === 'android') {
-        await notifee.openAlarmPermissionSettings();
-        return;
-      }
-      await notifee.openNotificationSettings();
-    },
+		async openSystemSettings(target) {
+			if (target === 'exact-alarm' && Platform.OS === 'android') {
+				await notifee.openAlarmPermissionSettings();
+				return;
+			}
+			await notifee.openNotificationSettings();
+		},
 
-    async schedule(request) {
-      await ensureChannel();
-      const {granted} = await this.getExactAlarmState();
+		async schedule(request) {
+			await ensureChannel();
+			const { granted } = await this.getExactAlarmState();
 
-      const trigger: TimestampTrigger = {
-        type: TriggerType.TIMESTAMP,
-        timestamp: request.fireAt.getTime(),
-        // Without the exact-alarm permission the OS still delivers, just
-        // loosely. FR-036b says schedule anyway and tell the user it may be
-        // late — refusing to schedule would be worse for them, not safer.
-        alarmManager: granted
-          ? {type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE}
-          : {type: AlarmType.SET_AND_ALLOW_WHILE_IDLE},
-      };
+			const trigger: TimestampTrigger = {
+				type: TriggerType.TIMESTAMP,
+				timestamp: request.fireAt.getTime(),
+				// Without the exact-alarm permission the OS still delivers, just
+				// loosely. FR-036b says schedule anyway and tell the user it may be
+				// late — refusing to schedule would be worse for them, not safer.
+				alarmManager: granted
+					? { type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE }
+					: { type: AlarmType.SET_AND_ALLOW_WHILE_IDLE },
+			};
 
-      await notifee.createTriggerNotification(
-        {
-          id: request.id,
-          title: request.title,
-          body: formatBody(request),
-          // Enough to reopen the exact thing that was reminded about (FR-043).
-          data: encodeTarget(request.targetRef, request.taskDate),
-          android: {
-            channelId: CHANNEL_ID,
-            pressAction: {id: 'default'},
-            // The channel decides this from Android 8 on; the field still
-            // carries it on anything older.
-            sound: REMINDER_SOUND,
-            loopSound: LOOP_SOUND,
-            vibrationPattern: VIBRATION_PATTERN,
-            // Tells the system this is a time-critical alert rather than a
-            // message, which is what earns it alarm-like treatment.
-            category: AndroidCategory.ALARM,
-            // Stops looping the moment the user acts on it — without this the
-            // tone would keep going after it has been dealt with.
-            autoCancel: true,
-          },
-          // iOS has no channels, so the sound is stated per notification.
-          ios: {sound: REMINDER_SOUND, critical: false},
-        },
-        trigger,
-      );
-    },
+			await notifee.createTriggerNotification(
+				{
+					id: request.id,
+					title: request.title,
+					body: formatBody(request),
+					// Enough to reopen the exact thing that was reminded about (FR-043).
+					data: encodeTarget(request.targetRef, request.taskDate),
+					android: {
+						channelId: CHANNEL_ID,
+						pressAction: { id: 'default' },
+						// The channel decides this from Android 8 on; the field still
+						// carries it on anything older.
+						sound: REMINDER_SOUND,
+						loopSound: LOOP_SOUND,
+						vibrationPattern: VIBRATION_PATTERN,
+						// Tells the system this is a time-critical alert rather than a
+						// message, which is what earns it alarm-like treatment.
+						category: AndroidCategory.ALARM,
+						// Stops looping the moment the user acts on it — without this the
+						// tone would keep going after it has been dealt with.
+						autoCancel: true,
+					},
+					// iOS has no channels, so the sound is stated per notification.
+					ios: { sound: REMINDER_SOUND, critical: false },
+				},
+				trigger,
+			);
+		},
 
-    async cancel(id) {
-      await notifee.cancelTriggerNotification(id);
-    },
+		async cancel(id) {
+			await notifee.cancelTriggerNotification(id);
+		},
 
-    async listScheduled() {
-      // Reconciliation reads this FIRST and then leaves every id it finds
-      // alone, so the channel migration has to have finished cancelling by the
-      // time this answers — otherwise it reports the stale reminders as fine
-      // and they are never rebuilt.
-      await ensureChannel();
-      return notifee.getTriggerNotificationIds();
-    },
-  };
+		async listScheduled() {
+			// Reconciliation reads this FIRST and then leaves every id it finds
+			// alone, so the channel migration has to have finished cancelling by the
+			// time this answers — otherwise it reports the stale reminders as fine
+			// and they are never rebuilt.
+			await ensureChannel();
+			return notifee.getTriggerNotificationIds();
+		},
+	};
 }
 
 function toPermissionState(status: AuthorizationStatus): PermissionState {
-  switch (status) {
-    case AuthorizationStatus.AUTHORIZED:
-    case AuthorizationStatus.PROVISIONAL:
-      return 'granted';
-    case AuthorizationStatus.DENIED:
-      return 'denied';
-    default:
-      return 'not-determined';
-  }
+	switch (status) {
+		case AuthorizationStatus.AUTHORIZED:
+		case AuthorizationStatus.PROVISIONAL:
+			return 'granted';
+		case AuthorizationStatus.DENIED:
+			return 'denied';
+		default:
+			return 'not-determined';
+	}
 }
 
 /**
@@ -266,21 +266,21 @@ function toPermissionState(status: AuthorizationStatus): PermissionState {
  * about — "08:45" would just describe the notification itself.
  */
 function formatBody(request: ReminderRequest): string {
-  return `${request.startTime} · ${request.taskDate}`;
+	return `${request.startTime} · ${request.taskDate}`;
 }
 
 function encodeTarget(
-  target: TargetRef,
-  taskDate: string,
+	target: TargetRef,
+	taskDate: string,
 ): Record<string, string> {
-  return target.kind === 'task'
-    ? {kind: 'task', taskId: target.taskId, taskDate}
-    : {
-        kind: 'occurrence',
-        ruleId: target.ruleId,
-        date: target.date,
-        taskDate,
-      };
+	return target.kind === 'task'
+		? { kind: 'task', taskId: target.taskId, taskDate }
+		: {
+			kind: 'occurrence',
+			ruleId: target.ruleId,
+			date: target.date,
+			taskDate,
+		};
 }
 
 /**
@@ -291,22 +291,22 @@ function encodeTarget(
  * case, not an error to show them (FR-043).
  */
 function toTarget(data: Record<string, unknown> | undefined): ReminderTarget | null {
-  if (!data) {
-    return null;
-  }
-  const taskDate = String(data.taskDate ?? '');
-  if (taskDate === '') {
-    return null;
-  }
-  if (data.kind === 'task' && typeof data.taskId === 'string') {
-    return {taskDate, taskId: data.taskId};
-  }
-  if (
-    data.kind === 'occurrence' &&
-    typeof data.ruleId === 'string' &&
-    typeof data.date === 'string'
-  ) {
-    return {taskDate, ruleId: data.ruleId, occurrenceDate: data.date};
-  }
-  return null;
+	if (!data) {
+		return null;
+	}
+	const taskDate = String(data.taskDate ?? '');
+	if (taskDate === '') {
+		return null;
+	}
+	if (data.kind === 'task' && typeof data.taskId === 'string') {
+		return { taskDate, taskId: data.taskId };
+	}
+	if (
+		data.kind === 'occurrence' &&
+		typeof data.ruleId === 'string' &&
+		typeof data.date === 'string'
+	) {
+		return { taskDate, ruleId: data.ruleId, occurrenceDate: data.date };
+	}
+	return null;
 }

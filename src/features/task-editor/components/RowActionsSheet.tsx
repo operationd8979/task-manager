@@ -1,26 +1,26 @@
 import React from 'react';
-import {Pressable, View} from 'react-native';
-import {StyleSheet} from 'react-native-unistyles';
+import { Pressable, View } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 
-import {Sheet} from '../../../components/Sheet';
-import {Text} from '../../../components/Text';
-import {t, type StringKey} from '../../../lib/strings';
-import {appTheme} from '../../../theme/theme';
-import {TAP_TARGET_MIN} from '../../../theme/tokens';
+import { Sheet } from '../../../components/Sheet';
+import { Text } from '../../../components/Text';
+import { t, type StringKey } from '../../../lib/strings';
+import { appTheme } from '../../../theme/theme';
+import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
 export type RowAction = 'move' | 'edit' | 'delete';
 
 export interface RowActionsSheetProps {
-  title: string;
-  /**
-   * A session of a series reads differently: "Xóa" would suggest the whole
-   * series is going away, so the last action becomes "Bỏ qua buổi này"
-   * (design/ia §4 S-06). It also decides what "Di chuyển" opens — a session
-   * belongs to its weekday, so only its time is on offer.
-   */
-  isOccurrence: boolean;
-  onAction: (action: RowAction) => void;
-  onClose: () => void;
+	title: string;
+	/**
+	 * A session of a series reads differently: "Xóa" would suggest the whole
+	 * series is going away, so the last action becomes "Bỏ qua buổi này"
+	 * (design/ia §4 S-06). It also decides what "Di chuyển" opens — a session
+	 * belongs to its weekday, so only its time is on offer.
+	 */
+	isOccurrence: boolean;
+	onAction: (action: RowAction) => void;
+	onClose: () => void;
 }
 
 /**
@@ -34,18 +34,18 @@ export interface RowActionsSheetProps {
  * closed the sheet and did nothing, which is worse than not offering it.
  */
 function actionsFor(
-  isOccurrence: boolean,
-): ReadonlyArray<{action: RowAction; key: StringKey}> {
-  return [
-    {action: 'move', key: 'actions.move'},
-    ...(isOccurrence
-      ? []
-      : [{action: 'edit' as const, key: 'actions.edit' as const}]),
-    {
-      action: 'delete',
-      key: isOccurrence ? 'scope.skipThisSession' : 'actions.delete',
-    },
-  ];
+	isOccurrence: boolean,
+): ReadonlyArray<{ action: RowAction; key: StringKey }> {
+	return [
+		{ action: 'move', key: 'actions.move' },
+		...(isOccurrence
+			? []
+			: [{ action: 'edit' as const, key: 'actions.edit' as const }]),
+		{
+			action: 'delete',
+			key: isOccurrence ? 'scope.skipThisSession' : 'actions.delete',
+		},
+	];
 }
 
 /**
@@ -56,58 +56,58 @@ function actionsFor(
  * That makes this sheet the single path, not a fallback.
  */
 export function RowActionsSheet({
-  title,
-  isOccurrence,
-  onAction,
-  onClose,
+	title,
+	isOccurrence,
+	onAction,
+	onClose,
 }: RowActionsSheetProps) {
-  const actions = actionsFor(isOccurrence);
-  return (
-    <Sheet title={t('actions.title')} onClose={onClose}>
-      <Text style={styles.subject} numberOfLines={2}>
-        {title}
-      </Text>
-      <View>
-        {actions.map(item => (
-          <Pressable
-            key={item.action}
-            accessibilityRole="button"
-            accessibilityLabel={t(item.key)}
-            onPress={() => onAction(item.action)}
-            style={styles.row}>
-            <Text
-              style={
-                item.action === 'delete' ? styles.destructive : styles.label
-              }>
-              {t(item.key)}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-    </Sheet>
-  );
+	const actions = actionsFor(isOccurrence);
+	return (
+		<Sheet title={t('actions.title')} onClose={onClose}>
+			<Text style={styles.subject} numberOfLines={2}>
+				{title}
+			</Text>
+			<View>
+				{actions.map(item => (
+					<Pressable
+						key={item.action}
+						accessibilityRole="button"
+						accessibilityLabel={t(item.key)}
+						onPress={() => onAction(item.action)}
+						style={styles.row}>
+						<Text
+							style={
+								item.action === 'delete' ? styles.destructive : styles.label
+							}>
+							{t(item.key)}
+						</Text>
+					</Pressable>
+				))}
+			</View>
+		</Sheet>
+	);
 }
 
 const styles = StyleSheet.create(raw => {
-  const theme = appTheme(raw);
-  return {
-    subject: {
-      ...theme.typography.label,
-      color: theme.appColor.textMuted,
-    },
-    row: {
-      minHeight: TAP_TARGET_MIN,
-      justifyContent: 'center',
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border,
-    },
-    label: {
-      ...theme.typography.body,
-      color: theme.color.onBackground,
-    },
-    destructive: {
-      ...theme.typography.body,
-      color: theme.appColor.accentInk,
-    },
-  };
+	const theme = appTheme(raw);
+	return {
+		subject: {
+			...theme.typography.label,
+			color: theme.appColor.textMuted,
+		},
+		row: {
+			minHeight: TAP_TARGET_MIN,
+			justifyContent: 'center',
+			borderBottomWidth: 1,
+			borderBottomColor: theme.color.border,
+		},
+		label: {
+			...theme.typography.body,
+			color: theme.color.onBackground,
+		},
+		destructive: {
+			...theme.typography.body,
+			color: theme.appColor.accentInk,
+		},
+	};
 });

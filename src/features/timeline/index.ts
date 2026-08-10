@@ -1,1 +1,1 @@
-export {TimelineScreen} from './screens/TimelineScreen';
+export { TimelineScreen } from './screens/TimelineScreen';

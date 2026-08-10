@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 
-import {Chip} from '../Chip';
+import { Chip } from '../Chip';
 
 /**
  * A chip label must never lose a word.
@@ -13,37 +13,37 @@ import {Chip} from '../Chip';
  * missing translation, which is why it survived.
  */
 describe('Chip', () => {
-  const render = (label: string, selected = false) => {
-    let tree: ReactTestRenderer.ReactTestRenderer | undefined;
-    ReactTestRenderer.act(() => {
-      tree = ReactTestRenderer.create(
-        <Chip label={label} selected={selected} onPress={() => undefined} />,
-      );
-    });
-    return tree!;
-  };
+	const render = (label: string, selected = false) => {
+		let tree: ReactTestRenderer.ReactTestRenderer | undefined;
+		ReactTestRenderer.act(() => {
+			tree = ReactTestRenderer.create(
+				<Chip label={label} selected={selected} onPress={() => undefined} />,
+			);
+		});
+		return tree!;
+	};
 
-  it('renders the whole label, spaces and all', () => {
-    const tree = render('Đúng giờ', true);
-    expect(JSON.stringify(tree.toJSON())).toContain('Đúng giờ');
-    ReactTestRenderer.act(() => tree.unmount());
-  });
+	it('renders the whole label, spaces and all', () => {
+		const tree = render('Đúng giờ', true);
+		expect(JSON.stringify(tree.toJSON())).toContain('Đúng giờ');
+		ReactTestRenderer.act(() => tree.unmount());
+	});
 
-  it('pins the label to one line', () => {
-    // Without this, a measurement disagreement hides the tail instead of
-    // showing an ellipsis — a silent failure rather than a visible one.
-    const tree = render('Đúng giờ');
-    const text = tree.root.findByProps({children: 'Đúng giờ'});
-    expect(text.props.numberOfLines).toBe(1);
-    ReactTestRenderer.act(() => tree.unmount());
-  });
+	it('pins the label to one line', () => {
+		// Without this, a measurement disagreement hides the tail instead of
+		// showing an ellipsis — a silent failure rather than a visible one.
+		const tree = render('Đúng giờ');
+		const text = tree.root.findByProps({ children: 'Đúng giờ' });
+		expect(text.props.numberOfLines).toBe(1);
+		ReactTestRenderer.act(() => tree.unmount());
+	});
 
-  it('uses the label as its accessibility name by default', () => {
-    const tree = render('Đúng giờ');
-    expect(
-      tree.root.findByProps({accessibilityRole: 'button'}).props
-        .accessibilityLabel,
-    ).toBe('Đúng giờ');
-    ReactTestRenderer.act(() => tree.unmount());
-  });
+	it('uses the label as its accessibility name by default', () => {
+		const tree = render('Đúng giờ');
+		expect(
+			tree.root.findByProps({ accessibilityRole: 'button' }).props
+				.accessibilityLabel,
+		).toBe('Đúng giờ');
+		ReactTestRenderer.act(() => tree.unmount());
+	});
 });

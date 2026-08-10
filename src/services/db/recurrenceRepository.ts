@@ -1,80 +1,80 @@
 import type {
-  DatabaseHandle,
-  StorableValue,
-  StoredRecord,
+	DatabaseHandle,
+	StorableValue,
+	StoredRecord,
 } from '@chipmobilesdk/rn-local-db';
 
 import type {
-  NewRecurringRule,
-  RecurrenceOverride,
-  RecurringRule,
+	NewRecurringRule,
+	RecurrenceOverride,
+	RecurringRule,
 } from '../../domain/recurrence';
-import {isReminderOffset, type ReminderOffset} from '../../domain/reminder';
-import type {TaskStatus} from '../../domain/task';
-import type {LocalDate, LocalTime, Weekday} from '../../lib/date';
-import {COLLECTION} from './schema';
-import {toDataError} from './errors';
+import { isReminderOffset, type ReminderOffset } from '../../domain/reminder';
+import type { TaskStatus } from '../../domain/task';
+import type { LocalDate, LocalTime, Weekday } from '../../lib/date';
+import { COLLECTION } from './schema';
+import { toDataError } from './errors';
 
 interface RuleRow {
-  title: string;
-  note: string | null;
-  startDate: string;
-  endDate: string | null;
-  /** Sorted weekday numbers joined with commas — see data-model.md §2.2. */
-  daysOfWeek: string;
-  defaultStartTime: string;
-  defaultEndTime: string | null;
-  reminderEnabled: boolean;
-  reminderOffsetMinutes: number;
-  [key: string]: StorableValue;
+	title: string;
+	note: string | null;
+	startDate: string;
+	endDate: string | null;
+	/** Sorted weekday numbers joined with commas — see data-model.md §2.2. */
+	daysOfWeek: string;
+	defaultStartTime: string;
+	defaultEndTime: string | null;
+	reminderEnabled: boolean;
+	reminderOffsetMinutes: number;
+	[key: string]: StorableValue;
 }
 
 /** Only the keys actually present are written; absence carries meaning. */
 export type OverridePatch = Partial<
-  Omit<RecurrenceOverride, 'ruleId' | 'occurrenceDate'>
+	Omit<RecurrenceOverride, 'ruleId' | 'occurrenceDate'>
 >;
 
 /** A whole series and its per-session edits, as one restorable unit. */
 export interface RuleSnapshot {
-  rule: RecurringRule;
-  overrides: readonly RecurrenceOverride[];
+	rule: RecurringRule;
+	overrides: readonly RecurrenceOverride[];
 }
 
 export interface RecurrenceRepository {
-  listRulesEffectiveOn(date: LocalDate): Promise<RecurringRule[]>;
-  findRule(id: string): Promise<RecurringRule | null>;
-  createRule(input: NewRecurringRule): Promise<RecurringRule>;
-  updateRule(id: string, patch: Partial<NewRecurringRule>): Promise<RecurringRule>;
-  /** Removes the rule AND its overrides in one transaction. */
-  deleteRuleCascade(id: string): Promise<void>;
-  /**
-   * Everything `deleteRuleCascade` would remove, read before it runs.
-   *
-   * A series is deleted outright rather than soft-deleted, so undo has nothing
-   * on disk to restore from — this is what it restores from instead. Null when
-   * the rule is already gone.
-   */
-  snapshotRule(id: string): Promise<RuleSnapshot | null>;
-  /** Puts a snapshot back under its original ids, so references still hold. */
-  restoreRule(snapshot: RuleSnapshot): Promise<void>;
+	listRulesEffectiveOn(date: LocalDate): Promise<RecurringRule[]>;
+	findRule(id: string): Promise<RecurringRule | null>;
+	createRule(input: NewRecurringRule): Promise<RecurringRule>;
+	updateRule(id: string, patch: Partial<NewRecurringRule>): Promise<RecurringRule>;
+	/** Removes the rule AND its overrides in one transaction. */
+	deleteRuleCascade(id: string): Promise<void>;
+	/**
+	 * Everything `deleteRuleCascade` would remove, read before it runs.
+	 *
+	 * A series is deleted outright rather than soft-deleted, so undo has nothing
+	 * on disk to restore from — this is what it restores from instead. Null when
+	 * the rule is already gone.
+	 */
+	snapshotRule(id: string): Promise<RuleSnapshot | null>;
+	/** Puts a snapshot back under its original ids, so references still hold. */
+	restoreRule(snapshot: RuleSnapshot): Promise<void>;
 
-  listOverridesOn(date: LocalDate): Promise<RecurrenceOverride[]>;
-  findOverride(
-    ruleId: string,
-    date: LocalDate,
-  ): Promise<RecurrenceOverride | null>;
-  upsertOverride(
-    ruleId: string,
-    date: LocalDate,
-    patch: OverridePatch,
-  ): Promise<void>;
-  clearOverride(ruleId: string, date: LocalDate): Promise<void>;
+	listOverridesOn(date: LocalDate): Promise<RecurrenceOverride[]>;
+	findOverride(
+		ruleId: string,
+		date: LocalDate,
+	): Promise<RecurrenceOverride | null>;
+	upsertOverride(
+		ruleId: string,
+		date: LocalDate,
+		patch: OverridePatch,
+	): Promise<void>;
+	clearOverride(ruleId: string, date: LocalDate): Promise<void>;
 
-  /** Whole-collection reads, for rebuilding the reminder schedule (FR-041). */
-  listAllRules(): Promise<RecurringRule[]>;
-  listAllOverrides(): Promise<RecurrenceOverride[]>;
-  /** How many series exist. Each counts as one thing the user created. */
-  countAllRules(): Promise<number>;
+	/** Whole-collection reads, for rebuilding the reminder schedule (FR-041). */
+	listAllRules(): Promise<RecurringRule[]>;
+	listAllOverrides(): Promise<RecurrenceOverride[]>;
+	/** How many series exist. Each counts as one thing the user created. */
+	countAllRules(): Promise<number>;
 }
 
 /**
@@ -85,236 +85,236 @@ export interface RecurrenceRepository {
  * — and check-then-write has a gap between the two halves.
  */
 function overrideId(ruleId: string, date: LocalDate): string {
-  return `${ruleId}:${date}`;
+	return `${ruleId}:${date}`;
 }
 
 export function createRecurrenceRepository(
-  handle: DatabaseHandle,
+	handle: DatabaseHandle,
 ): RecurrenceRepository {
-  const rules = handle.collection<RuleRow>(COLLECTION.rules);
-  const overrides = handle.collection(COLLECTION.overrides);
+	const rules = handle.collection<RuleRow>(COLLECTION.rules);
+	const overrides = handle.collection(COLLECTION.overrides);
 
-  return {
-    async listRulesEffectiveOn(date) {
-      try {
-        // Filtered by date range only; the weekday test belongs to the domain
-        // and is not something the index can answer.
-        const page = await rules.list({
-          filter: {op: 'lte', field: 'startDate', value: date},
-          page: {size: 500},
-        });
-        return page.records
-          .map(toRule)
-          .filter(r => r.endDate === null || r.endDate >= date);
-      } catch (error) {
-        throw toDataError(error, 'recurrence.listRulesEffectiveOn');
-      }
-    },
+	return {
+		async listRulesEffectiveOn(date) {
+			try {
+				// Filtered by date range only; the weekday test belongs to the domain
+				// and is not something the index can answer.
+				const page = await rules.list({
+					filter: { op: 'lte', field: 'startDate', value: date },
+					page: { size: 500 },
+				});
+				return page.records
+					.map(toRule)
+					.filter(r => r.endDate === null || r.endDate >= date);
+			} catch (error) {
+				throw toDataError(error, 'recurrence.listRulesEffectiveOn');
+			}
+		},
 
-    async findRule(id) {
-      try {
-        const record = await rules.find(id);
-        return record ? toRule(record) : null;
-      } catch (error) {
-        throw toDataError(error, 'recurrence.findRule');
-      }
-    },
+		async findRule(id) {
+			try {
+				const record = await rules.find(id);
+				return record ? toRule(record) : null;
+			} catch (error) {
+				throw toDataError(error, 'recurrence.findRule');
+			}
+		},
 
-    async createRule(input) {
-      const id = newId('r');
-      try {
-        await rules.insert({id, data: toRuleRow(input)});
-        return {id, ...input};
-      } catch (error) {
-        throw toDataError(error, 'recurrence.createRule');
-      }
-    },
+		async createRule(input) {
+			const id = newId('r');
+			try {
+				await rules.insert({ id, data: toRuleRow(input) });
+				return { id, ...input };
+			} catch (error) {
+				throw toDataError(error, 'recurrence.createRule');
+			}
+		},
 
-    async updateRule(id, patch) {
-      try {
-        const current = toRule(await rules.get(id));
-        const next = {...current, ...patch};
-        await rules.update(id, {data: toRuleRow(next)});
-        return next;
-      } catch (error) {
-        throw toDataError(error, 'recurrence.updateRule');
-      }
-    },
+		async updateRule(id, patch) {
+			try {
+				const current = toRule(await rules.get(id));
+				const next = { ...current, ...patch };
+				await rules.update(id, { data: toRuleRow(next) });
+				return next;
+			} catch (error) {
+				throw toDataError(error, 'recurrence.updateRule');
+			}
+		},
 
-    async deleteRuleCascade(id) {
-      try {
-        // One transaction, not two calls: a half-applied delete leaves orphan
-        // overrides that surface nowhere but skew every later count.
-        await handle.transaction(async tx => {
-          const page = await tx.collection(COLLECTION.overrides).list({
-            filter: {op: 'eq', field: 'ruleId', value: id},
-            page: {size: 500},
-          });
-          for (const record of page.records) {
-            await tx.collection(COLLECTION.overrides).delete(record.id);
-          }
-          await tx.collection(COLLECTION.rules).delete(id);
-        });
-      } catch (error) {
-        throw toDataError(error, 'recurrence.deleteRuleCascade');
-      }
-    },
+		async deleteRuleCascade(id) {
+			try {
+				// One transaction, not two calls: a half-applied delete leaves orphan
+				// overrides that surface nowhere but skew every later count.
+				await handle.transaction(async tx => {
+					const page = await tx.collection(COLLECTION.overrides).list({
+						filter: { op: 'eq', field: 'ruleId', value: id },
+						page: { size: 500 },
+					});
+					for (const record of page.records) {
+						await tx.collection(COLLECTION.overrides).delete(record.id);
+					}
+					await tx.collection(COLLECTION.rules).delete(id);
+				});
+			} catch (error) {
+				throw toDataError(error, 'recurrence.deleteRuleCascade');
+			}
+		},
 
-    async snapshotRule(id) {
-      try {
-        const record = await rules.find(id);
-        if (!record) {
-          return null;
-        }
-        const page = await overrides.list({
-          filter: {op: 'eq', field: 'ruleId', value: id},
-          page: {size: 500},
-        });
-        return {rule: toRule(record), overrides: page.records.map(toOverride)};
-      } catch (error) {
-        throw toDataError(error, 'recurrence.snapshotRule');
-      }
-    },
+		async snapshotRule(id) {
+			try {
+				const record = await rules.find(id);
+				if (!record) {
+					return null;
+				}
+				const page = await overrides.list({
+					filter: { op: 'eq', field: 'ruleId', value: id },
+					page: { size: 500 },
+				});
+				return { rule: toRule(record), overrides: page.records.map(toOverride) };
+			} catch (error) {
+				throw toDataError(error, 'recurrence.snapshotRule');
+			}
+		},
 
-    async restoreRule(snapshot) {
-      try {
-        // One transaction, mirroring the delete: a rule restored without its
-        // per-session edits is not the series the user had.
-        await handle.transaction(async tx => {
-          await tx.collection(COLLECTION.rules).insert({
-            id: snapshot.rule.id,
-            data: toRuleRow(snapshot.rule),
-          });
-          for (const override of snapshot.overrides) {
-            await tx.collection(COLLECTION.overrides).upsert({
-              id: overrideId(override.ruleId, override.occurrenceDate),
-              data: toOverrideRow(override),
-            });
-          }
-        });
-      } catch (error) {
-        throw toDataError(error, 'recurrence.restoreRule');
-      }
-    },
+		async restoreRule(snapshot) {
+			try {
+				// One transaction, mirroring the delete: a rule restored without its
+				// per-session edits is not the series the user had.
+				await handle.transaction(async tx => {
+					await tx.collection(COLLECTION.rules).insert({
+						id: snapshot.rule.id,
+						data: toRuleRow(snapshot.rule),
+					});
+					for (const override of snapshot.overrides) {
+						await tx.collection(COLLECTION.overrides).upsert({
+							id: overrideId(override.ruleId, override.occurrenceDate),
+							data: toOverrideRow(override),
+						});
+					}
+				});
+			} catch (error) {
+				throw toDataError(error, 'recurrence.restoreRule');
+			}
+		},
 
-    async listOverridesOn(date) {
-      try {
-        const page = await overrides.list({
-          filter: {op: 'eq', field: 'occurrenceDate', value: date},
-          page: {size: 500},
-        });
-        return page.records.map(toOverride);
-      } catch (error) {
-        throw toDataError(error, 'recurrence.listOverridesOn');
-      }
-    },
+		async listOverridesOn(date) {
+			try {
+				const page = await overrides.list({
+					filter: { op: 'eq', field: 'occurrenceDate', value: date },
+					page: { size: 500 },
+				});
+				return page.records.map(toOverride);
+			} catch (error) {
+				throw toDataError(error, 'recurrence.listOverridesOn');
+			}
+		},
 
-    async findOverride(ruleId, date) {
-      try {
-        const record = await overrides.find(overrideId(ruleId, date));
-        return record ? toOverride(record) : null;
-      } catch (error) {
-        throw toDataError(error, 'recurrence.findOverride');
-      }
-    },
+		async findOverride(ruleId, date) {
+			try {
+				const record = await overrides.find(overrideId(ruleId, date));
+				return record ? toOverride(record) : null;
+			} catch (error) {
+				throw toDataError(error, 'recurrence.findOverride');
+			}
+		},
 
-    async upsertOverride(ruleId, date, patch) {
-      try {
-        const existing = await overrides.find(overrideId(ruleId, date));
-        const data: Record<string, StorableValue> = {
-          ...(existing?.data ?? {}),
-          ruleId,
-          occurrenceDate: date,
-          isSkipped: patch.isSkipped ?? Boolean(existing?.data.isSkipped),
-        };
-        // Only keys actually present in the patch are written. Filling the rest
-        // with undefined would erase the absent/null distinction (R7).
-        for (const key of Object.keys(patch) as Array<keyof OverridePatch>) {
-          if (key !== 'isSkipped') {
-            data[key] = patch[key] as StorableValue;
-          }
-        }
-        await overrides.upsert({id: overrideId(ruleId, date), data});
-      } catch (error) {
-        throw toDataError(error, 'recurrence.upsertOverride');
-      }
-    },
+		async upsertOverride(ruleId, date, patch) {
+			try {
+				const existing = await overrides.find(overrideId(ruleId, date));
+				const data: Record<string, StorableValue> = {
+					...(existing?.data ?? {}),
+					ruleId,
+					occurrenceDate: date,
+					isSkipped: patch.isSkipped ?? Boolean(existing?.data.isSkipped),
+				};
+				// Only keys actually present in the patch are written. Filling the rest
+				// with undefined would erase the absent/null distinction (R7).
+				for (const key of Object.keys(patch) as Array<keyof OverridePatch>) {
+					if (key !== 'isSkipped') {
+						data[key] = patch[key] as StorableValue;
+					}
+				}
+				await overrides.upsert({ id: overrideId(ruleId, date), data });
+			} catch (error) {
+				throw toDataError(error, 'recurrence.upsertOverride');
+			}
+		},
 
-    async listAllRules() {
-      try {
-        const page = await rules.list({page: {size: 500}});
-        return page.records.map(toRule);
-      } catch (error) {
-        throw toDataError(error, 'recurrence.listAllRules');
-      }
-    },
+		async listAllRules() {
+			try {
+				const page = await rules.list({ page: { size: 500 } });
+				return page.records.map(toRule);
+			} catch (error) {
+				throw toDataError(error, 'recurrence.listAllRules');
+			}
+		},
 
-    async listAllOverrides() {
-      try {
-        const page = await overrides.list({page: {size: 500}});
-        return page.records.map(toOverride);
-      } catch (error) {
-        throw toDataError(error, 'recurrence.listAllOverrides');
-      }
-    },
+		async listAllOverrides() {
+			try {
+				const page = await overrides.list({ page: { size: 500 } });
+				return page.records.map(toOverride);
+			} catch (error) {
+				throw toDataError(error, 'recurrence.listAllOverrides');
+			}
+		},
 
-    async countAllRules() {
-      try {
-        return await rules.count();
-      } catch (error) {
-        throw toDataError(error, 'recurrence.countAllRules');
-      }
-    },
+		async countAllRules() {
+			try {
+				return await rules.count();
+			} catch (error) {
+				throw toDataError(error, 'recurrence.countAllRules');
+			}
+		},
 
-    async clearOverride(ruleId, date) {
-      try {
-        await overrides.delete(overrideId(ruleId, date));
-      } catch (error) {
-        throw toDataError(error, 'recurrence.clearOverride');
-      }
-    },
-  };
+		async clearOverride(ruleId, date) {
+			try {
+				await overrides.delete(overrideId(ruleId, date));
+			} catch (error) {
+				throw toDataError(error, 'recurrence.clearOverride');
+			}
+		},
+	};
 }
 
 function encodeDays(days: readonly Weekday[]): string {
-  return [...days].sort((a, b) => a - b).join(',');
+	return [...days].sort((a, b) => a - b).join(',');
 }
 
 function decodeDays(value: string): Weekday[] {
-  return value
-    .split(',')
-    .map(Number)
-    .filter((n): n is Weekday => n >= 1 && n <= 7);
+	return value
+		.split(',')
+		.map(Number)
+		.filter((n): n is Weekday => n >= 1 && n <= 7);
 }
 
 function toRuleRow(rule: NewRecurringRule | RecurringRule): RuleRow {
-  return {
-    title: rule.title,
-    note: rule.note,
-    startDate: rule.startDate,
-    endDate: rule.endDate,
-    daysOfWeek: encodeDays(rule.daysOfWeek),
-    defaultStartTime: rule.defaultStartTime,
-    defaultEndTime: rule.defaultEndTime,
-    reminderEnabled: rule.reminderEnabled,
-    reminderOffsetMinutes: rule.reminderOffsetMinutes,
-  };
+	return {
+		title: rule.title,
+		note: rule.note,
+		startDate: rule.startDate,
+		endDate: rule.endDate,
+		daysOfWeek: encodeDays(rule.daysOfWeek),
+		defaultStartTime: rule.defaultStartTime,
+		defaultEndTime: rule.defaultEndTime,
+		reminderEnabled: rule.reminderEnabled,
+		reminderOffsetMinutes: rule.reminderOffsetMinutes,
+	};
 }
 
 function toRule(record: StoredRecord<RuleRow>): RecurringRule {
-  const {data} = record;
-  return {
-    id: record.id,
-    title: data.title,
-    note: data.note,
-    startDate: data.startDate,
-    endDate: data.endDate,
-    daysOfWeek: decodeDays(data.daysOfWeek),
-    defaultStartTime: data.defaultStartTime,
-    defaultEndTime: data.defaultEndTime,
-    reminderEnabled: Boolean(data.reminderEnabled),
-    reminderOffsetMinutes: asOffset(data.reminderOffsetMinutes),
-  };
+	const { data } = record;
+	return {
+		id: record.id,
+		title: data.title,
+		note: data.note,
+		startDate: data.startDate,
+		endDate: data.endDate,
+		daysOfWeek: decodeDays(data.daysOfWeek),
+		defaultStartTime: data.defaultStartTime,
+		defaultEndTime: data.defaultEndTime,
+		reminderEnabled: Boolean(data.reminderEnabled),
+		reminderOffsetMinutes: asOffset(data.reminderOffsetMinutes),
+	};
 }
 
 /**
@@ -323,29 +323,29 @@ function toRule(record: StoredRecord<RuleRow>): RecurringRule {
  * "deliberately has no value", which is the distinction R7 exists to protect.
  */
 function toOverrideRow(
-  override: RecurrenceOverride,
+	override: RecurrenceOverride,
 ): Record<string, StorableValue> {
-  const out: Record<string, StorableValue> = {
-    ruleId: override.ruleId,
-    occurrenceDate: override.occurrenceDate,
-    isSkipped: override.isSkipped,
-  };
-  for (const key of OVERRIDE_VALUE_FIELDS) {
-    if (key in override) {
-      out[key] = override[key] as StorableValue;
-    }
-  }
-  return out;
+	const out: Record<string, StorableValue> = {
+		ruleId: override.ruleId,
+		occurrenceDate: override.occurrenceDate,
+		isSkipped: override.isSkipped,
+	};
+	for (const key of OVERRIDE_VALUE_FIELDS) {
+		if (key in override) {
+			out[key] = override[key] as StorableValue;
+		}
+	}
+	return out;
 }
 
 const OVERRIDE_VALUE_FIELDS = [
-  'title',
-  'note',
-  'startTime',
-  'endTime',
-  'status',
-  'reminderEnabled',
-  'reminderOffsetMinutes',
+	'title',
+	'note',
+	'startTime',
+	'endTime',
+	'status',
+	'reminderEnabled',
+	'reminderOffsetMinutes',
 ] as const;
 
 /**
@@ -353,42 +353,42 @@ const OVERRIDE_VALUE_FIELDS = [
  * absent/present distinction survives the round trip.
  */
 function toOverride(record: StoredRecord): RecurrenceOverride {
-  const d = record.data;
-  const out: RecurrenceOverride = {
-    ruleId: String(d.ruleId),
-    occurrenceDate: String(d.occurrenceDate),
-    isSkipped: Boolean(d.isSkipped),
-  };
-  if ('title' in d) {
-    out.title = d.title as string;
-  }
-  if ('note' in d) {
-    out.note = d.note as string | null;
-  }
-  if ('startTime' in d) {
-    out.startTime = d.startTime as LocalTime;
-  }
-  if ('endTime' in d) {
-    out.endTime = d.endTime as LocalTime | null;
-  }
-  if ('status' in d) {
-    out.status = d.status as TaskStatus;
-  }
-  if ('reminderEnabled' in d) {
-    out.reminderEnabled = Boolean(d.reminderEnabled);
-  }
-  if ('reminderOffsetMinutes' in d) {
-    out.reminderOffsetMinutes = asOffset(Number(d.reminderOffsetMinutes));
-  }
-  return out;
+	const d = record.data;
+	const out: RecurrenceOverride = {
+		ruleId: String(d.ruleId),
+		occurrenceDate: String(d.occurrenceDate),
+		isSkipped: Boolean(d.isSkipped),
+	};
+	if ('title' in d) {
+		out.title = d.title as string;
+	}
+	if ('note' in d) {
+		out.note = d.note as string | null;
+	}
+	if ('startTime' in d) {
+		out.startTime = d.startTime as LocalTime;
+	}
+	if ('endTime' in d) {
+		out.endTime = d.endTime as LocalTime | null;
+	}
+	if ('status' in d) {
+		out.status = d.status as TaskStatus;
+	}
+	if ('reminderEnabled' in d) {
+		out.reminderEnabled = Boolean(d.reminderEnabled);
+	}
+	if ('reminderOffsetMinutes' in d) {
+		out.reminderOffsetMinutes = asOffset(Number(d.reminderOffsetMinutes));
+	}
+	return out;
 }
 
 function asOffset(value: number): ReminderOffset {
-  return isReminderOffset(value) ? value : 0;
+	return isReminderOffset(value) ? value : 0;
 }
 
 function newId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random()
-    .toString(36)
-    .slice(2, 10)}`;
+	return `${prefix}_${Date.now().toString(36)}_${Math.random()
+		.toString(36)
+		.slice(2, 10)}`;
 }

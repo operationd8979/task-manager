@@ -1,4 +1,4 @@
-import type {AppColors, APP_SPACING, APP_TYPE} from '../theme/tokens';
+import type { AppColors, APP_SPACING, APP_TYPE } from '../theme/tokens';
 
 /**
  * `@chipmobilesdk/rn-theme` already ships its own
@@ -12,9 +12,9 @@ import type {AppColors, APP_SPACING, APP_TYPE} from '../theme/tokens';
  * narrows them back to required at the single point where that is safe.
  */
 declare module '@chipmobilesdk/rn-theme' {
-  interface StyleTheme {
-    appColor?: AppColors;
-    appSpacing?: typeof APP_SPACING;
-    appType?: typeof APP_TYPE;
-  }
+	interface StyleTheme {
+		appColor?: AppColors;
+		appSpacing?: typeof APP_SPACING;
+		appType?: typeof APP_TYPE;
+	}
 }

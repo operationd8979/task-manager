@@ -16,63 +16,63 @@
  * a missing one, which is precisely the failure mode worth catching.
  */
 jest.mock('react-native-unistyles', () => {
-  const {
-    APP_COLOR_LIGHT,
-    APP_SPACING,
-    APP_TYPE,
-    BASE_COLOR_LIGHT,
-    TYPE_OVERRIDE,
-    ZERO_RADIUS,
-  } = require('./src/theme/tokens');
+	const {
+		APP_COLOR_LIGHT,
+		APP_SPACING,
+		APP_TYPE,
+		BASE_COLOR_LIGHT,
+		TYPE_OVERRIDE,
+		ZERO_RADIUS,
+	} = require('./src/theme/tokens');
 
-  const theme = {
-    color: {
-      ...BASE_COLOR_LIGHT,
-      primary: '#EC3013',
-      onPrimary: '#000000',
-      error: APP_COLOR_LIGHT.accentInk,
-    },
-    typography: TYPE_OVERRIDE,
-    spacing: {xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48},
-    radius: ZERO_RADIUS,
-    shadow: {},
-    zIndex: {base: 0, raised: 10, modal: 100, overlay: 200, toast: 300},
-    appColor: APP_COLOR_LIGHT,
-    appSpacing: APP_SPACING,
-    appType: APP_TYPE,
-  };
+	const theme = {
+		color: {
+			...BASE_COLOR_LIGHT,
+			primary: '#EC3013',
+			onPrimary: '#000000',
+			error: APP_COLOR_LIGHT.accentInk,
+		},
+		typography: TYPE_OVERRIDE,
+		spacing: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 },
+		radius: ZERO_RADIUS,
+		shadow: {},
+		zIndex: { base: 0, raised: 10, modal: 100, overlay: 200, toast: 300 },
+		appColor: APP_COLOR_LIGHT,
+		appSpacing: APP_SPACING,
+		appType: APP_TYPE,
+	};
 
-  return {
-    UnistylesRuntime: {
-      setTheme: () => undefined,
-      setAdaptiveThemes: () => undefined,
-    },
-    useUnistyles: () => ({theme}),
-    StyleSheet: {
-      configure: () => undefined,
-      create: sheet => {
-        const built = typeof sheet === 'function' ? sheet(theme, {}) : sheet;
-        // Components call styles.useVariants(...) before reading any style.
-        return {...built, useVariants: () => undefined};
-      },
-    },
-  };
+	return {
+		UnistylesRuntime: {
+			setTheme: () => undefined,
+			setAdaptiveThemes: () => undefined,
+		},
+		useUnistyles: () => ({ theme }),
+		StyleSheet: {
+			configure: () => undefined,
+			create: sheet => {
+				const built = typeof sheet === 'function' ? sheet(theme, {}) : sheet;
+				// Components call styles.useVariants(...) before reading any style.
+				return { ...built, useVariants: () => undefined };
+			},
+		},
+	};
 });
 
 jest.mock('react-native-gesture-handler', () => {
-  const {View} = require('react-native');
-  // Every builder method returns the same object, so any chain the app writes
-  // resolves. The gestures themselves are exercised on a device, not here.
-  const chainable = new Proxy(
-    {},
-    {get: () => () => chainable},
-  );
-  return {
-    GestureHandlerRootView: View,
-    GestureDetector: View,
-    Gesture: {Pan: () => chainable, Fling: () => chainable},
-    Directions: {UP: 1, DOWN: 2, LEFT: 4, RIGHT: 8},
-  };
+	const { View } = require('react-native');
+	// Every builder method returns the same object, so any chain the app writes
+	// resolves. The gestures themselves are exercised on a device, not here.
+	const chainable = new Proxy(
+		{},
+		{ get: () => () => chainable },
+	);
+	return {
+		GestureHandlerRootView: View,
+		GestureDetector: View,
+		Gesture: { Pan: () => chainable, Fling: () => chainable },
+		Directions: { UP: 1, DOWN: 2, LEFT: 4, RIGHT: 8 },
+	};
 });
 
 /**
@@ -81,15 +81,15 @@ jest.mock('react-native-gesture-handler', () => {
  * thread by the real runtime, and asserting on a fake one would test the stub.
  */
 jest.mock('react-native-reanimated', () => {
-  const {View} = require('react-native');
-  return {
-    __esModule: true,
-    default: {View},
-    runOnJS: fn => fn,
-    useSharedValue: initial => ({value: initial}),
-    useAnimatedStyle: build => build(),
-    withTiming: value => value,
-  };
+	const { View } = require('react-native');
+	return {
+		__esModule: true,
+		default: { View },
+		runOnJS: fn => fn,
+		useSharedValue: initial => ({ value: initial }),
+		useAnimatedStyle: build => build(),
+		withTiming: value => value,
+	};
 });
 
 /**
@@ -101,30 +101,30 @@ jest.mock('react-native-reanimated', () => {
  * which is the seam actually worth asserting on.
  */
 jest.mock('@gorhom/bottom-sheet', () => {
-  const React = require('react');
-  const {TextInput, View} = require('react-native');
-  const passthrough = ({children}) => React.createElement(View, null, children);
-  return {
-    __esModule: true,
-    default: passthrough,
-    BottomSheetModal: passthrough,
-    BottomSheetModalProvider: passthrough,
-    BottomSheetView: passthrough,
-    BottomSheetScrollView: passthrough,
-    BottomSheetFooter: passthrough,
-    BottomSheetBackdrop: () => null,
-    BottomSheetTextInput: TextInput,
-  };
+	const React = require('react');
+	const { TextInput, View } = require('react-native');
+	const passthrough = ({ children }) => React.createElement(View, null, children);
+	return {
+		__esModule: true,
+		default: passthrough,
+		BottomSheetModal: passthrough,
+		BottomSheetModalProvider: passthrough,
+		BottomSheetView: passthrough,
+		BottomSheetScrollView: passthrough,
+		BottomSheetFooter: passthrough,
+		BottomSheetBackdrop: () => null,
+		BottomSheetTextInput: TextInput,
+	};
 });
 
 jest.mock('@notifee/react-native', () => ({}));
 
 // Native picker dialog; under test it is a button that never opens.
 jest.mock('@react-native-community/datetimepicker', () => {
-  const React = require('react');
-  const {View} = require('react-native');
-  const Picker = () => React.createElement(View, null);
-  return {__esModule: true, default: Picker};
+	const React = require('react');
+	const { View } = require('react-native');
+	const Picker = () => React.createElement(View, null);
+	return { __esModule: true, default: Picker };
 });
 
 /**
@@ -133,37 +133,37 @@ jest.mock('@react-native-community/datetimepicker', () => {
  * loading -> error paths without a device.
  */
 jest.mock('@chipmobilesdk/rn-local-db', () => {
-  const emptyPage = {records: [], hasMore: false};
-  const collection = {
-    list: async () => emptyPage,
-    count: async () => 0,
-    find: async () => null,
-    get: async () => {
-      throw new Error('RECORD_NOT_FOUND');
-    },
-    insert: async () => ({operation: 'created', id: 'x'}),
-    update: async () => ({operation: 'updated', id: 'x'}),
-    upsert: async () => ({operation: 'created', id: 'x'}),
-    delete: async () => ({operation: 'deleted', id: 'x'}),
-    softDelete: async () => ({operation: 'deleted', id: 'x'}),
-    restore: async () => ({operation: 'restored', id: 'x'}),
-  };
-  return {
-    openDatabase: async () => ({
-      scopeKey: 'test',
-      schemaVersion: 1,
-      backupPosture: {requested: 'excluded', observed: 'excluded'},
-      isEncrypted: false,
-      collection: () => collection,
-      batch: async () => ({applied: 0, outcomes: []}),
-      transaction: async fn => fn({collection: () => collection}),
-      close: async () => undefined,
-    }),
-    deleteScopeData: async () => ({removedRecords: 0}),
-    setDiagnosticLogger: () => undefined,
-    isStorageError: () => false,
-    isCode: () => false,
-    DiagnosticCodes: {},
-    Budgets: {},
-  };
+	const emptyPage = { records: [], hasMore: false };
+	const collection = {
+		list: async () => emptyPage,
+		count: async () => 0,
+		find: async () => null,
+		get: async () => {
+			throw new Error('RECORD_NOT_FOUND');
+		},
+		insert: async () => ({ operation: 'created', id: 'x' }),
+		update: async () => ({ operation: 'updated', id: 'x' }),
+		upsert: async () => ({ operation: 'created', id: 'x' }),
+		delete: async () => ({ operation: 'deleted', id: 'x' }),
+		softDelete: async () => ({ operation: 'deleted', id: 'x' }),
+		restore: async () => ({ operation: 'restored', id: 'x' }),
+	};
+	return {
+		openDatabase: async () => ({
+			scopeKey: 'test',
+			schemaVersion: 1,
+			backupPosture: { requested: 'excluded', observed: 'excluded' },
+			isEncrypted: false,
+			collection: () => collection,
+			batch: async () => ({ applied: 0, outcomes: [] }),
+			transaction: async fn => fn({ collection: () => collection }),
+			close: async () => undefined,
+		}),
+		deleteScopeData: async () => ({ removedRecords: 0 }),
+		setDiagnosticLogger: () => undefined,
+		isStorageError: () => false,
+		isCode: () => false,
+		DiagnosticCodes: {},
+		Budgets: {},
+	};
 });

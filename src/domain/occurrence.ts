@@ -1,12 +1,12 @@
-import type {LocalDate, LocalTime} from '../lib/date';
-import type {ReminderOffset} from './reminder';
+import type { LocalDate, LocalTime } from '../lib/date';
+import type { ReminderOffset } from './reminder';
 import {
-  overridesContent,
-  ruleOccursOn,
-  type RecurrenceOverride,
-  type RecurringRule,
+	overridesContent,
+	ruleOccursOn,
+	type RecurrenceOverride,
+	type RecurringRule,
 } from './recurrence';
-import type {TaskStatus} from './task';
+import type { TaskStatus } from './task';
 
 /**
  * One session of a recurring rule on one date.
@@ -17,25 +17,25 @@ import type {TaskStatus} from './task';
  * visible or they will edit one session and change the whole series.
  */
 export interface Occurrence {
-  ruleId: string;
-  date: LocalDate;
-  title: string;
-  note: string | null;
-  startTime: LocalTime;
-  endTime: LocalTime | null;
-  status: TaskStatus;
-  reminderEnabled: boolean;
-  reminderOffsetMinutes: ReminderOffset;
-  /** Drives the "✎ ĐÃ CHỈNH RIÊNG" label. Status-only edits do not set it. */
-  hasOverride: boolean;
-  /**
-   * "Chỉ lần này" on a delete: this session is off, the series is not.
-   *
-   * It is still produced, and still drawn — greyed out, so the day reads as
-   * "this was going to happen and is not" rather than as a gap the user has to
-   * remember the reason for. Nothing may schedule a reminder for it.
-   */
-  isSkipped: boolean;
+	ruleId: string;
+	date: LocalDate;
+	title: string;
+	note: string | null;
+	startTime: LocalTime;
+	endTime: LocalTime | null;
+	status: TaskStatus;
+	reminderEnabled: boolean;
+	reminderOffsetMinutes: ReminderOffset;
+	/** Drives the "✎ ĐÃ CHỈNH RIÊNG" label. Status-only edits do not set it. */
+	hasOverride: boolean;
+	/**
+	 * "Chỉ lần này" on a delete: this session is off, the series is not.
+	 *
+	 * It is still produced, and still drawn — greyed out, so the day reads as
+	 * "this was going to happen and is not" rather than as a gap the user has to
+	 * remember the reason for. Nothing may schedule a reminder for it.
+	 */
+	isSkipped: boolean;
 }
 
 /**
@@ -46,25 +46,25 @@ export interface Occurrence {
  * FR-023 and SC-004 are trying to prevent.
  */
 export function buildOccurrences(
-  rules: readonly RecurringRule[],
-  overrides: readonly RecurrenceOverride[],
-  date: LocalDate,
+	rules: readonly RecurringRule[],
+	overrides: readonly RecurrenceOverride[],
+	date: LocalDate,
 ): Occurrence[] {
-  const byRule = new Map<string, RecurrenceOverride>();
-  for (const override of overrides) {
-    if (override.occurrenceDate === date) {
-      byRule.set(override.ruleId, override);
-    }
-  }
+	const byRule = new Map<string, RecurrenceOverride>();
+	for (const override of overrides) {
+		if (override.occurrenceDate === date) {
+			byRule.set(override.ruleId, override);
+		}
+	}
 
-  const out: Occurrence[] = [];
-  for (const rule of rules) {
-    if (!ruleOccursOn(rule, date)) {
-      continue;
-    }
-    out.push(merge(rule, date, byRule.get(rule.id)));
-  }
-  return out;
+	const out: Occurrence[] = [];
+	for (const rule of rules) {
+		if (!ruleOccursOn(rule, date)) {
+			continue;
+		}
+		out.push(merge(rule, date, byRule.get(rule.id)));
+	}
+	return out;
 }
 
 /**
@@ -75,50 +75,50 @@ export function buildOccurrences(
  * from the rule". Getting it wrong hands the user back a value they removed.
  */
 function merge(
-  rule: RecurringRule,
-  date: LocalDate,
-  override: RecurrenceOverride | undefined,
+	rule: RecurringRule,
+	date: LocalDate,
+	override: RecurrenceOverride | undefined,
 ): Occurrence {
-  const base: Occurrence = {
-    ruleId: rule.id,
-    date,
-    title: rule.title,
-    note: rule.note,
-    startTime: rule.defaultStartTime,
-    endTime: rule.defaultEndTime,
-    status: 'processing',
-    reminderEnabled: rule.reminderEnabled,
-    reminderOffsetMinutes: rule.reminderOffsetMinutes,
-    hasOverride: false,
-    isSkipped: false,
-  };
+	const base: Occurrence = {
+		ruleId: rule.id,
+		date,
+		title: rule.title,
+		note: rule.note,
+		startTime: rule.defaultStartTime,
+		endTime: rule.defaultEndTime,
+		status: 'processing',
+		reminderEnabled: rule.reminderEnabled,
+		reminderOffsetMinutes: rule.reminderOffsetMinutes,
+		hasOverride: false,
+		isSkipped: false,
+	};
 
-  if (!override) {
-    return base;
-  }
+	if (!override) {
+		return base;
+	}
 
-  return {
-    ...base,
-    title: 'title' in override ? (override.title as string) : base.title,
-    note: 'note' in override ? (override.note as string | null) : base.note,
-    startTime:
-      'startTime' in override
-        ? (override.startTime as LocalTime)
-        : base.startTime,
-    endTime:
-      'endTime' in override
-        ? (override.endTime as LocalTime | null)
-        : base.endTime,
-    status: 'status' in override ? (override.status as TaskStatus) : base.status,
-    reminderEnabled:
-      'reminderEnabled' in override
-        ? (override.reminderEnabled as boolean)
-        : base.reminderEnabled,
-    reminderOffsetMinutes:
-      'reminderOffsetMinutes' in override
-        ? (override.reminderOffsetMinutes as ReminderOffset)
-        : base.reminderOffsetMinutes,
-    hasOverride: overridesContent(override),
-    isSkipped: override.isSkipped,
-  };
+	return {
+		...base,
+		title: 'title' in override ? (override.title as string) : base.title,
+		note: 'note' in override ? (override.note as string | null) : base.note,
+		startTime:
+			'startTime' in override
+				? (override.startTime as LocalTime)
+				: base.startTime,
+		endTime:
+			'endTime' in override
+				? (override.endTime as LocalTime | null)
+				: base.endTime,
+		status: 'status' in override ? (override.status as TaskStatus) : base.status,
+		reminderEnabled:
+			'reminderEnabled' in override
+				? (override.reminderEnabled as boolean)
+				: base.reminderEnabled,
+		reminderOffsetMinutes:
+			'reminderOffsetMinutes' in override
+				? (override.reminderOffsetMinutes as ReminderOffset)
+				: base.reminderOffsetMinutes,
+		hasOverride: overridesContent(override),
+		isSkipped: override.isSkipped,
+	};
 }
