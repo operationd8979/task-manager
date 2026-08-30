@@ -15,7 +15,7 @@ export const COLLECTION = {
 /** Hard cap on the local diagnostic log (FR-055b). */
 export const ERROR_LOG_LIMIT = 500;
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * The chain must be CONTIGUOUS FROM 1 to schemaVersion — a database declaring
@@ -29,6 +29,29 @@ export const SCHEMA_VERSION = 1;
 export const MIGRATIONS: Migration[] = [
 	{
 		version: 1,
+		migrate: async () => {
+			// Intentionally empty — see the note above.
+		},
+	},
+	{
+		/**
+		 * Monthly recurrence and the per-series time history (change.md §2, §4).
+		 *
+		 * Deliberately empty, and that IS the migration.
+		 *
+		 * A migration context can insert, upsert, find and delete by id — it
+		 * cannot enumerate a collection, so there is no supported way to walk
+		 * every rule and rewrite it here. It does not need one: undeclared and
+		 * absent fields both read back as undefined, and the rule decoder already
+		 * answers that with 'weekly', no days of the month, and no time history —
+		 * which is exactly what every rule written before this version was. The
+		 * new keys land on each rule the next time it is written.
+		 *
+		 * This holds only while nothing QUERIES the new fields. Filtering on
+		 * `frequency` in a repository read would silently miss every pre-v2 rule,
+		 * and would need a real backfill through the adapter's `execute` first.
+		 */
+		version: 2,
 		migrate: async () => {
 			// Intentionally empty — see the note above.
 		},
@@ -75,8 +98,19 @@ export const COLLECTIONS: CollectionSchema[] = [
 			// set has no array; the domain layer exposes Weekday[] and the encoding
 			// stays inside the data layer (data-model.md §2.2).
 			{ name: 'daysOfWeek', type: 'string' },
+			// How the rule picks its dates: 'weekly', 'monthlyByDay' or
+			// 'monthlyLastDay'. Only one of daysOfWeek / daysOfMonth is read, and
+			// this field is what says which (data-model.md §2.2).
+			{ name: 'frequency', type: 'string' },
+			// Sorted day-of-month numbers joined with commas, e.g. "1,15". Empty
+			// for every frequency but 'monthlyByDay'.
+			{ name: 'daysOfMonth', type: 'string' },
 			{ name: 'defaultStartTime', type: 'string' },
 			{ name: 'defaultEndTime', type: 'string', nullable: true },
+			// Times this series used to run at, oldest first, encoded as
+			// "until|start|end" triples joined with semicolons. Empty until the
+			// user edits a series' time, which is the only thing that writes it.
+			{ name: 'timeHistory', type: 'string' },
 			{ name: 'reminderEnabled', type: 'boolean' },
 			{ name: 'reminderOffsetMinutes', type: 'number' },
 		],

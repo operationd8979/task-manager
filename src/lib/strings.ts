@@ -61,13 +61,16 @@ const CATALOG = {
 	// Task form
 	'form.newTitle': 'Công việc mới',
 	'form.editTitle': 'Sửa công việc',
+	'form.editSeriesTitle': 'Sửa công việc lặp',
+	'form.seriesStart': 'Bắt đầu chuỗi',
+	'form.seriesScope':
+		'Thay đổi áp dụng cho toàn bộ chuỗi. Giờ mới tính từ hôm nay; các buổi đã qua giữ giờ cũ.',
 	'form.close': 'Đóng',
 	'form.name': 'Tên công việc',
 	'form.date': 'Ngày',
 	'form.start': 'Bắt đầu',
 	'form.end': 'Kết thúc',
 	'form.note': 'Ghi chú',
-	'form.status': 'Trạng thái',
 	'form.repeat': 'Lặp lại',
 	'form.noRepeat': 'Không lặp',
 	'form.reminder': 'Nhắc nhở',
@@ -79,8 +82,6 @@ const CATALOG = {
 	'form.plus30': '+30 phút',
 	'form.plus45': '+45 phút',
 	'form.plus60': '+1 giờ',
-	'form.statusProcessing': 'Đang thực hiện',
-	'form.statusDone': 'Hoàn thành',
 	'form.reminderOn': 'Nhắc nhở bật',
 	'form.reminderOff': 'Nhắc nhở tắt',
 	'form.reminderOffHint':
@@ -103,6 +104,7 @@ const CATALOG = {
 	'validate.endBeforeStart':
 		'Giờ kết thúc phải sau {start}. Bỏ trống nếu chỉ là một mốc giờ.',
 	'validate.weekdayRequired': 'Chọn ít nhất một thứ trong tuần.',
+	'validate.monthDayRequired': 'Chọn ít nhất một ngày trong tháng.',
 	'validate.endDateBeforeStart': 'Ngày kết thúc phải từ {start} trở đi.',
 	'validate.reminderInPast':
 		'Thời điểm nhắc đã qua, nên ứng dụng sẽ không đặt nhắc nhở cho công việc này.',
@@ -118,7 +120,9 @@ const CATALOG = {
 	'undo.deleted': 'Đã xóa {title}.',
 	'undo.scopeThisOnly': 'Chỉ lần này: {change}',
 	'undo.scopeWholeSeries': 'Toàn bộ chuỗi: {change}',
-	'undo.seriesDeleted': 'Đã xóa toàn bộ chuỗi {title}.',
+	'undo.seriesDeleted': 'Đã kết thúc chuỗi {title} từ hôm nay.',
+	'undo.seriesRemoved': 'Đã xóa chuỗi {title}.',
+	'undo.skipped': 'Đã bỏ qua {title} ngày {date}.',
 
 	// Unsaved changes
 	'unsaved.title': 'Còn thay đổi chưa lưu',
@@ -130,7 +134,15 @@ const CATALOG = {
 	'repeat.title': 'Thiết lập lặp lại',
 	'repeat.none': 'Không lặp',
 	'repeat.byWeekday': 'Lặp theo thứ',
+	'repeat.byMonthDay': 'Lặp theo ngày',
+	'repeat.byLastDay': 'Lặp cuối tháng',
 	'repeat.weekdays': 'Các thứ trong tuần',
+	'repeat.monthDays': 'Các ngày trong tháng',
+	'repeat.dayOfMonth': 'Ngày {day}',
+	'repeat.skipsMonth': 'Không có buổi nào vào {months}, vì tháng đó không có ngày đã chọn.',
+	'repeat.skipsMonths': 'Không có buổi nào vào {months}, vì các tháng đó không có ngày đã chọn.',
+	'repeat.lastDayHint':
+		'Mỗi tháng một buổi, vào ngày cuối cùng của tháng — 28, 29, 30 hoặc 31 tùy tháng.',
 	'repeat.presetWeekdays': 'T2–T6',
 	'repeat.presetWeekend': 'Cuối tuần',
 	'repeat.presetDaily': 'Hằng ngày',
@@ -158,8 +170,15 @@ const CATALOG = {
 	'scope.cancel': 'HỦY — KHÔNG THAY ĐỔI GÌ',
 	'scope.skipThisSession': 'Bỏ qua buổi này',
 	'scope.changedTime': 'đã đổi giờ sang {time}.',
-	'scope.skipped': 'đã bỏ qua buổi này.',
-	'scope.seriesDeleted': 'Đã xóa toàn bộ chuỗi lặp.',
+
+	// Delete-series warning (change.md §1)
+	'deleteSeries.title': 'Xóa công việc lặp?',
+	'deleteSeries.subject': '{title}',
+	'deleteSeries.effect': 'Sẽ bỏ {count} buổi từ hôm nay trở đi.',
+	'deleteSeries.effectOpen':
+		'Sẽ bỏ {count} buổi trong 12 tháng tới, và mọi buổi sau đó.',
+	'deleteSeries.keepsPast': 'Các buổi đã qua vẫn giữ nguyên trong lịch sử.',
+	'deleteSeries.confirm': 'XÓA CHUỖI',
 
 	// Row actions (S-06)
 	'actions.title': 'Thao tác',

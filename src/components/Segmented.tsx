@@ -18,10 +18,19 @@ export interface SegmentedProps<T extends string> {
 	value: T;
 	onChange: (value: T) => void;
 	accessibilityLabel: string;
+	/**
+	 * Wrap onto two columns instead of one row.
+	 *
+	 * Four segments in a single row leave about 66pt for a label like "Lặp cuối
+	 * tháng", which breaks it across three lines before the OS text size is
+	 * touched. Opt-in rather than automatic: the existing two- and three-way
+	 * choices are still one row, and nothing about them changes.
+	 */
+	columns?: 2;
 }
 
 /**
- * Two- or three-way exclusive choice. Same rule as Chip: selection is never
+ * Two- to four-way exclusive choice. Same rule as Chip: selection is never
  * carried by colour alone.
  */
 export function Segmented<T extends string>({
@@ -29,12 +38,14 @@ export function Segmented<T extends string>({
 	value,
 	onChange,
 	accessibilityLabel,
+	columns,
 }: SegmentedProps<T>) {
+	const grid = columns === 2;
 	return (
 		<View
 			accessibilityRole="radiogroup"
 			accessibilityLabel={accessibilityLabel}
-			style={styles.container}>
+			style={grid ? styles.gridContainer : styles.container}>
 			{options.map(option => {
 				const selected = option.value === value;
 				return (
@@ -42,6 +53,7 @@ export function Segmented<T extends string>({
 						key={option.value}
 						option={option}
 						selected={selected}
+						grid={grid}
 						// Same reason as Chip: choosing a segment means typing is over.
 						onPress={() => {
 							Keyboard.dismiss();
@@ -57,13 +69,15 @@ export function Segmented<T extends string>({
 function SegmentedItem<T extends string>({
 	option,
 	selected,
+	grid,
 	onPress,
 }: {
 	option: SegmentedOption<T>;
 	selected: boolean;
+	grid: boolean;
 	onPress: () => void;
 }) {
-	styles.useVariants({ selected });
+	styles.useVariants({ selected, width: grid ? 'half' : 'share' });
 	return (
 		<Pressable
 			accessibilityRole="radio"
@@ -87,8 +101,14 @@ const styles = StyleSheet.create(raw => {
 			borderColor: theme.color.border,
 			borderRadius: theme.radius.sm,
 		},
+		gridContainer: {
+			flexDirection: 'row',
+			flexWrap: 'wrap',
+			borderWidth: 2,
+			borderColor: theme.color.border,
+			borderRadius: theme.radius.sm,
+		},
 		item: {
-			flex: 1,
 			minHeight: TAP_TARGET_MIN,
 			paddingVertical: theme.spacing.xs,
 			paddingHorizontal: theme.spacing.sm,
@@ -98,6 +118,12 @@ const styles = StyleSheet.create(raw => {
 				selected: {
 					true: { backgroundColor: theme.appColor.accentFill },
 					false: { backgroundColor: 'transparent' },
+				},
+				width: {
+					// Exactly two per line, so the wrap lands where it is meant to
+					// rather than wherever the longest label happens to push it.
+					half: { flexGrow: 0, flexShrink: 1, flexBasis: '50%' },
+					share: { flex: 1 },
 				},
 			},
 		},

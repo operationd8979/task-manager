@@ -6,7 +6,6 @@ import { StyleSheet } from 'react-native-unistyles';
 import { useReminders } from '../../../app/providers/ReminderProvider';
 import { Chip, ChipRow } from '../../../components/Chip';
 import { ErrorState } from '../../../components/ErrorState';
-import { Segmented } from '../../../components/Segmented';
 import { Sheet } from '../../../components/Sheet';
 import { Text } from '../../../components/Text';
 import {
@@ -14,9 +13,11 @@ import {
 	notificationPlan,
 	REMINDER_OFFSETS,
 } from '../../../domain/reminder';
-import type { Task, TaskStatus } from '../../../domain/task';
+import type { RecurringRule } from '../../../domain/recurrence';
+import type { Task } from '../../../domain/task';
+import type { RepeatSummary } from '../../../domain/timeline';
 import { minutesOf, timeFromMinutes, type LocalDate } from '../../../lib/date';
-import { weekdayShort } from '../../../lib/format';
+import { repeatPatternLabel } from '../../../lib/format';
 import { t, type StringKey } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
 import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
@@ -37,6 +38,8 @@ const DURATION_CHIPS: ReadonlyArray<{ minutes: number; key: StringKey }> = [
 
 export interface TaskFormSheetProps {
 	task?: Task;
+	/** The series being edited. Mutually exclusive with `task`. */
+	rule?: RecurringRule;
 	viewingDate: LocalDate;
 	onSaved: (savedDate: LocalDate) => void;
 	onClose: () => void;
@@ -44,11 +47,13 @@ export interface TaskFormSheetProps {
 
 export function TaskFormSheet({
 	task,
+	rule,
 	viewingDate,
 	onSaved,
 	onClose,
-}: TaskFormSheetProps) {
-	const form = useTaskForm({ task, viewingDate, onSaved });
+}: Readonly<TaskFormSheetProps>) {
+	const form = useTaskForm({ task, rule, viewingDate, onSaved });
+	const series = form.mode === 'series';
 	// The sheet owns the scrolling now, so this reaches into it rather than
 	// wrapping the fields in a second scroll view.
 	const scroll = useRef<BottomSheetScrollViewMethods>(null);
@@ -91,9 +96,17 @@ export function TaskFormSheet({
 		taskDate: form.values.taskDate,
 		startTime: form.values.startTime,
 	});
-	// Now worth saying for a task with no reminder too: the silent notice is
-	// still a notification, and a moment already gone still gets none (FR-038).
-	const notifyInPast = isInPast(plan.fireAt, new Date());
+	/**
+	 * Now worth saying for a task with no reminder too: the silent notice is
+	 * still a notification, and a moment already gone still gets none (FR-038).
+	 *
+	 * Never said for a series. `plan` is built from the form's date, which for a
+	 * series is the day the whole thing STARTED — so an ongoing daily habit set
+	 * up last year would greet every edit with "thời điểm nhắc đã qua" while its
+	 * next session is tomorrow morning. A series' reminders are derived per
+	 * session at reconcile time; this screen has nothing true to say about them.
+	 */
+	const notifyInPast = !series && isInPast(plan.fireAt, new Date());
 	const mayBeLate =
 		form.values.reminderEnabled &&
 		reminders.exactAlarm.required &&
@@ -137,21 +150,19 @@ export function TaskFormSheet({
 
 	return (
 		<Sheet
-			title={task ? t('form.editTitle') : t('form.newTitle')}
+			title={seriesOrTaskTitle(series, task !== undefined)}
 			onClose={requestClose}
 			scrollRef={scroll}
 			footer={
 				<Pressable
 					accessibilityRole="button"
 					accessibilityState={{ disabled: saving }}
-					accessibilityLabel={
-						saving ? t('form.saving') : task ? t('form.saveEdit') : t('form.save')
-					}
+					accessibilityLabel={saveLabel(saving, task !== undefined || series)}
 					disabled={saving}
 					onPress={submitAndNotify}
 					style={styles.primary}>
 					<Text style={styles.primaryLabel}>
-						{saving ? t('form.saving') : task ? t('form.saveEdit') : t('form.save')}
+						{saveLabel(saving, task !== undefined || series)}
 					</Text>
 				</Pressable>
 			}>
@@ -215,19 +226,30 @@ export function TaskFormSheet({
 							value={form.values.title}
 							onChangeText={next => form.setField('title', next)}
 							style={styles.input}
-							autoFocus={task === undefined}
+							autoFocus={task === undefined && !series}
 						/>
 					</Field>
 
 					<View style={styles.row}>
 						<View style={styles.cell}>
-							<Field label={t('form.date')}>
-								<DateTimeField
-									mode="date"
-									accessibilityLabel={t('form.date')}
-									value={form.values.taskDate}
-									onChange={next => form.setField('taskDate', next)}
-								/>
+							{/* For a series this is the day the whole thing began, and it
+                  is read-only: moving it would change which sessions ever
+                  existed, which is a different series rather than an edit. */}
+							<Field label={series ? t('form.seriesStart') : t('form.date')}>
+								{series ? (
+									<View style={styles.readOnly}>
+										<Text style={styles.readOnlyValue}>
+											{form.values.taskDate}
+										</Text>
+									</View>
+								) : (
+									<DateTimeField
+										mode="date"
+										accessibilityLabel={t('form.date')}
+										value={form.values.taskDate}
+										onChange={next => form.setField('taskDate', next)}
+									/>
+								)}
 							</Field>
 						</View>
 						<View style={styles.cell}>
@@ -282,29 +304,29 @@ export function TaskFormSheet({
 						/>
 					</ChipRow>
 
-					{/* Status is an EDIT-only field. A task being created has not been
-              done yet by definition, so offering the choice was a decision
-              with one sensible answer — `useTaskForm` defaults it to
-              "Đang thực hiện" and the timeline's checkbox is where it changes
-              from then on. */}
-					{task === undefined ? null : (
-						<Field label={t('form.status')}>
-							<Segmented<TaskStatus>
-								accessibilityLabel={t('form.status')}
-								value={form.values.status}
-								onChange={next => form.setField('status', next)}
-								options={[
-									{ value: 'processing', label: t('form.statusProcessing') },
-									{ value: 'done', label: t('form.statusDone') },
-								]}
-							/>
-						</Field>
-					)}
+					{/* Status is deliberately NOT a field here (change.md §3). It has
+              exactly one gesture now — the checkbox on the timeline row — so
+              it cannot disagree with itself between two places, and nobody can
+              mark something done inside a form they then close without
+              saving. */}
 
 					{/* Creating a series is a different write path, so the row is only
               offered on a new task. Converting an existing task into a series
-              is not specified anywhere and would silently move its data. */}
-					{task === undefined ? (
+              is not specified anywhere and would silently move its data.
+
+              On a series it is shown but not pressable: changing which days
+              repeat would delete sessions out of the past, which is the one
+              thing this screen exists to avoid (change.md §4, §5). */}
+					{series ? (
+						<Field label={t('form.repeat')}>
+							<View style={styles.readOnly}>
+								<Text style={styles.readOnlyValue}>
+									{repeatSummary(form.values.recurrence, form.values.startTime)}
+								</Text>
+							</View>
+							<Text style={styles.appliesAll}>{t('form.seriesScope')}</Text>
+						</Field>
+					) : task === undefined ? (
 						<Field label={t('form.repeat')}>
 							<Pressable
 								accessibilityRole="button"
@@ -441,16 +463,39 @@ function repeatSummary(
 	if (value === null) {
 		return t('form.noRepeat');
 	}
-	if (value.daysOfWeek.length === 7) {
+	if (value.frequency === 'weekly' && value.daysOfWeek.length === 7) {
 		return t('repeat.summaryDaily', { time: startTime });
 	}
 	return t('repeat.summary', {
-		days: [...value.daysOfWeek]
-			.sort((a, b) => a - b)
-			.map(weekdayShort)
-			.join(', '),
+		days: repeatPatternLabel(patternOf(value)),
 		time: startTime,
 	});
+}
+
+function patternOf(value: RecurrenceValue): RepeatSummary {
+	switch (value.frequency) {
+		case 'weekly':
+			return { frequency: 'weekly', daysOfWeek: value.daysOfWeek };
+		case 'monthlyByDay':
+			return { frequency: 'monthlyByDay', daysOfMonth: value.daysOfMonth };
+		case 'monthlyLastDay':
+			return { frequency: 'monthlyLastDay' };
+	}
+}
+
+/** Which of the three things this sheet can be doing, in its header. */
+function seriesOrTaskTitle(series: boolean, editing: boolean): string {
+	if (series) {
+		return t('form.editSeriesTitle');
+	}
+	return editing ? t('form.editTitle') : t('form.newTitle');
+}
+
+function saveLabel(saving: boolean, editing: boolean): string {
+	if (saving) {
+		return t('form.saving');
+	}
+	return editing ? t('form.saveEdit') : t('form.save');
 }
 
 const styles = StyleSheet.create(raw => {
@@ -547,6 +592,30 @@ const styles = StyleSheet.create(raw => {
 		repeatValue: {
 			...theme.typography.body,
 			color: theme.color.onBackground,
+		},
+		/**
+		 * A value the user can read but not change.
+		 *
+		 * Dashed rather than solid, and on the muted ink: legible enough to answer
+		 * "which series am I editing", and plainly not an input — otherwise people
+		 * tap it, nothing opens, and they conclude the screen is broken.
+		 */
+		readOnly: {
+			minHeight: TAP_TARGET_MIN,
+			justifyContent: 'center',
+			paddingHorizontal: theme.spacing.sm,
+			borderWidth: 1,
+			borderStyle: 'dashed',
+			borderColor: theme.color.border,
+			backgroundColor: theme.color.surface,
+		},
+		readOnlyValue: {
+			...theme.typography.body,
+			color: theme.appColor.textMuted,
+		},
+		appliesAll: {
+			...theme.typography.label,
+			color: theme.color.disabled,
 		},
 		unsaved: {
 			borderWidth: 2,

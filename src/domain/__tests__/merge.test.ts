@@ -17,9 +17,12 @@ const rule: RecurringRule = {
 	note: 'Phòng gym',
 	startDate: '2026-08-03',
 	endDate: null,
+	frequency: 'weekly',
 	daysOfWeek: [1],
+	daysOfMonth: [],
 	defaultStartTime: '07:00',
 	defaultEndTime: '10:00',
+	timeHistory: [],
 	reminderEnabled: true,
 	reminderOffsetMinutes: 15,
 };

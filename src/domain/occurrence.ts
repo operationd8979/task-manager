@@ -3,6 +3,7 @@ import type { ReminderOffset } from './reminder';
 import {
 	overridesContent,
 	ruleOccursOn,
+	timeOn,
 	type RecurrenceOverride,
 	type RecurringRule,
 } from './recurrence';
@@ -79,13 +80,17 @@ function merge(
 	date: LocalDate,
 	override: RecurrenceOverride | undefined,
 ): Occurrence {
+	// Not `defaultStartTime`: editing a series' time only moves it from the edit
+	// date onwards, so a session in the past has to be told the time it actually
+	// ran at rather than the one the series runs at now (change.md §4).
+	const time = timeOn(rule, date);
 	const base: Occurrence = {
 		ruleId: rule.id,
 		date,
 		title: rule.title,
 		note: rule.note,
-		startTime: rule.defaultStartTime,
-		endTime: rule.defaultEndTime,
+		startTime: time.startTime,
+		endTime: time.endTime,
 		status: 'processing',
 		reminderEnabled: rule.reminderEnabled,
 		reminderOffsetMinutes: rule.reminderOffsetMinutes,

@@ -15,15 +15,27 @@ type LocalTime = string;   // 'HH:mm'
 type Weekday = 1|2|3|4|5|6|7;   // 1 = Thứ Hai
 type TaskStatus = 'processing' | 'done';
 
+type RecurrenceFrequency = 'weekly' | 'monthlyByDay' | 'monthlyLastDay';
+
+/** Giờ mà chuỗi TỪNG chạy, trước ngày `until` (loại trừ). */
+interface TimeSegment {
+  until: LocalDate;
+  startTime: LocalTime;
+  endTime: LocalTime | null;
+}
+
 interface RecurringRule {
   id: string;
   title: string;
   note: string | null;
   startDate: LocalDate;
   endDate: LocalDate | null;
-  daysOfWeek: readonly Weekday[];
+  frequency: RecurrenceFrequency;
+  daysOfWeek: readonly Weekday[];   // chỉ đọc khi frequency = 'weekly'
+  daysOfMonth: readonly number[];   // chỉ đọc khi frequency = 'monthlyByDay'
   defaultStartTime: LocalTime;
   defaultEndTime: LocalTime | null;
+  timeHistory: readonly TimeSegment[];
   reminderEnabled: boolean;
   reminderOffsetMinutes: ReminderOffset;
 }
@@ -96,12 +108,24 @@ function countOccurrences(
 
 1. `date < rule.startDate` → `false`. Không sinh buổi trước ngày bắt đầu (FR-024).
 2. `rule.endDate ≠ null` và `date > rule.endDate` → `false`.
-3. Thứ trong tuần của `date` không nằm trong `rule.daysOfWeek` → `false`.
+3. Theo `rule.frequency`:
+   - `weekly` → thứ trong tuần của `date` phải nằm trong `rule.daysOfWeek`.
+   - `monthlyByDay` → ngày trong tháng của `date` phải nằm trong `rule.daysOfMonth`.
+   - `monthlyLastDay` → `date` phải là ngày cuối cùng của tháng chứa nó.
 4. Ngược lại → `true`.
 
-**Ngày kết thúc là bao gồm.** Buổi rơi đúng vào `endDate` **vẫn được sinh** nếu thứ hôm đó
-nằm trong `daysOfWeek` (FR-024). Đây là chỗ dễ viết nhầm thành `<` và lỗi chỉ lộ ra ở đúng
-một ngày trong đời mỗi chuỗi.
+**`monthlyByDay` bỏ qua tháng thiếu ngày, không dồn.** Chuỗi vào ngày 31 không sinh buổi nào
+trong tháng 2 (FR-020a). Bước 3 đã cho kết quả này miễn phí — không tháng nào có ngày 31 mà
+lại thiếu — nên cái cần canh là đừng ai "sửa" nó thành dồn về ngày cuối tháng sau này. Dồn sẽ
+đặt buổi vào một ngày người dùng không hề chọn; `monthlyLastDay` mới là kiểu dành cho ý đó.
+
+**Ngày kết thúc là bao gồm.** Buổi rơi đúng vào `endDate` **vẫn được sinh** nếu ngày hôm đó
+khớp mẫu lặp (FR-024). Đây là chỗ dễ viết nhầm thành `<` và lỗi chỉ lộ ra ở đúng một ngày
+trong đời mỗi chuỗi.
+
+**Kết thúc một chuỗi là đặt `endDate`, không phải xóa quy tắc** (FR-031b). Bước 2 vẫn cho
+`true` với mọi ngày trước đó, nên lịch sử của người dùng còn nguyên trong khi tương lai đã
+dừng.
 
 `endDate = null` nghĩa là lặp vô thời hạn (FR-022) — bước 2 bị bỏ qua hoàn toàn, không thay
 bằng một ngày xa nào cả.
@@ -109,6 +133,9 @@ bằng một ngày xa nào cả.
 ## Quy tắc hợp nhất
 
 Với mỗi quy tắc thỏa `ruleOccursOn`, tìm điều chỉnh riêng theo khóa `ruleId + occurrenceDate`:
+
+Giá trị nền của `startTime`/`endTime` **không** phải `defaultStartTime`/`defaultEndTime` mà
+là `timeOn(rule, date)` (xem dưới). Mọi trường còn lại lấy thẳng từ quy tắc.
 
 | Trường hợp | Kết quả |
 |---|---|
@@ -138,9 +165,27 @@ quả (FR-026b).
 
 Hàm chỉ trả về số; việc chọn `to` và việc diễn đạt câu chữ thuộc tầng gọi.
 
-**Phép đếm là thuần số học, không duyệt ngày.** Số buổi trong một khoảng tính được từ số tuần
-trọn vẹn nhân với `daysOfWeek.length`, cộng phần dư ở hai đầu. Duyệt 365 ngày cho mỗi lần mở
-sheet là công việc vô ích trên JS thread ngay tại thời điểm người dùng đang chờ (Principle VI).
+**Phép đếm không bao giờ duyệt từng ngày.** Với `weekly` nó thuần số học: số tuần trọn vẹn
+nhân với `daysOfWeek.length`, cộng phần dư ở hai đầu. Với hai kiểu theo tháng nó bước theo
+**tháng**, nên cửa sổ 12 tháng tốn khoảng một tá vòng lặp chứ không phải 365. Duyệt 365 ngày
+cho mỗi lần mở sheet là công việc vô ích trên JS thread ngay tại thời điểm người dùng đang
+chờ (Principle VI).
+
+## `timeOn` và `withTimeFrom` — lịch sử giờ của chuỗi
+
+Sửa giờ của một chuỗi chỉ áp dụng từ hôm nay trở đi; buổi đã qua giữ nguyên giờ cũ (FR-030b).
+
+- `timeOn(rule, date)` trả về mục **đầu tiên** trong `timeHistory` có `date < until`; không
+  có mục nào khớp thì trả về `defaultStartTime`/`defaultEndTime`. `timeHistory` chỉ chứa giờ
+  **quá khứ**, nên trường hợp phổ biến — chuỗi chưa từng sửa giờ, và mọi ngày từ lần sửa gần
+  nhất trở đi — rơi thẳng vào giá trị mặc định mà không đọc danh sách.
+- `withTimeFrom(rule, from, start, end)` trả về patch đặt giờ mới và ghi giờ cũ vào lịch sử
+  với `until = from`. Hai phép nén giữ danh sách không phình: chuỗi không có buổi nào trước
+  `from` thì bỏ luôn giờ cũ, và hai lần sửa trong cùng một ngày chỉ giữ giờ đã thực sự tới
+  được một ngày quá khứ.
+
+Ghi một điều chỉnh riêng cho từng ngày quá khứ là cách làm bị loại: chi phí của nó tăng theo
+tuổi của chuỗi, và một chuỗi hằng ngày chạy một năm sẽ tốn 365 lượt ghi cho một lần sửa.
 
 ## Ràng buộc hiệu năng
 
@@ -164,3 +209,9 @@ sheet là công việc vô ích trên JS thread ngay tại thời điểm ngư�
 | Điều chỉnh riêng chỉ có `status` | `hasOverride: false` — không hiện nhãn chỉnh riêng |
 | Điều chỉnh riêng rơi ngoài phạm vi quy tắc sau khi sửa | Không sinh buổi, nhưng bản ghi **vẫn còn** trong dữ liệu |
 | `daysOfWeek` rỗng | Không sinh buổi nào; tầng kiểm tra chặn trạng thái này trước khi lưu |
+| `monthlyByDay` ngày 31, tháng 2 | Không sinh buổi nào — **không** dồn về ngày 28 |
+| `monthlyByDay` chọn trùng một ngày hai lần | Đếm một lần, không phải hai |
+| `monthlyLastDay` vào tháng 2 năm nhuận | Buổi rơi vào ngày 29, không phải 28 |
+| Chuỗi bị kết thúc (`endDate` = hôm qua) | Ngày trước đó **vẫn** sinh buổi; hôm nay trở đi thì không |
+| Sửa giờ chuỗi, xem một ngày quá khứ | Buổi giữ giờ cũ; buổi từ ngày sửa trở đi dùng giờ mới |
+| Sửa giờ chuỗi hai lần | Mỗi ngày quá khứ lấy đúng giờ của thời kỳ nó thuộc về |

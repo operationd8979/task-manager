@@ -8,15 +8,18 @@ import { t, type StringKey } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
 import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
-export type RowAction = 'move' | 'edit' | 'delete';
+export type RowAction = 'move' | 'edit' | 'skip' | 'delete';
 
 export interface RowActionsSheetProps {
 	title: string;
 	/**
-	 * A session of a series reads differently: "Xóa" would suggest the whole
-	 * series is going away, so the last action becomes "Bỏ qua buổi này"
-	 * (design/ia §4 S-06). It also decides what "Di chuyển" opens — a session
-	 * belongs to its weekday, so only its time is on offer.
+	 * A session of a series gets one extra action, not a different one.
+	 *
+	 * "Bỏ qua buổi này" and "Xóa" are both offered because they are genuinely
+	 * different jobs — drop this one session, or end the series — and a single
+	 * button that asked which one afterwards made the common case (skip) pay for
+	 * the rare one (change.md §1). It also decides what "Di chuyển" opens: a
+	 * session belongs to its own date, so only its time is on offer.
 	 */
 	isOccurrence: boolean;
 	onAction: (action: RowAction) => void;
@@ -29,22 +32,21 @@ export interface RowActionsSheetProps {
  * as well. Two entries for one job made the sheet longer and the choice
  * harder, so the narrower one is gone.
  *
- * "Sửa" is absent for a session because editing a session's CONTENT — title,
- * note, reminder — is not built yet. Listing it anyway gave a button that
- * closed the sheet and did nothing, which is worse than not offering it.
+ * "Xóa" is last for both kinds and reads the same in both, which is the point:
+ * a user who has learned where delete lives on an ordinary task finds it in the
+ * same place on a repeating one. What differs is what it does — for a session
+ * it opens a warning naming the sessions it would end (change.md §1).
  */
 function actionsFor(
 	isOccurrence: boolean,
 ): ReadonlyArray<{ action: RowAction; key: StringKey }> {
 	return [
 		{ action: 'move', key: 'actions.move' },
+		{ action: 'edit', key: 'actions.edit' },
 		...(isOccurrence
-			? []
-			: [{ action: 'edit' as const, key: 'actions.edit' as const }]),
-		{
-			action: 'delete',
-			key: isOccurrence ? 'scope.skipThisSession' : 'actions.delete',
-		},
+			? [{ action: 'skip' as const, key: 'scope.skipThisSession' as const }]
+			: []),
+		{ action: 'delete', key: 'actions.delete' },
 	];
 }
 

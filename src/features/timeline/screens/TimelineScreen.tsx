@@ -25,7 +25,7 @@ import { Text } from '../../../components/Text';
 import { countdownOpensAt } from '../../../domain/countdown';
 import { DEFAULT_SETTINGS, type AppSettings } from '../../../domain/settings';
 import { withStartTime, type Task } from '../../../domain/task';
-import type { RecurringRule } from '../../../domain/recurrence';
+import { withTimeFrom, type RecurringRule } from '../../../domain/recurrence';
 import type { TimelineItem } from '../../../domain/timeline';
 import { addDays, compareDate, today, type LocalTime } from '../../../lib/date';
 import { dayLabel } from '../../../lib/format';
@@ -40,6 +40,7 @@ import {
 	ROW_MIN_HEIGHT,
 } from '../../../theme/tokens';
 import {
+	DeleteSeriesSheet,
 	RowActionsSheet,
 	ScopeSheet,
 	TaskFormSheet,
@@ -77,18 +78,25 @@ const plain = RNStyleSheet.create({ fill: { flex: 1 } });
 /**
  * A write that has to pass the apply-scope sheet first.
  *
- * `shiftTime` carries the end time as well as the start: a reschedule moves the
+ * Only rescheduling reaches it now. Deleting a session used to as well, with
+ * "chỉ lần này" meaning skip — but those are two different jobs, so they are
+ * two entries in the row sheet, and neither has a scope left to ask about
+ * (change.md §1). The end time travels with the start: a reschedule moves the
  * whole span, and dropping the end here is what left occurrences ending before
  * they began.
  */
-type ScopedAction =
-	| { kind: 'shiftTime'; startTime: LocalTime; endTime: LocalTime | null }
-	| { kind: 'delete' };
+interface ScopedShift {
+	startTime: LocalTime;
+	endTime: LocalTime | null;
+}
 
 type Overlay =
 	| { kind: 'none' }
 	| { kind: 'calendar' }
 	| { kind: 'form'; task?: Task }
+	// Editing a repeating session means editing the RULE behind it; there is no
+	// per-session content editor, so this carries the rule rather than a row.
+	| { kind: 'seriesForm'; rule: RecurringRule }
 	| { kind: 'actions'; item: TimelineItem }
 	// Holds the row, not a resolved Task: a recurring session has no record
 	// behind it, and this sheet only ever reads the date and the start time.
@@ -111,13 +119,15 @@ export function TimelineScreen() {
 	const [date, setDate] = useState(() => today());
 	const [overlay, setOverlay] = useState<Overlay>({ kind: 'none' });
 	const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-	/** A write against a recurring session, waiting on the scope answer. */
+	/** A reschedule of a recurring session, waiting on the scope answer. */
 	const [pendingScope, setPendingScope] = useState<{
 		rule: RecurringRule;
 		date: string;
 		title: string;
-		action: ScopedAction;
+		action: ScopedShift;
 	} | null>(null);
+	/** A series the user has asked to end, waiting on the warning. */
+	const [pendingDelete, setPendingDelete] = useState<RecurringRule | null>(null);
 
 	const { state, reload, setStatus } = useTimelineDay(date);
 
@@ -297,6 +307,70 @@ export function TimelineScreen() {
 	);
 
 	/**
+	 * The occurrence counterpart: resolves a session's RULE before opening a
+	 * sheet. Editing or deleting a session is always an act on the series, so
+	 * every one of those paths starts here.
+	 */
+	const withRule = useCallback(
+		(item: TimelineItem, open: (rule: RecurringRule) => void) => {
+			if (item.source.kind !== 'occurrence') {
+				return;
+			}
+			recurrence
+				.findRule(item.source.ruleId)
+				.then(found => {
+					if (found) {
+						open(found);
+					}
+				})
+				.catch(reload);
+		},
+		[recurrence, reload],
+	);
+
+	/**
+	 * Drops one session of a series, and only that one (change.md §1).
+	 *
+	 * No scope question and no confirmation: it touches exactly the session whose
+	 * button was pressed, the row stays on the day struck through, and the row's
+	 * own restore button undoes it long after the toast is gone.
+	 *
+	 * Undo writes `isSkipped: false` rather than clearing the override, so a
+	 * session that also had its own time or status keeps them.
+	 */
+	const skipOccurrence = useCallback(
+		(item: TimelineItem) => {
+			if (item.source.kind !== 'occurrence') {
+				return;
+			}
+			const { ruleId, date: occurrenceDate } = item.source;
+			recurrence
+				.upsertOverride(ruleId, occurrenceDate, { isSkipped: true })
+				.then(() => {
+					reload();
+					// Nothing about a session the user cancelled may reach the OS.
+					reminders.sync();
+					undo.offer({
+						message: t('undo.skipped', {
+							title: item.title,
+							date: occurrenceDate,
+						}),
+						undo: async () => {
+							await recurrence.upsertOverride(ruleId, occurrenceDate, {
+								isSkipped: false,
+							});
+							reload();
+							reminders.sync();
+						},
+						commit: async () => undefined,
+					});
+				})
+				.catch(reload);
+		},
+		[recurrence, reload, reminders, undo],
+	);
+
+	/**
 	 * Opens the scope sheet for a write against a recurring session.
 	 *
 	 * It appears AFTER the user has committed the edit and immediately before the
@@ -304,7 +378,7 @@ export function TimelineScreen() {
 	 * (design/ia §5 F-3).
 	 */
 	const askScope = useCallback(
-		(item: TimelineItem, action: ScopedAction) => {
+		(item: TimelineItem, action: ScopedShift) => {
 			if (item.source.kind !== 'occurrence') {
 				return;
 			}
@@ -332,7 +406,7 @@ export function TimelineScreen() {
 			// sitting at 10:00–10:00 after one step.
 			const next = withStartTime(item, nextStart);
 			if (item.source.kind === 'occurrence') {
-				askScope(item, { kind: 'shiftTime', ...next });
+				askScope(item, next);
 				return;
 			}
 			repository.update(item.source.taskId, next).then(reload).catch(reload);
@@ -348,107 +422,138 @@ export function TimelineScreen() {
 			}
 			setPendingScope(null);
 			const { rule, date: occurrenceDate, action } = pending;
-
-			if (action.kind === 'shiftTime') {
-				const previous = rule.defaultStartTime;
-				const previousEnd = rule.defaultEndTime;
-				const write =
-					scope === 'thisOnly'
-						? recurrence.upsertOverride(rule.id, occurrenceDate, {
-							startTime: action.startTime,
-							endTime: action.endTime,
-						})
-						: recurrence
-							.updateRule(rule.id, {
-								defaultStartTime: action.startTime,
-								defaultEndTime: action.endTime,
-							})
-							.then(() => undefined);
-
-				write
-					.then(() => {
-						reload();
-						// The fire times moved, so the schedule has to be re-derived.
-						reminders.sync();
-						// The toast restates the scope that was applied, because that is
-						// the thing the user most needs to confirm (ux-ui-spec §4).
-						undo.offer({
-							message: t(
-								scope === 'thisOnly'
-									? 'undo.scopeThisOnly'
-									: 'undo.scopeWholeSeries',
-								{ change: t('scope.changedTime', { time: action.startTime }) },
-							),
-							undo: async () => {
-								if (scope === 'thisOnly') {
-									await recurrence.clearOverride(rule.id, occurrenceDate);
-								} else {
-									await recurrence.updateRule(rule.id, {
-										defaultStartTime: previous,
-										defaultEndTime: previousEnd,
-									});
-								}
-								reload();
-								reminders.sync();
-							},
-							commit: async () => undefined,
-						});
-					})
-					.catch(reload);
-				return;
-			}
-
-			if (scope === 'thisOnly') {
-				recurrence
-					.upsertOverride(rule.id, occurrenceDate, { isSkipped: true })
-					.then(() => {
-						reload();
-						reminders.sync();
-						undo.offer({
-							message: t('undo.scopeThisOnly', { change: t('scope.skipped') }),
-							undo: async () => {
-								await recurrence.clearOverride(rule.id, occurrenceDate);
-								reload();
-								reminders.sync();
-							},
-							commit: async () => undefined,
-						});
-					})
-					.catch(reload);
-				return;
-			}
+			const previous = {
+				defaultStartTime: rule.defaultStartTime,
+				defaultEndTime: rule.defaultEndTime,
+				timeHistory: rule.timeHistory,
+			};
 
 			/**
-			 * Deleting a whole series is the largest thing this sheet can do, so it
-			 * gets the same five-second escape as deleting a task (FR-011a).
-			 *
-			 * The cascade is a hard delete with nothing left on disk to restore from,
-			 * so the snapshot is READ FIRST and undo replays it. Taken before the
-			 * delete rather than after, for the obvious reason.
+			 * A whole-series reschedule goes through `withTimeFrom`, exactly as the
+			 * edit screen does: dragging a row is a different gesture for the same
+			 * decision, and it must not be the one route that rewrites what time
+			 * last month's sessions happened at (change.md §4).
 			 */
-			recurrence
-				.snapshotRule(rule.id)
-				.then(async snapshot => {
-					await recurrence.deleteRuleCascade(rule.id);
+			const write =
+				scope === 'thisOnly'
+					? recurrence.upsertOverride(rule.id, occurrenceDate, {
+						startTime: action.startTime,
+						endTime: action.endTime,
+					})
+					: recurrence
+						.updateRule(
+							rule.id,
+							withTimeFrom(rule, today(), action.startTime, action.endTime),
+						)
+						.then(() => undefined);
+
+			write
+				.then(() => {
 					reload();
+					// The fire times moved, so the schedule has to be re-derived.
 					reminders.sync();
-					if (!snapshot) {
-						return;
-					}
+					// The toast restates the scope that was applied, because that is
+					// the thing the user most needs to confirm (ux-ui-spec §4).
 					undo.offer({
-						message: t('undo.seriesDeleted', { title: rule.title }),
+						message: t(
+							scope === 'thisOnly'
+								? 'undo.scopeThisOnly'
+								: 'undo.scopeWholeSeries',
+							{ change: t('scope.changedTime', { time: action.startTime }) },
+						),
 						undo: async () => {
-							await recurrence.restoreRule(snapshot);
+							if (scope === 'thisOnly') {
+								await recurrence.clearOverride(rule.id, occurrenceDate);
+							} else {
+								// The history goes back too — restoring the time alone
+								// would leave behind a segment claiming the series used to
+								// run at a time it is about to run at again.
+								await recurrence.updateRule(rule.id, previous);
+							}
 							reload();
 							reminders.sync();
 						},
-						// Nothing to finalise: the rows are already gone.
 						commit: async () => undefined,
 					});
 				})
 				.catch(reload);
 		},
 		[pendingScope, recurrence, reload, undo, reminders],
+	);
+
+	/**
+	 * Ends a series from today, keeping every session already behind us
+	 * (change.md §1, §5).
+	 *
+	 * Not a delete: occurrences are computed from the rule, so removing the rule
+	 * would take the user's history with it — a year of "done" sessions vanishing
+	 * because they ended a habit today. Setting the end date leaves the past
+	 * exactly as it was and stops the future, which is what "xóa" means for
+	 * something that has already happened.
+	 *
+	 * The one case that IS a delete is a series with nothing behind it: a rule
+	 * whose sessions all lie ahead has no history to protect, and an ended rule
+	 * with no visible sessions would be a record the user can never reach again.
+	 */
+	const endSeries = useCallback(
+		(rule: RecurringRule) => {
+			setPendingDelete(null);
+			const from = today();
+
+			if (compareDate(rule.startDate, from) >= 0) {
+				// A hard delete has nothing left on disk to restore from, so the
+				// snapshot is READ FIRST and undo replays it (FR-031a).
+				recurrence
+					.snapshotRule(rule.id)
+					.then(async snapshot => {
+						await recurrence.deleteRuleCascade(rule.id);
+						reload();
+						reminders.sync();
+						if (!snapshot) {
+							return;
+						}
+						undo.offer({
+							message: t('undo.seriesRemoved', { title: rule.title }),
+							undo: async () => {
+								await recurrence.restoreRule(snapshot);
+								reload();
+								reminders.sync();
+							},
+							// Nothing to finalise: the rows are already gone.
+							commit: async () => undefined,
+						});
+					})
+					.catch(reload);
+				return;
+			}
+
+			const previousEnd = rule.endDate;
+			const cutoff = addDays(from, -1);
+			// Never moves an end date FORWARD. Deleting from a past day of a series
+			// that already ended would otherwise revive the days in between.
+			const nextEnd =
+				previousEnd !== null && compareDate(previousEnd, cutoff) < 0
+					? previousEnd
+					: cutoff;
+
+			recurrence
+				.updateRule(rule.id, { endDate: nextEnd })
+				.then(() => {
+					reload();
+					reminders.sync();
+					undo.offer({
+						message: t('undo.seriesDeleted', { title: rule.title }),
+						undo: async () => {
+							await recurrence.updateRule(rule.id, { endDate: previousEnd });
+							reload();
+							reminders.sync();
+						},
+						commit: async () => undefined,
+					});
+				})
+				.catch(reload);
+		},
+		[recurrence, reload, undo, reminders],
 	);
 
 	/**
@@ -491,8 +596,8 @@ export function TimelineScreen() {
 			switch (action) {
 				case 'move':
 					// Both kinds open the same sheet; only the date field differs. A
-					// session's date is decided by its rule's weekdays, so for one of
-					// those this is the đổi-giờ sheet and nothing more (FR-018b).
+					// session's date is decided by its rule's repeat pattern, so for one
+					// of those this is the đổi-giờ sheet and nothing more (FR-018b).
 					setOverlay({
 						kind: 'shift',
 						item,
@@ -500,18 +605,30 @@ export function TimelineScreen() {
 					});
 					break;
 				case 'edit':
-					withTask(item, task => setOverlay({ kind: 'form', task }));
+					// A session has no record of its own, so "Sửa" edits the series it
+					// belongs to — and says so on the sheet it opens (change.md §4).
+					if (item.source.kind === 'occurrence') {
+						withRule(item, rule => setOverlay({ kind: 'seriesForm', rule }));
+					} else {
+						withTask(item, task => setOverlay({ kind: 'form', task }));
+					}
+					break;
+				case 'skip':
+					skipOccurrence(item);
 					break;
 				case 'delete':
 					if (item.source.kind === 'occurrence') {
-						askScope(item, { kind: 'delete' });
+						// Never immediate, unlike a one-off task: undo cannot be the only
+						// safeguard on something that removes a hundred future sessions,
+						// so this one asks first and names the number (change.md §1).
+						withRule(item, setPendingDelete);
 					} else {
 						withTask(item, deleteTask);
 					}
 					break;
 			}
 		},
-		[deleteTask, withTask, askScope, closeOverlay],
+		[deleteTask, withTask, withRule, skipOccurrence, closeOverlay],
 	);
 
 	const applyShift = useCallback(
@@ -523,7 +640,7 @@ export function TimelineScreen() {
 			// A session's new time still has to pass the apply-scope sheet, so this
 			// route and the drag reach the same decision (FR-026).
 			if (item.source.kind === 'occurrence') {
-				askScope(item, { kind: 'shiftTime', ...shifted });
+				askScope(item, shifted);
 				return;
 			}
 
@@ -566,9 +683,14 @@ export function TimelineScreen() {
 
 	const openCreate = useCallback(() => setOverlay({ kind: 'form' }), []);
 	const openEdit = useCallback(
-		(item: TimelineItem) =>
-			withTask(item, task => setOverlay({ kind: 'form', task })),
-		[withTask],
+		(item: TimelineItem) => {
+			if (item.source.kind === 'occurrence') {
+				withRule(item, rule => setOverlay({ kind: 'seriesForm', rule }));
+				return;
+			}
+			withTask(item, task => setOverlay({ kind: 'form', task }));
+		},
+		[withTask, withRule],
 	);
 	const openActions = useCallback(
 		(item: TimelineItem) => setOverlay({ kind: 'actions', item }),
@@ -702,12 +824,30 @@ export function TimelineScreen() {
 				/>
 			) : null}
 
+			{overlay.kind === 'seriesForm' ? (
+				<TaskFormSheet
+					rule={overlay.rule}
+					viewingDate={date}
+					onSaved={handleSaved}
+					onClose={closeOverlay}
+				/>
+			) : null}
+
 			{overlay.kind === 'actions' ? (
 				<RowActionsSheet
 					title={overlay.item.title}
 					isOccurrence={overlay.item.source.kind === 'occurrence'}
 					onAction={action => handleAction(overlay.item, action)}
 					onClose={closeOverlay}
+				/>
+			) : null}
+
+			{pendingDelete ? (
+				<DeleteSeriesSheet
+					rule={pendingDelete}
+					from={today()}
+					onConfirm={() => endSeries(pendingDelete)}
+					onCancel={() => setPendingDelete(null)}
 				/>
 			) : null}
 

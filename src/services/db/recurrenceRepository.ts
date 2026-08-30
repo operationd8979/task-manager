@@ -6,12 +6,14 @@ import type {
 
 import type {
 	NewRecurringRule,
+	RecurrenceFrequency,
 	RecurrenceOverride,
 	RecurringRule,
+	TimeSegment,
 } from '../../domain/recurrence';
 import { isReminderOffset, type ReminderOffset } from '../../domain/reminder';
 import type { TaskStatus } from '../../domain/task';
-import type { LocalDate, LocalTime, Weekday } from '../../lib/date';
+import { isLocalDate, isLocalTime, type LocalDate, type LocalTime, type Weekday } from '../../lib/date';
 import { COLLECTION } from './schema';
 import { toDataError } from './errors';
 
@@ -22,8 +24,13 @@ interface RuleRow {
 	endDate: string | null;
 	/** Sorted weekday numbers joined with commas — see data-model.md §2.2. */
 	daysOfWeek: string;
+	frequency: string;
+	/** Sorted day-of-month numbers joined with commas, e.g. "1,15". */
+	daysOfMonth: string;
 	defaultStartTime: string;
 	defaultEndTime: string | null;
+	/** "until|start|end" triples joined with semicolons; empty when unedited. */
+	timeHistory: string;
 	reminderEnabled: boolean;
 	reminderOffsetMinutes: number;
 	[key: string]: StorableValue;
@@ -287,6 +294,71 @@ function decodeDays(value: string): Weekday[] {
 		.filter((n): n is Weekday => n >= 1 && n <= 7);
 }
 
+function encodeNumbers(days: readonly number[]): string {
+	return [...new Set(days)].sort((a, b) => a - b).join(',');
+}
+
+function decodeNumbers(value: string | undefined): number[] {
+	if (!value) {
+		return [];
+	}
+	return value
+		.split(',')
+		.map(Number)
+		.filter(n => Number.isInteger(n) && n >= 1 && n <= 31);
+}
+
+const FREQUENCIES: readonly RecurrenceFrequency[] = [
+	'weekly',
+	'monthlyByDay',
+	'monthlyLastDay',
+];
+
+/**
+ * Falls back to 'weekly' rather than throwing.
+ *
+ * Every rule written before schema v2 repeats by weekday and has no such field,
+ * so this is the migration's answer as well as the corruption one — a rule that
+ * lost its frequency still draws on the days it always did, instead of taking
+ * the whole timeline down with it.
+ */
+function asFrequency(value: string | undefined): RecurrenceFrequency {
+	return FREQUENCIES.find(f => f === value) ?? 'weekly';
+}
+
+function encodeTimeHistory(history: readonly TimeSegment[]): string {
+	return history
+		.map(s => `${s.until}|${s.startTime}|${s.endTime ?? ''}`)
+		.join(';');
+}
+
+/**
+ * Every triple is validated and a malformed one is DROPPED, not guessed at.
+ *
+ * These values decide what time a past session is shown at. A half-parsed entry
+ * would put a real session at an invented hour, which reads as the app having
+ * silently moved it; falling back to the rule's current time is at least a time
+ * the series genuinely uses.
+ */
+function decodeTimeHistory(value: string | undefined): TimeSegment[] {
+	if (!value) {
+		return [];
+	}
+	const out: TimeSegment[] = [];
+	for (const part of value.split(';')) {
+		const [until, startTime, endTime] = part.split('|');
+		if (!isLocalDate(until ?? '') || !isLocalTime(startTime ?? '')) {
+			continue;
+		}
+		out.push({
+			until,
+			startTime,
+			endTime: endTime ? (isLocalTime(endTime) ? endTime : null) : null,
+		});
+	}
+	return out;
+}
+
 function toRuleRow(rule: NewRecurringRule | RecurringRule): RuleRow {
 	return {
 		title: rule.title,
@@ -294,8 +366,11 @@ function toRuleRow(rule: NewRecurringRule | RecurringRule): RuleRow {
 		startDate: rule.startDate,
 		endDate: rule.endDate,
 		daysOfWeek: encodeDays(rule.daysOfWeek),
+		frequency: rule.frequency,
+		daysOfMonth: encodeNumbers(rule.daysOfMonth),
 		defaultStartTime: rule.defaultStartTime,
 		defaultEndTime: rule.defaultEndTime,
+		timeHistory: encodeTimeHistory(rule.timeHistory),
 		reminderEnabled: rule.reminderEnabled,
 		reminderOffsetMinutes: rule.reminderOffsetMinutes,
 	};
@@ -310,8 +385,11 @@ function toRule(record: StoredRecord<RuleRow>): RecurringRule {
 		startDate: data.startDate,
 		endDate: data.endDate,
 		daysOfWeek: decodeDays(data.daysOfWeek),
+		frequency: asFrequency(data.frequency),
+		daysOfMonth: decodeNumbers(data.daysOfMonth),
 		defaultStartTime: data.defaultStartTime,
 		defaultEndTime: data.defaultEndTime,
+		timeHistory: decodeTimeHistory(data.timeHistory),
 		reminderEnabled: Boolean(data.reminderEnabled),
 		reminderOffsetMinutes: asOffset(data.reminderOffsetMinutes),
 	};

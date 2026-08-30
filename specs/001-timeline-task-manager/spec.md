@@ -246,6 +246,7 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 #### Trạng thái công việc
 
 - **FR-014**: Hệ thống MUST hỗ trợ hai trạng thái công việc: đang thực hiện và hoàn thành.
+- **FR-014a**: Ô đánh dấu trên dòng timeline MUST là **cách duy nhất** đổi trạng thái. Màn hình sửa — của công việc thường lẫn của công việc lặp — MUST KHÔNG có trường trạng thái. Hai lối vào cho một giá trị là hai lối để chúng bất đồng, và một trạng thái đổi bên trong form còn có thể mất khi người dùng đóng form mà không lưu.
 - **FR-015**: Người dùng MUST có thể chuyển đổi trạng thái theo cả hai chiều ngay trên timeline mà không cần mở form chỉnh sửa, và thay đổi MUST được lưu ngay.
 - **FR-016**: Công việc hoàn thành MUST vẫn hiển thị trên timeline với dấu hiệu trực quan khác biệt không chỉ dựa vào màu sắc.
 - **FR-017**: Hệ thống MUST đánh dấu công việc là quá hạn khi thời gian của nó đã trôi qua và trạng thái chưa phải hoàn thành, và MUST KHÔNG tự động chuyển công việc quá hạn sang hoàn thành.
@@ -263,8 +264,10 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 
 #### Công việc lặp lại
 
-- **FR-020**: Người dùng MUST có thể thiết lập công việc lặp lại vào một hoặc nhiều ngày trong tuần, từ Thứ Hai đến Chủ Nhật.
-- **FR-021**: Một quy tắc lặp lại MUST lưu được: ngày bắt đầu áp dụng, các ngày trong tuần, giờ bắt đầu mặc định, giờ kết thúc hoặc thời lượng mặc định, ngày kết thúc tùy chọn, và cấu hình nhắc nhở mặc định.
+- **FR-020**: Người dùng MUST có thể thiết lập công việc lặp lại theo một trong ba kiểu: **theo thứ** (một hoặc nhiều ngày trong tuần, từ Thứ Hai đến Chủ Nhật), **theo ngày** (một hoặc nhiều ngày trong tháng, từ 1 đến 31), hoặc **cuối tháng** (đúng một buổi mỗi tháng, vào ngày cuối cùng của tháng đó).
+- **FR-020a**: Với kiểu lặp theo ngày, tháng không có ngày đã chọn MUST KHÔNG sinh buổi nào cho ngày đó, và hệ thống MUST KHÔNG dời buổi sang một ngày khác. Giao diện thiết lập MUST nói trước những tháng sẽ không có buổi, vì một tháng trống mà không được báo trước sẽ bị đọc là lỗi của ứng dụng.
+- **FR-020b**: Với kiểu lặp cuối tháng, ngày sinh buổi MUST là ngày cuối cùng thực tế của từng tháng — 28, 29, 30 hoặc 31 — kể cả tháng 2 của năm nhuận.
+- **FR-021**: Một quy tắc lặp lại MUST lưu được: ngày bắt đầu áp dụng, kiểu lặp, các ngày trong tuần hoặc các ngày trong tháng tùy theo kiểu, giờ bắt đầu mặc định, giờ kết thúc hoặc thời lượng mặc định, ngày kết thúc tùy chọn, cấu hình nhắc nhở mặc định, và lịch sử các mốc giờ trước đây của chuỗi (FR-030b).
 - **FR-022**: Khi không có ngày kết thúc, hệ thống MUST tiếp tục sinh lần xuất hiện vô thời hạn.
 - **FR-023**: Hệ thống MUST sinh lần xuất hiện của công việc lặp lại theo nhu cầu hiển thị thay vì lưu sẵn toàn bộ lần xuất hiện trong dữ liệu.
 - **FR-024**: Hệ thống MUST chỉ sinh lần xuất hiện từ ngày bắt đầu trở đi, và MUST bao gồm cả ngày kết thúc nếu ngày đó nằm trong các ngày lặp đã chọn.
@@ -272,17 +275,22 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 
 #### Điều chỉnh riêng từng lần xuất hiện
 
-- **FR-026**: Khi người dùng chỉnh sửa nội dung, di chuyển hoặc xóa một lần xuất hiện của công việc lặp lại, hệ thống MUST yêu cầu chọn phạm vi áp dụng gồm "Chỉ lần này", "Toàn bộ chuỗi" và "Hủy".
+- **FR-026**: Khi người dùng **đổi giờ** một lần xuất hiện của công việc lặp lại — bằng kéo-thả hoặc qua "Di chuyển" — hệ thống MUST yêu cầu chọn phạm vi áp dụng gồm "Chỉ lần này", "Toàn bộ chuỗi" và "Hủy". Sửa nội dung (FR-030a) và xóa (FR-031) MUST KHÔNG hỏi phạm vi: mỗi thao tác đó chỉ có một nghĩa, và bỏ qua một buổi đã có mục riêng trong cửa sổ thao tác.
 - **FR-026a**: Đổi trạng thái của một lần xuất hiện MUST KHÔNG hỏi phạm vi áp dụng. Thao tác này luôn được ghi nhận cho đúng lần xuất hiện đó, tương đương phạm vi "Chỉ lần này".
 - **FR-026b**: Khi hỏi phạm vi áp dụng, hệ thống MUST cho biết số lần xuất hiện bị ảnh hưởng bởi mỗi lựa chọn, để người dùng hiểu hậu quả trước khi chọn.
 - **FR-026c**: Số lần xuất hiện bị ảnh hưởng MUST được đếm trong 365 ngày kể từ ngày đang thao tác. Khi quy tắc lặp không có ngày kết thúc, hệ thống MUST nói rõ rằng các lần xuất hiện sau mốc đó cũng bị ảnh hưởng, thay vì trình bày con số đếm được như thể đó là toàn bộ.
 - **FR-027**: Khi chọn "Chỉ lần này", hệ thống MUST chỉ ghi nhận điều chỉnh riêng cho lần xuất hiện đó và MUST KHÔNG thay đổi quy tắc lặp lại.
 - **FR-028**: Một lần xuất hiện MUST có tối đa một điều chỉnh riêng, xác định duy nhất bởi cặp quy tắc lặp lại và ngày xuất hiện.
 - **FR-029**: Điều chỉnh riêng MUST có thể thay đổi giờ bắt đầu, giờ kết thúc, tên, ghi chú, trạng thái, cấu hình nhắc nhở, hoặc đánh dấu lần xuất hiện đó bị bỏ qua.
-- **FR-029a**: Phiên bản đầu tiên chỉ mở lối vào giao diện cho phần điều chỉnh riêng về **giờ, trạng thái và bỏ qua buổi**. Mô hình dữ liệu vẫn lưu được tên, ghi chú và cấu hình nhắc nhở theo FR-029, nhưng khi chưa có màn hình sửa nội dung của một buổi thì mục "Sửa" MUST KHÔNG xuất hiện trong cửa sổ thao tác của buổi lặp — một nút đóng cửa sổ rồi không mở gì tệ hơn một nút vắng mặt. Xem Out of Scope.
+- **FR-029a**: Lối vào giao diện cho phần điều chỉnh **riêng một buổi** vẫn chỉ gồm giờ, trạng thái và bỏ qua buổi. Mô hình dữ liệu lưu được tên, ghi chú và cấu hình nhắc nhở riêng theo FR-029, nhưng không có màn hình nào ghi chúng: mục "Sửa" của một buổi lặp mở màn sửa **toàn chuỗi** (FR-030a), và nói rõ như vậy ngay trên màn đó.
 - **FR-030**: Khi chọn "Toàn bộ chuỗi" để chỉnh sửa, hệ thống MUST cập nhật quy tắc lặp lại và áp dụng cho mọi lần xuất hiện chưa có điều chỉnh riêng, đồng thời MUST giữ nguyên các điều chỉnh riêng đã tạo.
-- **FR-031**: Khi chọn "Toàn bộ chuỗi" để xóa, hệ thống MUST xóa quy tắc lặp lại, loại bỏ mọi lần xuất hiện tương lai và hủy mọi nhắc nhở tương lai của chuỗi đó.
-- **FR-031a**: Xóa toàn bộ chuỗi MUST cung cấp hành động hoàn tác theo đúng điều kiện của FR-011a. Đây là thao tác mất nhiều dữ liệu nhất mà một lần chạm gây ra, nên nó không thể là thao tác duy nhất không lấy lại được. Hoàn tác MUST khôi phục cả quy tắc lặp và toàn bộ điều chỉnh riêng của nó, dưới đúng định danh cũ.
+- **FR-030a**: Người dùng MUST sửa được một công việc lặp lại qua mục "Sửa" của một buổi bất kỳ. Phạm vi luôn là toàn chuỗi, kể cả các ngày đã qua, nên màn này MUST KHÔNG hỏi phạm vi áp dụng. Sửa được: **tên, giờ bắt đầu, giờ kết thúc, nhắc nhở và ghi chú**. **Ngày bắt đầu chuỗi** MUST hiển thị nhưng không sửa được — dời nó sẽ đổi tập buổi từng tồn tại, tức là một chuỗi khác chứ không phải một lần sửa. **Mẫu lặp** (các thứ, các ngày trong tháng, ngày kết thúc) MUST hiển thị nhưng không sửa được, vì bỏ chọn một ngày sẽ xóa buổi ra khỏi quá khứ. **Trạng thái** MUST KHÔNG có mặt (FR-014a).
+- **FR-030b**: Đổi giờ của một chuỗi — qua FR-030a hoặc qua phạm vi "Toàn bộ chuỗi" của FR-026 — MUST chỉ áp dụng **từ ngày hôm nay trở đi**. Các buổi của những ngày trước đó MUST giữ nguyên giờ chúng đã diễn ra. Vì buổi là dữ liệu dẫn xuất chứ không lưu, quy tắc MUST lưu lại các mốc giờ trước đây để đọc lại; ghi một điều chỉnh riêng cho từng ngày quá khứ MUST KHÔNG được dùng, vì chi phí của nó tăng theo tuổi của chuỗi.
+- **FR-030c**: Tên, ghi chú và cấu hình nhắc nhở sửa qua FR-030a MUST áp dụng cho mọi buổi của chuỗi, kể cả các buổi đã qua — trừ những buổi đã có điều chỉnh riêng cho đúng trường đó, vốn được giữ nguyên theo FR-030.
+- **FR-031**: Cửa sổ thao tác của một buổi lặp MUST có cả "Bỏ qua buổi này" và "Xóa", vì đó là hai việc khác nhau. "Bỏ qua buổi này" MUST đánh dấu bỏ qua đúng buổi đang chọn, ngay lập tức, không hỏi phạm vi và không hỏi xác nhận — buổi vẫn hiện trên ngày đó ở dạng đã gạch, và nút khôi phục nằm ngay trên dòng.
+- **FR-031b**: "Xóa" trên một buổi lặp MUST kết thúc chuỗi **từ hôm nay trở đi** và MUST KHÔNG xóa các buổi của những ngày đã qua. Lịch sử của người dùng — những buổi đã hoàn thành, đã quá hạn, đã bỏ qua — MUST còn nguyên trên các ngày đó sau khi xóa. Ngoại lệ duy nhất là chuỗi chưa có buổi nào trong quá khứ, khi đó quy tắc bị xóa hẳn vì không có gì để giữ.
+- **FR-031c**: Trước khi kết thúc một chuỗi, hệ thống MUST hiện cảnh báo nêu **số buổi sẽ bị bỏ tính từ hôm nay** theo đúng điều kiện đếm của FR-026c, và MUST nói rõ rằng các buổi đã qua được giữ lại. Đây là thao tác một lần chạm gây mất nhiều dữ liệu nhất, nên hoàn tác không thể là lớp bảo vệ duy nhất.
+- **FR-031a**: Kết thúc hoặc xóa một chuỗi MUST cung cấp hành động hoàn tác theo đúng điều kiện của FR-011a. Đây là thao tác mất nhiều dữ liệu nhất mà một lần chạm gây ra, nên nó không thể là thao tác duy nhất không lấy lại được. Hoàn tác MUST khôi phục cả quy tắc lặp và toàn bộ điều chỉnh riêng của nó, dưới đúng định danh cũ.
 - **FR-032**: Việc đánh dấu hoàn thành cho một lần xuất hiện MUST KHÔNG làm thay đổi trạng thái của các lần xuất hiện khác trong cùng chuỗi.
 
 #### Nhắc nhở
@@ -412,7 +420,8 @@ Những nội dung sau nằm ngoài phạm vi phiên bản đầu tiên:
 - Nhập hoặc xuất tệp bảng tính.
 - Tích hợp lịch của bên thứ ba.
 - Phạm vi chỉnh sửa "Lần này và các lần sau" cho công việc lặp lại.
-- **Sửa nội dung riêng một buổi lặp** — tên, ghi chú và cấu hình nhắc nhở của đúng một buổi. Mô hình dữ liệu đã lưu được (FR-029) nhưng phiên bản đầu tiên không có màn hình cho nó, nên mục "Sửa" vắng mặt trong cửa sổ thao tác của buổi lặp (FR-029a). Đổi giờ, đổi trạng thái và bỏ qua một buổi vẫn dùng được đầy đủ.
+- **Sửa nội dung riêng một buổi lặp** — tên, ghi chú và cấu hình nhắc nhở của đúng một buổi. Mô hình dữ liệu đã lưu được (FR-029) nhưng không có màn hình nào ghi chúng: mục "Sửa" của một buổi lặp mở màn sửa toàn chuỗi (FR-030a). Đổi giờ riêng một buổi, đổi trạng thái và bỏ qua một buổi vẫn dùng được đầy đủ.
+- **Đổi mẫu lặp của một chuỗi đã tạo** — thêm/bớt thứ, đổi các ngày trong tháng, đổi kiểu lặp. Bỏ chọn một ngày sẽ xóa các buổi đã qua của ngày đó ra khỏi lịch sử, tức là đúng thứ FR-031b tồn tại để ngăn. Muốn đổi mẫu thì kết thúc chuỗi cũ và tạo chuỗi mới.
 - Nhắc nhở lặp lại nhiều lần cho cùng một công việc, hoặc mốc nhắc tùy ý ngoài danh sách đã quy định.
 - **Reo chuông khi thiết bị đang ở chế độ im lặng.** Việc này đòi hỏi phát âm trên luồng **báo thức** chứ không phải luồng thông báo, tức là tạo kênh thông báo ở tầng native với `AudioAttributes` USAGE_ALARM — không cấu hình được từ JavaScript. Trên iOS thì cần entitlement Critical Alerts do Apple duyệt riêng. Đã ghi nhận là hạng mục kế tiếp; phiên bản đầu tiên chấp nhận chuông im theo chế độ im lặng của máy.
 - Kéo và thả để chuyển công việc sang một ngày khác (kéo-thả chỉ áp dụng trong phạm vi một ngày).

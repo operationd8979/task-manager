@@ -1,4 +1,5 @@
 import { parseLocalDate, weekdayOf, type LocalDate, type Weekday } from './date';
+import type { RepeatSummary } from '../domain/timeline';
 
 /**
  * Vietnamese display formatting.
@@ -86,4 +87,53 @@ export function timeRangeLabel(
 	end: string | null,
 ): string {
 	return end === null ? start : `${start}–${end}`;
+}
+
+/** "T2, T4, T6" — the weekdays a series runs on, in week order. */
+export function weekdayList(days: readonly Weekday[]): string {
+	return [...days].sort((a, b) => a - b).map(weekdayShort).join(', ');
+}
+
+/** "1, 15, 31" — the days of the month a series runs on, in order. */
+export function dayOfMonthList(days: readonly number[]): string {
+	return [...new Set(days)].sort((a, b) => a - b).join(', ');
+}
+
+/**
+ * "T2, T4" / "ngày 1, 15" / "cuối tháng" — the variable half of every sentence
+ * that has to name a repeat pattern.
+ *
+ * One function for the row label, the form summary and the recurrence preview,
+ * so a series cannot describe itself one way on the timeline and another way in
+ * the sheet that created it.
+ */
+export function repeatPatternLabel(summary: RepeatSummary): string {
+	switch (summary.frequency) {
+		case 'weekly':
+			return weekdayList(summary.daysOfWeek);
+		case 'monthlyByDay':
+			return `ngày ${dayOfMonthList(summary.daysOfMonth)}`;
+		case 'monthlyLastDay':
+			return 'cuối tháng';
+	}
+}
+
+const MONTH_NAMES = [
+	'tháng 1',
+	'tháng 2',
+	'tháng 3',
+	'tháng 4',
+	'tháng 5',
+	'tháng 6',
+	'tháng 7',
+	'tháng 8',
+	'tháng 9',
+	'tháng 10',
+	'tháng 11',
+	'tháng 12',
+];
+
+/** "tháng 2, tháng 4" — the months a day-of-month series will skip. */
+export function monthList(months: readonly number[]): string {
+	return months.map(m => MONTH_NAMES[m - 1] ?? `tháng ${m}`).join(', ');
 }

@@ -124,3 +124,66 @@ export function snapToGrid(time: LocalTime, stepMinutes: number): LocalTime {
 	const snapped = Math.round(minutesOf(time) / stepMinutes) * stepMinutes;
 	return timeFromMinutes(snapped);
 }
+
+/** 1–31. The day-of-month a monthly rule matches against. */
+export function dayOfMonth(date: LocalDate): number {
+	return parseLocalDate(date).getDate();
+}
+
+/**
+ * 28, 29, 30 or 31 — how many days the month containing `date` actually has.
+ *
+ * Day 0 of the NEXT month is the last day of this one; asking for it is what
+ * keeps February right in a leap year without a rule of its own.
+ */
+export function daysInMonth(date: LocalDate): number {
+	const d = parseLocalDate(date);
+	return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
+
+/** The last calendar day of the month containing `date`. */
+export function lastDayOfMonth(date: LocalDate): LocalDate {
+	const d = parseLocalDate(date);
+	return toLocalDate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+}
+
+/** The first day of the month containing `date`. */
+export function startOfMonth(date: LocalDate): LocalDate {
+	const d = parseLocalDate(date);
+	return toLocalDate(new Date(d.getFullYear(), d.getMonth(), 1));
+}
+
+/**
+ * Move by whole months, keeping the day-of-month where the target month has it.
+ *
+ * Only ever called on the first of a month by the occurrence counter, so the
+ * "31 January + 1 month" question never arises here — but it is answered
+ * anyway, by clamping rather than rolling into the next month, because rolling
+ * would silently skip a month in any loop that used it.
+ */
+export function addMonths(date: LocalDate, months: number): LocalDate {
+	const d = parseLocalDate(date);
+	const target = new Date(d.getFullYear(), d.getMonth() + months, 1);
+	const lastDay = new Date(
+		target.getFullYear(),
+		target.getMonth() + 1,
+		0,
+	).getDate();
+	target.setDate(Math.min(d.getDate(), lastDay));
+	return toLocalDate(target);
+}
+
+/** A date built from a year/month pair and a day, or null when it has no such day. */
+export function dateInMonth(
+	monthStart: LocalDate,
+	day: number,
+): LocalDate | null {
+	const d = parseLocalDate(monthStart);
+	// The whole point of "Lặp theo ngày": a month without day 31 produces
+	// NOTHING for day 31 rather than being nudged to the 28th. Nudging is what
+	// makes a monthly series land on a day the user never chose.
+	if (day < 1 || day > new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()) {
+		return null;
+	}
+	return toLocalDate(new Date(d.getFullYear(), d.getMonth(), day));
+}

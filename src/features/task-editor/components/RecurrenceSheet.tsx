@@ -6,8 +6,18 @@ import { Chip, ChipRow } from '../../../components/Chip';
 import { Segmented } from '../../../components/Segmented';
 import { Sheet } from '../../../components/Sheet';
 import { Text } from '../../../components/Text';
-import { compareDate, type LocalDate, type LocalTime, type Weekday } from '../../../lib/date';
-import { weekdayShort } from '../../../lib/format';
+import {
+	monthsWithoutDay,
+	type RecurrenceFrequency,
+} from '../../../domain/recurrence';
+import type { RepeatSummary } from '../../../domain/timeline';
+import {
+	compareDate,
+	type LocalDate,
+	type LocalTime,
+	type Weekday,
+} from '../../../lib/date';
+import { monthList, repeatPatternLabel, weekdayShort } from '../../../lib/format';
 import { t } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
 import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
@@ -16,14 +26,26 @@ import { Field } from './Field';
 
 const ALL_WEEKDAYS: readonly Weekday[] = [1, 2, 3, 4, 5, 6, 7];
 
+const DAYS_OF_MONTH: readonly number[] = Array.from(
+	{ length: 31 },
+	(_, i) => i + 1,
+);
+
 const PRESETS = [
 	{ key: 'repeat.presetWeekdays' as const, days: [1, 2, 3, 4, 5] as Weekday[] },
 	{ key: 'repeat.presetWeekend' as const, days: [6, 7] as Weekday[] },
 	{ key: 'repeat.presetDaily' as const, days: [...ALL_WEEKDAYS] as Weekday[] },
 ];
 
+/** What the segmented control holds — 'none' is the absence of a rule. */
+type RepeatMode = 'none' | RecurrenceFrequency;
+
 export interface RecurrenceValue {
+	frequency: RecurrenceFrequency;
+	/** Read only when `frequency` is 'weekly'. */
 	daysOfWeek: readonly Weekday[];
+	/** Read only when `frequency` is 'monthlyByDay'. */
+	daysOfMonth: readonly number[];
 	startDate: LocalDate;
 	endDate: LocalDate | null;
 }
@@ -51,8 +73,8 @@ export function RecurrenceSheet({
 	defaultStartDate,
 	onDone,
 	onClose,
-}: RecurrenceSheetProps) {
-	const [repeats, setRepeats] = useState(value !== null);
+}: Readonly<RecurrenceSheetProps>) {
+	const [mode, setMode] = useState<RepeatMode>(value?.frequency ?? 'none');
 	/**
 	 * Every weekday is the starting point for a repeat that has not been set up
 	 * yet (`value === null`).
@@ -65,6 +87,14 @@ export function RecurrenceSheet({
 	const [days, setDays] = useState<readonly Weekday[]>(
 		value?.daysOfWeek ?? ALL_WEEKDAYS,
 	);
+	/**
+	 * The same argument lands on the OPPOSITE default for days of the month:
+	 * "every day of the month" is not a thing anyone means by "lặp theo ngày", so
+	 * the sensible starting point is the day the task is already on.
+	 */
+	const [monthDays, setMonthDays] = useState<readonly number[]>(
+		value?.daysOfMonth ?? [Number(defaultStartDate.slice(8, 10))],
+	);
 	const [startDate, setStartDate] = useState(
 		value?.startDate ?? defaultStartDate,
 	);
@@ -72,17 +102,25 @@ export function RecurrenceSheet({
 		value?.endDate ?? null,
 	);
 
-	const noDaysChosen = repeats && days.length === 0;
+	const noDaysChosen = mode === 'weekly' && days.length === 0;
+	const noMonthDaysChosen = mode === 'monthlyByDay' && monthDays.length === 0;
+	const nothingChosen = noDaysChosen || noMonthDaysChosen;
 	const endBeforeStart =
 		endDate !== null && compareDate(endDate, startDate) < 0;
 
+	/** The months a day-of-month choice will silently produce nothing for. */
+	const emptyMonths = useMemo(
+		() =>
+			mode === 'monthlyByDay' ? monthsWithoutDay(monthDays, startDate) : [],
+		[mode, monthDays, startDate],
+	);
+
 	const preview = useMemo(() => {
-		if (!repeats || noDaysChosen || endBeforeStart) {
+		if (mode === 'none' || nothingChosen || endBeforeStart) {
 			return t('repeat.previewNone');
 		}
-		const sorted = [...days].sort((a, b) => a - b);
 		return t('repeat.preview', {
-			days: sorted.map(weekdayShort).join(', '),
+			days: repeatPatternLabel(summaryOf(mode, days, monthDays)),
 			time: startTime,
 			start: startDate,
 			end:
@@ -91,10 +129,11 @@ export function RecurrenceSheet({
 					: t('repeat.previewUntil', { end: endDate }),
 		});
 	}, [
-		repeats,
-		noDaysChosen,
+		mode,
+		nothingChosen,
 		endBeforeStart,
 		days,
+		monthDays,
 		startTime,
 		startDate,
 		endDate,
@@ -107,17 +146,30 @@ export function RecurrenceSheet({
 				: [...current, day],
 		);
 
+	const toggleMonthDay = (day: number) =>
+		setMonthDays(current =>
+			current.includes(day)
+				? current.filter(d => d !== day)
+				: [...current, day],
+		);
+
 	const confirm = () => {
-		if (!repeats) {
+		if (mode === 'none') {
 			onDone(null);
 			return;
 		}
-		if (noDaysChosen || endBeforeStart) {
+		if (nothingChosen || endBeforeStart) {
 			// The button stays live and the errors are already visible; swallowing
 			// the tap silently is what makes a form feel broken.
 			return;
 		}
-		onDone({ daysOfWeek: days, startDate, endDate });
+		onDone({
+			frequency: mode,
+			daysOfWeek: mode === 'weekly' ? days : [],
+			daysOfMonth: mode === 'monthlyByDay' ? monthDays : [],
+			startDate,
+			endDate,
+		});
 	};
 
 	return (
@@ -133,51 +185,100 @@ export function RecurrenceSheet({
 					<Text style={styles.primaryLabel}>{t('common.done')}</Text>
 				</Pressable>
 			}>
-			<Segmented<'none' | 'weekly'>
+			{/* Two columns: four of these labels in one row wrap to three lines
+          each before the OS text size is turned up at all. */}
+			<Segmented<RepeatMode>
 				accessibilityLabel={t('repeat.title')}
-				value={repeats ? 'weekly' : 'none'}
+				value={mode}
+				columns={2}
 				onChange={next => {
 					// Turning the repeat back on after clearing every chip lands on
 					// daily again rather than on the empty-selection error.
 					if (next === 'weekly' && days.length === 0) {
 						setDays(ALL_WEEKDAYS);
 					}
-					setRepeats(next === 'weekly');
+					if (next === 'monthlyByDay' && monthDays.length === 0) {
+						setMonthDays([Number(startDate.slice(8, 10))]);
+					}
+					setMode(next);
 				}}
 				options={[
 					{ value: 'none', label: t('repeat.none') },
 					{ value: 'weekly', label: t('repeat.byWeekday') },
+					{ value: 'monthlyByDay', label: t('repeat.byMonthDay') },
+					{ value: 'monthlyLastDay', label: t('repeat.byLastDay') },
 				]}
 			/>
 
 			{/* Hidden outright rather than dimmed: nothing to read should take up no
           room (design/ux-ui-spec.md §3). */}
-			{repeats ? (
+			{mode === 'none' ? null : (
 				<>
-					<Field
-						label={t('repeat.weekdays')}
-						error={noDaysChosen ? t('validate.weekdayRequired') : undefined}>
-						<ChipRow>
-							{ALL_WEEKDAYS.map(day => (
-								<Chip
-									key={day}
-									label={weekdayShort(day)}
-									selected={days.includes(day)}
-									onPress={() => toggleDay(day)}
-								/>
-							))}
-						</ChipRow>
-						<ChipRow>
-							{PRESETS.map(preset => (
-								<Chip
-									key={preset.key}
-									label={t(preset.key)}
-									selected={sameDays(days, preset.days)}
-									onPress={() => setDays(preset.days)}
-								/>
-							))}
-						</ChipRow>
-					</Field>
+					{mode === 'weekly' ? (
+						<Field
+							label={t('repeat.weekdays')}
+							error={noDaysChosen ? t('validate.weekdayRequired') : undefined}>
+							<ChipRow>
+								{ALL_WEEKDAYS.map(day => (
+									<Chip
+										key={day}
+										label={weekdayShort(day)}
+										selected={days.includes(day)}
+										onPress={() => toggleDay(day)}
+									/>
+								))}
+							</ChipRow>
+							<ChipRow>
+								{PRESETS.map(preset => (
+									<Chip
+										key={preset.key}
+										label={t(preset.key)}
+										selected={sameDays(days, preset.days)}
+										onPress={() => setDays(preset.days)}
+									/>
+								))}
+							</ChipRow>
+						</Field>
+					) : null}
+
+					{mode === 'monthlyByDay' ? (
+						<Field
+							label={t('repeat.monthDays')}
+							error={
+								noMonthDaysChosen ? t('validate.monthDayRequired') : undefined
+							}>
+							<ChipRow>
+								{DAYS_OF_MONTH.map(day => (
+									<Chip
+										key={day}
+										label={String(day)}
+										accessibilityLabel={t('repeat.dayOfMonth', { day })}
+										selected={monthDays.includes(day)}
+										onPress={() => toggleMonthDay(day)}
+									/>
+								))}
+							</ChipRow>
+							{/* Said before the series exists, not discovered in February.
+                  A month with no session reads as a bug unless the app told
+                  the user it would happen. */}
+							{emptyMonths.length > 0 ? (
+								<Text style={styles.warning}>
+									{/* Số ít và số nhiều là hai câu khác nhau: "vì các tháng đó"
+                      với đúng một tháng đọc như một lỗi dịch. */}
+									{t(
+										emptyMonths.length === 1
+											? 'repeat.skipsMonth'
+											: 'repeat.skipsMonths',
+										{ months: monthList(emptyMonths) },
+									)}
+								</Text>
+							) : null}
+						</Field>
+					) : null}
+
+					{mode === 'monthlyLastDay' ? (
+						<Text style={styles.hint}>{t('repeat.lastDayHint')}</Text>
+					) : null}
 
 					<Field label={t('repeat.startDate')}>
 						<DateTimeField
@@ -221,9 +322,29 @@ export function RecurrenceSheet({
 						<Text style={styles.previewText}>{preview}</Text>
 					</View>
 				</>
-			) : null}
+			)}
 		</Sheet>
 	);
+}
+
+/**
+ * The sheet's three separate pieces of state, collapsed into the one shape the
+ * label formatter takes — so the preview here and the row on the timeline are
+ * built by the same code and cannot drift apart.
+ */
+function summaryOf(
+	mode: RecurrenceFrequency,
+	days: readonly Weekday[],
+	monthDays: readonly number[],
+): RepeatSummary {
+	switch (mode) {
+		case 'weekly':
+			return { frequency: 'weekly', daysOfWeek: days };
+		case 'monthlyByDay':
+			return { frequency: 'monthlyByDay', daysOfMonth: monthDays };
+		case 'monthlyLastDay':
+			return { frequency: 'monthlyLastDay' };
+	}
 }
 
 function sameDays(a: readonly Weekday[], b: readonly Weekday[]): boolean {
@@ -244,6 +365,19 @@ const styles = StyleSheet.create(raw => {
 		previewText: {
 			...theme.typography.label,
 			color: theme.appColor.accentInk,
+		},
+		warning: {
+			...theme.typography.label,
+			color: theme.appColor.accentInk,
+			backgroundColor: theme.appColor.accentSoft,
+			paddingHorizontal: theme.spacing.xs,
+			paddingVertical: 2,
+		},
+		hint: {
+			...theme.typography.label,
+			// The muted grey re-derived for these surfaces at 4.77:1 — a hint that
+			// fails contrast is not a hint (Principle V).
+			color: theme.color.disabled,
 		},
 		primary: {
 			minHeight: BAR_HEIGHT.action,

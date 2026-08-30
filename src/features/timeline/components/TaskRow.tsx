@@ -15,8 +15,8 @@ import {
 	countdownLabel,
 	durationLabel,
 	reminderOffsetLabel,
+	repeatPatternLabel,
 	timeRangeLabel,
-	weekdayShort,
 } from '../../../lib/format';
 import { t } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
@@ -126,14 +126,12 @@ export function TaskRow({
 		if (overdue) {
 			out.push(t('row.overdue', { duration: durationLabel(lateBy) }));
 		}
-		if (task.repeatsOn) {
+		if (task.repeats) {
 			// The glyph never stands alone: a symbol with no word is unreadable to
-			// half the people who need it (design/ux-ui-spec.md §1).
-			out.push(
-				t('row.repeats', {
-					days: task.repeatsOn.map(weekdayShort).join('–'),
-				}),
-			);
+			// half the people who need it (design/ux-ui-spec.md §1). The pattern is
+			// formatted by the same function the form uses, so a series cannot
+			// describe itself one way here and another way where it was created.
+			out.push(t('row.repeats', { days: repeatPatternLabel(task.repeats) }));
 		}
 		if (task.hasOverride) {
 			out.push(t('row.edited'));
@@ -160,7 +158,7 @@ export function TaskRow({
 		done,
 		overdue,
 		lateBy,
-		task.repeatsOn,
+		task.repeats,
 		task.hasOverride,
 		task.reminderEnabled,
 		task.reminderOffsetMinutes,

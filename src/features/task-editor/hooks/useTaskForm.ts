@@ -12,13 +12,20 @@ import {
 	type Task,
 	type TaskStatus,
 } from '../../../domain/task';
+import { withTimeFrom, type RecurringRule } from '../../../domain/recurrence';
 import { DataError } from '../../../services/db/errors';
 import { createRecurrenceRepository } from '../../../services/db/recurrenceRepository';
 import { createTaskRepository } from '../../../services/db/taskRepository';
 import type { RecurrenceValue } from '../components/RecurrenceSheet';
-import { nextWholeHour, type LocalDate, type LocalTime } from '../../../lib/date';
+import {
+	nextWholeHour,
+	today,
+	type LocalDate,
+	type LocalTime,
+} from '../../../lib/date';
 
-export type FormMode = 'create' | 'edit';
+/** 'series' edits the RULE behind a repeating session, not one session. */
+export type FormMode = 'create' | 'edit' | 'series';
 
 export interface TaskFormValues {
 	title: string;
@@ -41,6 +48,15 @@ export type SaveState =
 export interface UseTaskFormOptions {
 	/** Absent for a new task. */
 	task?: Task;
+	/**
+	 * The series being edited. Mutually exclusive with `task`.
+	 *
+	 * Editing one always means editing the whole series, so there is no scope
+	 * question on this path (change.md §4): the sheet says as much, and the two
+	 * fields that could not honestly apply to the past — the start date, and the
+	 * repeat pattern — are shown but not editable.
+	 */
+	rule?: RecurringRule;
 	/** The day the timeline is showing; the default for a new task. */
 	viewingDate: LocalDate;
 	/**
@@ -53,6 +69,7 @@ export interface UseTaskFormOptions {
 
 export function useTaskForm({
 	task,
+	rule,
 	viewingDate,
 	onSaved,
 }: UseTaskFormOptions) {
@@ -63,7 +80,7 @@ export function useTaskForm({
 		[handle],
 	);
 
-	const mode: FormMode = task ? 'edit' : 'create';
+	const mode: FormMode = rule ? 'series' : task ? 'edit' : 'create';
 
 	/**
 	 * Read once, when the form opens.
@@ -77,7 +94,31 @@ export function useTaskForm({
 
 	const initial = useMemo<TaskFormValues>(
 		() =>
-			task
+			rule
+				? {
+					title: rule.title,
+					note: rule.note ?? '',
+					// The day the series began, shown so the user knows what they are
+					// editing. The form disables it: moving it would change which
+					// sessions ever existed, which is not an edit, it is a different
+					// series (change.md §4).
+					taskDate: rule.startDate,
+					// The time the series runs at NOW. Past sessions keep their own,
+					// which is what `withTimeFrom` records on save.
+					startTime: rule.defaultStartTime,
+					endTime: rule.defaultEndTime,
+					status: 'processing',
+					reminderEnabled: rule.reminderEnabled,
+					reminderOffsetMinutes: rule.reminderOffsetMinutes,
+					recurrence: {
+						frequency: rule.frequency,
+						daysOfWeek: rule.daysOfWeek,
+						daysOfMonth: rule.daysOfMonth,
+						startDate: rule.startDate,
+						endDate: rule.endDate,
+					},
+				}
+				: task
 				? {
 					title: task.title,
 					note: task.note ?? '',
@@ -96,8 +137,9 @@ export function useTaskForm({
 					taskDate: viewingDate,
 					startTime: nextWholeHour(openedAt),
 					endTime: null,
-					// Not offered on the create form at all: nothing being created has
-					// already been done. The field is edit-only now.
+					// Not offered on any form now (change.md §3): the timeline's
+					// checkbox is the only way status changes, so every record starts
+					// here and moves from there.
 					status: 'processing',
 					reminderEnabled: false,
 					reminderOffsetMinutes: DEFAULT_REMINDER_OFFSET,
@@ -108,7 +150,7 @@ export function useTaskForm({
 					// said they want a repeat at all.
 					recurrence: null,
 				},
-		[task, viewingDate, openedAt],
+		[task, rule, viewingDate, openedAt],
 	);
 
 	const [values, setValues] = useState<TaskFormValues>(initial);
@@ -181,6 +223,34 @@ export function useTaskForm({
 		setSave({ status: 'saving' });
 		try {
 			const draft = toDraft(values);
+
+			if (rule !== undefined) {
+				/**
+				 * Title, note and reminder go straight onto the rule, so they reach
+				 * every session including the ones already past — which is what was
+				 * asked for, and is also the only way an edit to a series' name does
+				 * not leave its own history reading under the old one.
+				 *
+				 * The time is the exception: `withTimeFrom` moves it from TODAY
+				 * onwards and records what it used to be, so a session that has
+				 * already happened is still shown at the hour it happened at.
+				 * Per-session overrides are untouched by all of this — a session the
+				 * user deliberately gave its own title keeps it (FR-030).
+				 */
+				await recurrence.updateRule(rule.id, {
+					title: draft.title,
+					note: draft.note,
+					reminderEnabled: draft.reminderEnabled,
+					reminderOffsetMinutes: draft.reminderOffsetMinutes,
+					...withTimeFrom(rule, today(), draft.startTime, draft.endTime),
+				});
+				setSave({ status: 'idle' });
+				// The day being viewed, NOT the series start date: the user is looking
+				// at one session and expects to still be looking at it afterwards.
+				onSaved(viewingDate);
+				return;
+			}
+
 			if (values.recurrence !== null && task === undefined) {
 				// A repeating task is a RULE, not a task row. Occurrences are computed
 				// when a day is drawn and never stored (FR-023).
@@ -189,9 +259,13 @@ export function useTaskForm({
 					note: draft.note,
 					startDate: values.recurrence.startDate,
 					endDate: values.recurrence.endDate,
+					frequency: values.recurrence.frequency,
 					daysOfWeek: values.recurrence.daysOfWeek,
+					daysOfMonth: values.recurrence.daysOfMonth,
 					defaultStartTime: draft.startTime,
 					defaultEndTime: draft.endTime,
+					// A brand-new series has never run at another time.
+					timeHistory: [],
 					reminderEnabled: draft.reminderEnabled,
 					reminderOffsetMinutes: draft.reminderOffsetMinutes,
 				});
@@ -212,7 +286,7 @@ export function useTaskForm({
 			errorLog.report({
 				code: error instanceof DataError ? error.code : 'UNKNOWN',
 				operation: 'task.save',
-				recordId: task?.id,
+				recordId: task?.id ?? rule?.id,
 			});
 			setSave({ status: 'failed' });
 		}
@@ -221,6 +295,8 @@ export function useTaskForm({
 		toDraft,
 		values,
 		task,
+		rule,
+		viewingDate,
 		repository,
 		recurrence,
 		onSaved,

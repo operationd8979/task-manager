@@ -1,6 +1,6 @@
 # Phase 1 — Data model
 
-Lưu trữ qua `@chipmobilesdk/rn-local-db`, phạm vi `{ kind: 'guest' }`, `schemaVersion: 1`.
+Lưu trữ qua `@chipmobilesdk/rn-local-db`, phạm vi `{ kind: 'guest' }`, `schemaVersion: 2`.
 Mọi thời gian là **giờ địa phương của thiết bị**, không phụ thuộc đồng hồ máy chủ.
 
 Quy ước kiểu chuỗi dùng xuyên suốt:
@@ -80,16 +80,38 @@ buổi cụ thể.
 | `note` | string | có | |
 | `startDate` | string | không | `LocalDate`, chỉ sinh buổi từ ngày này trở đi (FR-024) |
 | `endDate` | string | có | `null` = lặp vô thời hạn (FR-022) |
-| `daysOfWeek` | string | không | Các `Weekday` đã sắp, nối bằng dấu phẩy: `"1,3,5"` ¹ |
-| `defaultStartTime` | string | không | `LocalTime` |
+| `frequency` | string | không | `weekly` \| `monthlyByDay` \| `monthlyLastDay` ² |
+| `daysOfWeek` | string | không | Các `Weekday` đã sắp, nối bằng dấu phẩy: `"1,3,5"` ¹ — chỉ đọc khi `frequency = weekly` |
+| `daysOfMonth` | string | không | Các ngày trong tháng đã sắp, nối bằng dấu phẩy: `"1,15"` ¹ — chỉ đọc khi `frequency = monthlyByDay` |
+| `defaultStartTime` | string | không | `LocalTime`, giờ chuỗi đang chạy **hiện tại** |
 | `defaultEndTime` | string | có | |
+| `timeHistory` | string | không | Các bộ ba `until\|start\|end` nối bằng dấu chấm phẩy ³ |
 | `reminderEnabled` | boolean | không | |
 | `reminderOffsetMinutes` | number | không | |
 
 ¹ Lưu dạng chuỗi vì tập kiểu trường khai báo được của gói không có mảng, và chuỗi này chỉ cần
-lọc bằng `eq`/`in` chứ không cần truy vấn theo từng phần tử. Miền giá trị hữu hạn (127 tổ
-hợp) nên chuẩn hóa bằng cách sắp tăng dần trước khi ghi. Tầng miền phơi ra `Weekday[]`; việc
+lọc bằng `eq`/`in` chứ không cần truy vấn theo từng phần tử. Miền giá trị hữu hạn nên chuẩn
+hóa bằng cách sắp tăng dần trước khi ghi. Tầng miền phơi ra `Weekday[]` / `number[]`; việc
 mã hóa nằm gọn trong tầng dữ liệu.
+
+² `monthlyByDay` **bỏ qua** tháng không có ngày đã chọn — chuỗi vào ngày 31 không sinh buổi
+nào trong tháng 2. Không dồn về ngày cuối tháng: dồn sẽ đặt buổi vào một ngày người dùng
+không hề chọn, tệ hơn một khoảng trống mà giao diện đã báo trước (S-04 hiện danh sách tháng
+sẽ trống). `monthlyLastDay` là câu trả lời riêng cho "cuối tháng", nơi 28/29/30/31 đúng là
+điều được yêu cầu.
+
+³ Giờ mà chuỗi **từng** chạy, cũ nhất trước, `until` là ngày đầu tiên bộ giờ đó hết hiệu lực
+(loại trừ). Sửa giờ của một chuỗi chỉ áp dụng từ hôm nay trở đi; buổi đã qua giữ nguyên giờ
+cũ. Vì buổi được tính chứ không lưu, đây là nơi duy nhất ghi được "trước đây là 07:00" — một
+bản ghi cho mỗi lần sửa, thay vì một override cho mỗi ngày quá khứ, vốn là 365 lượt ghi cho
+một lần sửa của chuỗi hằng ngày đã chạy một năm. Đọc bằng `timeOn(rule, date)`; ghi bằng
+`withTimeFrom(rule, from, start, end)`, hàm này tự nén hai trường hợp không cần lưu lịch sử.
+
+**Xóa một chuỗi không xóa quá khứ.** "Xóa" trên một buổi lặp đặt `endDate` = hôm qua thay vì
+xóa bản ghi: buổi được sinh từ quy tắc, nên xóa quy tắc sẽ mang theo cả lịch sử của người
+dùng. Ngoại lệ duy nhất là chuỗi chưa có buổi nào trong quá khứ (`startDate >= hôm nay`) —
+không có gì để giữ, và một quy tắc đã kết thúc mà không còn buổi nào hiển thị là bản ghi
+người dùng không bao giờ với tới được, nên nó bị xóa hẳn kèm hoàn tác theo FR-031a.
 
 `timestamps: true`, `softDelete: true`.
 
@@ -247,7 +269,8 @@ giao diện chỉ là tiện lợi cho người dùng, không phải nơi thực
 | Tên sau khi cắt khoảng trắng không được rỗng | task, rule | FR-009 |
 | `endTime > startTime` khi `endTime` có mặt và khác `null` | task, rule, override | FR-009 |
 | `reminderOffsetMinutes` ∈ `{0,5,10,15,30,60}` | task, rule, override | FR-036 |
-| `daysOfWeek` không rỗng khi quy tắc đang bật lặp | rule | S-04 trạng thái lỗi |
+| `daysOfWeek` không rỗng khi `frequency = weekly` | rule | S-04 trạng thái lỗi |
+| `daysOfMonth` không rỗng khi `frequency = monthlyByDay` | rule | S-04 trạng thái lỗi |
 | `endDate ≥ startDate` khi `endDate` khác `null` | rule | S-04 trạng thái lỗi |
 | `status` ∈ `{processing, done}` | task, override | FR-014 |
 | `displayMode` ∈ `{auto, light, dark}` | settings | FR-052b |
@@ -277,7 +300,7 @@ Gói lưu trữ không có khóa ngoại, nên toàn vẹn tham chiếu do tần
 
 ## 7. Migration
 
-`schemaVersion: 1` với **một migration version 1 rỗng**.
+`schemaVersion: 2` với **hai migration, cả hai đều rỗng**.
 
 Không phải thừa: gói yêu cầu chuỗi migration **liên tục từ 1** tới `schemaVersion`, và "không
 có migration nào" bị coi là một lỗ hổng trong chuỗi chứ không phải "không có gì để migrate".
@@ -285,6 +308,18 @@ Mở cơ sở dữ liệu mà thiếu nó sẽ ném `MIGRATION_CONFIG_INVALID` �
 người dùng thấy là màn hình "Chưa đọc được dữ liệu", không mã, không tên trường.
 
 Ràng buộc này được khoá bằng kiểm thử ở `src/services/db/__tests__/schema.test.ts`.
+
+**Version 2 cũng rỗng, và đó chính là nội dung của nó.** Version 2 thêm `frequency`,
+`daysOfMonth` và `timeHistory` vào `recurring_rules`. Context của một migration chỉ có
+`insert`, `upsert`, `find` và `delete` theo id — không duyệt được cả collection, nên không có
+cách nào được hỗ trợ để đi qua từng quy tắc và ghi lại ở đây. Cũng không cần: trường chưa
+khai báo và trường vắng mặt đều đọc ra `undefined`, và bộ giải mã quy tắc đã trả lời bằng
+`weekly`, không có ngày trong tháng, không có lịch sử giờ — đúng bằng mọi quy tắc ghi trước
+phiên bản này. Các khoá mới xuất hiện trên từng quy tắc ở lần ghi kế tiếp.
+
+Điều này chỉ đúng chừng nào **không có truy vấn nào lọc trên các trường mới**. Lọc theo
+`frequency` trong một hàm đọc của repository sẽ âm thầm bỏ sót mọi quy tắc trước v2, và khi
+đó phải backfill thật qua `execute` của adapter trước.
 
 Ba ràng buộc ghi lại để phiên bản sau khỏi phải suy luận:
 

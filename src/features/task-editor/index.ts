@@ -9,5 +9,7 @@ export type {
 	RecurrenceValue,
 	RecurrenceSheetProps,
 } from './components/RecurrenceSheet';
+export { DeleteSeriesSheet } from './components/DeleteSeriesSheet';
+export type { DeleteSeriesSheetProps } from './components/DeleteSeriesSheet';
 export { ScopeSheet } from './components/ScopeSheet';
 export type { ApplyScope, ScopeSheetProps } from './components/ScopeSheet';

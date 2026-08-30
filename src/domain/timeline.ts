@@ -16,6 +16,29 @@ export type TimelineSource =
 	| { kind: 'task'; taskId: string }
 	| { kind: 'occurrence'; ruleId: string; date: LocalDate };
 
+/**
+ * What a row's "⟳ LẶP …" label has to say.
+ *
+ * A discriminated union rather than three optional arrays: a monthly series has
+ * no weekdays, and a row that could hold both would let the label contradict
+ * the rule it came from.
+ */
+export type RepeatSummary =
+	| { frequency: 'weekly'; daysOfWeek: readonly Weekday[] }
+	| { frequency: 'monthlyByDay'; daysOfMonth: readonly number[] }
+	| { frequency: 'monthlyLastDay' };
+
+export function repeatSummaryOf(rule: RecurringRule): RepeatSummary {
+	switch (rule.frequency) {
+		case 'weekly':
+			return { frequency: 'weekly', daysOfWeek: rule.daysOfWeek };
+		case 'monthlyByDay':
+			return { frequency: 'monthlyByDay', daysOfMonth: rule.daysOfMonth };
+		case 'monthlyLastDay':
+			return { frequency: 'monthlyLastDay' };
+	}
+}
+
 export interface TimelineItem {
 	/** Stable list key. Occurrences have no record id, so it is derived. */
 	key: string;
@@ -29,7 +52,7 @@ export interface TimelineItem {
 	reminderEnabled: boolean;
 	reminderOffsetMinutes: ReminderOffset;
 	/** Present only for occurrences; drives the "⟳ LẶP T2–T6" label. */
-	repeatsOn?: readonly Weekday[];
+	repeats?: RepeatSummary;
 	/** Occurrence has content edited for this session only (FR-029). */
 	hasOverride: boolean;
 	/** This session was skipped. Always false for a one-off task. */
@@ -72,7 +95,7 @@ export function fromOccurrence(
 		status: occurrence.status,
 		reminderEnabled: occurrence.reminderEnabled,
 		reminderOffsetMinutes: occurrence.reminderOffsetMinutes,
-		repeatsOn: rule.daysOfWeek,
+		repeats: repeatSummaryOf(rule),
 		hasOverride: occurrence.hasOverride,
 		isSkipped: occurrence.isSkipped,
 	};
