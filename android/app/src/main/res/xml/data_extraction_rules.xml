@@ -8,10 +8,18 @@
   it is excluded here.
 -->
 <data-extraction-rules>
+  <!--
+    The notification SDK's state record is excluded from both paths for a
+    different reason than task data: its deduplication ledger, restored onto
+    another device, claims payloads were already delivered and silently
+    suppresses real ones.
+  -->
   <cloud-backup>
     <exclude domain="file" path="chipmobilesdk-localdb/" />
+    <exclude domain="file" path="mmkv/chipmobilesdk.notification" />
   </cloud-backup>
   <device-transfer>
     <exclude domain="file" path="chipmobilesdk-localdb/" />
+    <exclude domain="file" path="mmkv/chipmobilesdk.notification" />
   </device-transfer>
 </data-extraction-rules>

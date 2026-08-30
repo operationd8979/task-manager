@@ -117,7 +117,21 @@ jest.mock('@gorhom/bottom-sheet', () => {
 	};
 });
 
-jest.mock('@notifee/react-native', () => ({}));
+/**
+ * The notification SDK's peers are native.
+ *
+ * The SDK requires the engine and MMKV lazily, so pure reconciliation tests
+ * reach neither — they run against `@chipmobilesdk/rn-notification/testing`.
+ * These exist for the component tests, which mount the provider tree and
+ * therefore load the runtime module. Both are required lazily by the SDK, which
+ * falls back gracefully when either is missing — the mocks are here so a test
+ * exercises the same path a device does rather than the fallback.
+ */
+jest.mock('react-native-localize', () => ({
+	getTimeZone: () => 'Asia/Ho_Chi_Minh',
+}));
+
+jest.mock('react-native-notify-kit', () => ({ __esModule: true, default: {} }));
 
 // Native picker dialog; under test it is a button that never opens.
 jest.mock('@react-native-community/datetimepicker', () => {

@@ -8,18 +8,24 @@ import React, {
 	useState,
 } from 'react';
 import { AppState } from 'react-native';
+import { canDisplay } from '@chipmobilesdk/rn-notification';
 
 import { DataError } from '../../services/db/errors';
 import { createRecurrenceRepository } from '../../services/db/recurrenceRepository';
 import { createTaskRepository } from '../../services/db/taskRepository';
-import { createNotifeeScheduler } from '../../services/notifications/notifeeScheduler';
 import { reconcileReminders } from '../../services/notifications/reconcile';
-import type {
-	ExactAlarmState,
-	PermissionState,
-	ReminderScheduler,
-	ReminderTarget,
-} from '../../services/notifications/scheduler';
+import { decodeTarget } from '../../services/notifications/routing';
+import {
+	getNotifications,
+	setNotificationDiagnosticSink,
+} from '../../services/notifications/runtime';
+import {
+	toDisplayPermission,
+	toExactAlarmState,
+	type ExactAlarmState,
+	type PermissionState,
+	type ReminderTarget,
+} from '../../services/notifications/types';
 import { useDatabase } from './DatabaseProvider';
 
 export interface ReminderContextValue {
@@ -46,15 +52,11 @@ const ReminderContext = createContext<ReminderContextValue | null>(null);
  *
  * Reminders are DERIVED data: they are never the source of truth and can always
  * be rebuilt from tasks and rules. That is why every write path only has to
- * call `sync()` — reconciliation works out the difference, and doing it twice
- * costs nothing (FR-041).
+ * call `sync()` — the SDK's reconciliation works out the difference, and doing
+ * it twice costs nothing (FR-041).
  */
 export function ReminderProvider({ children }: { children: React.ReactNode }) {
 	const { handle, errorLog } = useDatabase();
-	const scheduler = useMemo<ReminderScheduler>(
-		() => createNotifeeScheduler(),
-		[],
-	);
 	const tasks = useMemo(() => createTaskRepository(handle), [handle]);
 	const recurrence = useMemo(
 		() => createRecurrenceRepository(handle),
@@ -75,36 +77,54 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 
 	const sync = useCallback(() => setTick(n => n + 1), []);
 
+	// The SDK reports through a sink rather than a console, and the error log
+	// lives on the database handle — so the wiring happens here, where both
+	// exist. FR-055b holds: a diagnostic event carries a code and context, never
+	// notification content.
+	useEffect(() => {
+		setNotificationDiagnosticSink(event => {
+			errorLog.report({ code: event.code, operation: 'reminder.sdk' });
+		});
+		// Principle VII: the sink dies with the provider.
+		return () => setNotificationDiagnosticSink(null);
+	}, [errorLog]);
+
 	const readPermissions = useCallback(async () => {
-		const [next, alarm] = await Promise.all([
-			scheduler.getNotificationPermission(),
-			scheduler.getExactAlarmState(),
-		]);
-		setNotification(next);
-		setExactAlarm(alarm);
-	}, [scheduler]);
+		const service = await getNotifications();
+		const report = await service.permissions.getPermissions();
+		setNotification(toDisplayPermission(report.display));
+		setExactAlarm(toExactAlarmState(report.exactAlarm));
+	}, []);
 
 	const ensurePermission = useCallback(async () => {
-		const current = await scheduler.getNotificationPermission();
-		const next =
-			current === 'not-determined'
-				? await scheduler.requestNotificationPermission()
-				: current;
-		setNotification(next);
+		const service = await getNotifications();
+		const current = await service.permissions.getPermissions();
 
-		// The exact-alarm prompt only makes sense once notifications are allowed.
-		if (next === 'granted') {
-			const alarm = await scheduler.getExactAlarmState();
-			setExactAlarm(alarm);
+		// Asked only when the user first turns a reminder on, never at first
+		// launch (FR-036a) — asking before they state the intent is the surest way
+		// to be refused, permanently.
+		const display =
+			current.display === 'notAsked'
+				? await service.permissions.requestDisplayPermission()
+				: current.display;
+		setNotification(toDisplayPermission(display));
+
+		// The exact-alarm state only matters once notifications are allowed.
+		if (canDisplay(display)) {
+			const after = await service.permissions.getPermissions();
+			setExactAlarm(toExactAlarmState(after.exactAlarm));
 		}
-		return next === 'granted';
-	}, [scheduler]);
+		return canDisplay(display);
+	}, []);
 
 	const openSettings = useCallback(
 		async (target: 'notifications' | 'exact-alarm') => {
-			await scheduler.openSystemSettings(target);
+			const service = await getNotifications();
+			await service.permissions.openSettings(
+				target === 'exact-alarm' ? 'exactAlarm' : 'display',
+			);
 		},
-		[scheduler],
+		[],
 	);
 
 	// Runs on mount, on every foreground return, and after any write that calls
@@ -119,7 +139,12 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 			}
 			running.current = true;
 			try {
+				const service = await getNotifications();
 				await readPermissions();
+				// Additive only — window refresh, re-anchoring after a time-zone
+				// change, and a pending-set check. It can never cancel a reminder.
+				await service.runMaintenance();
+
 				const [allTasks, rules, overrides] = await Promise.all([
 					tasks.listAll(),
 					recurrence.listAllRules(),
@@ -128,7 +153,11 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 				if (cancelled) {
 					return;
 				}
-				await reconcileReminders(scheduler, { tasks: allTasks, rules, overrides });
+				await reconcileReminders(service, {
+					tasks: allTasks,
+					rules,
+					overrides,
+				});
 			} catch (error) {
 				// A reminder failure must never take down the screen that triggered it
 				// (FR-044). It is recorded and the app carries on.
@@ -144,27 +173,44 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [tick, scheduler, tasks, recurrence, errorLog, readPermissions]);
+	}, [tick, tasks, recurrence, errorLog, readPermissions]);
 
-	// A tap that launched the app from cold, plus taps while it runs.
+	// One handler for foreground, background and cold start. A tap that arrived
+	// before this registered — including one that launched the app from dead —
+	// was buffered durably by the SDK and is drained on registration.
 	useEffect(() => {
 		let cancelled = false;
-		scheduler
-			.consumeLaunchTarget()
-			.then(target => {
-				if (!cancelled && target) {
-					setPendingTarget(target);
+		let unsubscribe: (() => void) | null = null;
+
+		getNotifications()
+			.then(service => {
+				if (cancelled) {
+					return;
 				}
+				unsubscribe = service.interactions.onInteraction(event => {
+					if (event.kind !== 'tap') {
+						return;
+					}
+					const target = decodeTarget(event.routing);
+					if (target) {
+						setPendingTarget(target);
+					} else {
+						// A notification pointing at deleted data is an ordinary
+						// condition, not a crash. The timeline falls back to today.
+						service.interactions.reportTargetMissing({
+							notificationId: event.notificationId,
+						});
+					}
+				});
 			})
 			.catch(() => undefined);
 
-		const unsubscribe = scheduler.onTap(setPendingTarget);
 		// Principle VII: the subscription dies with the provider.
 		return () => {
 			cancelled = true;
-			unsubscribe();
+			unsubscribe?.();
 		};
-	}, [scheduler]);
+	}, []);
 
 	useEffect(() => {
 		const subscription = AppState.addEventListener('change', state => {

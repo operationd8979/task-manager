@@ -1,9 +1,17 @@
 # Contract — Cổng nhắc nhở cục bộ
 
-Tầng: `src/services/notifications/`. Notifee nằm **phía sau** cổng này, không được import
+> **Đã thay một phần (2026-08-17).** Cổng `ReminderScheduler` không còn tồn tại: lịch nhắc
+> đi thẳng qua `@chipmobilesdk/rn-notification` (xem R2 trong [research.md](../research.md)).
+> Phần **vẫn đúng nguyên vẹn** ở tài liệu này là quy tắc định danh, quy tắc chọn tông và
+> ngữ nghĩa hòa giải — chúng nằm ở tầng domain (`src/domain/reminder.ts`,
+> `desiredReminders()`) chứ không ở adapter. Phần **đã hết hiệu lực** là mọi mô tả về
+> `ReminderScheduler`, `listScheduled()` và cấu hình kênh Notifee: SDK nhận tập mong muốn
+> dưới dạng `NotificationRequest[]` có `groupTag` là miền, và tự tính hiệu số.
+
+Tầng: `src/services/notifications/`. Engine thông báo nằm **phía sau** SDK, không được import
 trực tiếp ở bất kỳ đâu khác. Lý do không phải để "dễ đổi thư viện" — mà vì FR-041 đòi phép
-hòa giải phải cho **cùng kết quả khi chạy nhiều lần**, và tính chất đó chỉ kiểm thử được khi
-cổng thay thế được bằng bản giả trong Jest.
+hòa giải phải cho **cùng kết quả khi chạy nhiều lần**, và tính chất đó kiểm thử được bằng
+engine giả của SDK (`@chipmobilesdk/rn-notification/testing`).
 
 ## Định danh — phần dễ hỏng nhất
 

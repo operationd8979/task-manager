@@ -1,3 +1,8 @@
+import type {
+	NotificationRequest,
+	ReconcileResult,
+} from '@chipmobilesdk/rn-notification';
+
 import { buildOccurrences } from '../../domain/occurrence';
 import type { RecurrenceOverride, RecurringRule } from '../../domain/recurrence';
 import {
@@ -8,7 +13,7 @@ import {
 } from '../../domain/reminder';
 import type { Task } from '../../domain/task';
 import { addDays, today, type LocalDate } from '../../lib/date';
-import type { ReminderScheduler, ScheduledReminder } from './scheduler';
+import { toNotificationRequest } from './requests';
 
 /**
  * How far ahead reminders for a series are registered (FR-040).
@@ -30,6 +35,25 @@ export interface ReconcileReport {
 	cancelled: number;
 	/** Ids already correct, left untouched. This is what makes it idempotent. */
 	unchanged: number;
+	/**
+	 * Entries the SDK refused — a duplicate id, or a moment that passed between
+	 * building the desired set and applying it. A rejection is NOT a
+	 * cancellation: anything already scheduled under that id is left in place.
+	 */
+	rejected: number;
+	/**
+	 * Entries dropped for exceeding the platform's pending ceiling — 64 on iOS.
+	 * The furthest-out ones go first and come back as nearer ones deliver, so
+	 * this is a number worth watching rather than an error.
+	 */
+	dropped: number;
+}
+
+/** The one thing reconciliation needs from the SDK runtime. */
+export interface ReminderReconciler {
+	reconcile(
+		desired: readonly NotificationRequest[],
+	): Promise<ReconcileResult>;
 }
 
 /**
@@ -108,60 +132,36 @@ export function desiredReminders(input: ReconcileInput): ReminderRequest[] {
 	return out;
 }
 
-/** Whether what the OS holds already says what the data wants it to say. */
-function isCurrent(
-	held: ScheduledReminder,
-	wanted: ReminderRequest,
-): boolean {
-	return (
-		held.fireAt.getTime() === wanted.fireAt.getTime() &&
-		held.tone === wanted.tone
-	);
-}
-
 /**
  * Bring the OS into agreement with the data (FR-041, FR-042).
  *
- * Anything already correct is LEFT ALONE. Cancelling everything and
- * rescheduling is simpler to write but opens a window in which no reminder
- * exists at all — and on a device that reclaims the process mid-run, that
- * window is permanent.
+ * The diffing itself belongs to the SDK, and that is the point: anything
+ * already correct is left alone, so no window opens in which a reminder does
+ * not exist. "Correct" means more than "present" there — the SDK fingerprints
+ * the firing instant, the tone, the content and the routing payload, so moving
+ * a task to another hour or switching its reminder on replaces the entry in
+ * place under the same id, while a second pass over unchanged data issues zero
+ * platform operations.
  *
- * "Correct" has to mean more than "present", though. Ids are derived from the
- * task, so moving a task to another hour, or switching its reminder on, leaves
- * the id untouched — comparing ids alone would call the stale notification fine
- * and the user would be alerted at the old time forever. Re-scheduling replaces
- * in place under the same id, so nothing is cancelled and no gap opens.
+ * What stays here is the part only this app can know: which notifications its
+ * data implies. The SDK never guesses that, which is why every write path has
+ * to reach this function.
  */
 export async function reconcileReminders(
-	scheduler: ReminderScheduler,
+	reconciler: ReminderReconciler,
 	input: ReconcileInput,
 ): Promise<ReconcileReport> {
-	const desired = desiredReminders(input);
-	const desiredById = new Map(desired.map(r => [r.id, r]));
-	const existing = new Map(
-		(await scheduler.listScheduled()).map(held => [held.id, held]),
+	const result = await reconciler.reconcile(
+		desiredReminders(input).map(toNotificationRequest),
 	);
 
-	let cancelled = 0;
-	for (const id of existing.keys()) {
-		if (!desiredById.has(id)) {
-			await scheduler.cancel(id);
-			cancelled += 1;
-		}
-	}
-
-	let scheduled = 0;
-	let unchanged = 0;
-	for (const request of desired) {
-		const held = existing.get(request.id);
-		if (held && isCurrent(held, request)) {
-			unchanged += 1;
-			continue;
-		}
-		await scheduler.schedule(request);
-		scheduled += 1;
-	}
-
-	return { scheduled, cancelled, unchanged };
+	return {
+		// Created and replaced are one number to the app: both mean the OS now
+		// holds something it did not hold before this pass.
+		scheduled: result.created.length + result.replaced.length,
+		cancelled: result.cancelled.length,
+		unchanged: result.unchanged.length,
+		rejected: result.rejected.length,
+		dropped: result.truncated?.droppedCount ?? 0,
+	};
 }

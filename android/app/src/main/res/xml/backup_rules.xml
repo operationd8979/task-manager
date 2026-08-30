@@ -5,4 +5,10 @@
 -->
 <full-backup-content>
   <exclude domain="file" path="chipmobilesdk-localdb/" />
+  <!--
+    The notification SDK's state record. A deduplication ledger restored onto
+    another device claims payloads were already delivered, which silently
+    suppresses real ones.
+  -->
+  <exclude domain="file" path="mmkv/chipmobilesdk.notification" />
 </full-backup-content>

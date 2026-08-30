@@ -16,7 +16,7 @@ Kiểm tra ba thứ mà bộ khung hiện tại **chưa** có trước khi bắt
 
 ```bash
 node -p "require('./package.json').dependencies['react-native-unistyles'] ?? 'CHƯA KHAI BÁO'"
-node -p "require('./package.json').dependencies['@notifee/react-native'] ?? 'CHƯA CÀI'"
+node -p "require('./package.json').dependencies['@chipmobilesdk/rn-notification'] ?? 'CHƯA CÀI'"
 ls android/app/src/main/res/xml/data_extraction_rules.xml 2>/dev/null || echo "CHƯA CÓ quy tắc loại trừ sao lưu"
 ```
 

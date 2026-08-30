@@ -52,7 +52,10 @@ bản là những gì thực sự nằm trong [package.json](../../package.json)
 | `react-native-worklets` | `^0.11.3` | Reanimated 4 tách plugin Babel sang gói này; **phải nằm cuối** mảng plugins | SC-006 |
 | `react-native-nitro-modules` | `^0.36.5` | Peer bắt buộc của `op-sqlite` ở dòng 17.x | — |
 | `@gorhom/bottom-sheet` | `^5.2.14` | 6/9 màn hình là bottom sheet, một trong số đó là loại chặn | Toàn bộ IA |
-| `@notifee/react-native` | `^9.1.8` | Nhắc nhở cục bộ có lịch, kênh thông báo, và quyền báo thức chính xác trên Android | FR-033…044 |
+| `@chipmobilesdk/rn-notification` | `0.2.0` | Nhắc nhở cục bộ: định danh ổn định, hòa giải bất biến, kênh/tông khai báo, quyền tách đôi, định tuyến chạm qua cold start | FR-033…044 |
+| `react-native-notify-kit` | `^10.5.0` | Engine thông báo mà SDK dùng phía sau (bản fork còn bảo trì của Notifee) | FR-033…044 |
+| `react-native-mmkv` | `^4.3.2` | Peer bắt buộc của SDK thông báo — bản ghi trạng thái có giới hạn | FR-033…044 |
+| `react-native-localize` | `^3.7.0` | Peer bắt buộc của SDK thông báo — múi giờ nền tảng cho việc neo lại giờ treo tường | FR-033…044 |
 | `@react-native-community/datetimepicker` | `^9.1.0` | Bộ chọn ngày/giờ **gốc** của hệ điều hành theo Principle I | FR-007, FR-021 |
 | `react-native-unistyles` *(khai báo lại)* | `^3.3.0` | App import trực tiếp nhưng chưa khai trong `package.json`; trước đó chỉ tồn tại nhờ peer của gói theme | Constitution III |
 
@@ -187,7 +190,7 @@ src/
 │   └── brand.ts  tokens.ts  setup.ts  mode.ts  theme.ts
 ├── services/
 │   ├── db/                           # schema, gateway, errors + 3 repository
-│   ├── notifications/                # scheduler (cổng) + notifeeScheduler + reconcile
+│   ├── notifications/                # runtime (SDK) + tones + requests + routing + reconcile
 │   └── logging/                      # Nhật ký lỗi cục bộ xoay vòng (FR-055a/b/c)
 ├── domain/                           # KHÔNG import React — kiểm thử không cần renderer
 │   ├── task.ts  recurrence.ts  occurrence.ts  reminder.ts

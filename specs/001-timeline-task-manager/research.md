@@ -65,6 +65,40 @@ bao giờ phát hiện được một thông báo đã lệch giờ hoặc lệc
 `notifee.getTriggerNotifications()` cung cấp đủ dữ liệu đó, `getTriggerNotificationIds()` thì
 không — nên adapter đổi sang hàm thứ nhất.
 
+**Thay thế 2026-08-17 — chuyển sang `@chipmobilesdk/rn-notification`**: quyết định ở trên
+được thay bằng SDK nội bộ. Lý do không phải "đổi thư viện": SDK đã sở hữu đúng những thứ mà
+cổng tự viết phải tự làm — hòa giải bất biến theo miền (`groupTag`), định danh do người gọi
+tự dẫn xuất, di trú kênh Android theo phiên bản tông, hai quyền tách rời với sáu trạng thái,
+đệm bền cho cú chạm lúc cold start, và neo lại giờ treo tường khi đổi múi giờ (điều mà bản
+Notifee **không** làm: một nhắc 09:00 sẽ trôi theo múi giờ mới).
+
+Cổng `ReminderScheduler` bị bỏ vì lý do nó tồn tại đã được đáp ứng ở nơi khác: FR-041 kiểm
+thử được bằng engine giả của chính SDK (`@chipmobilesdk/rn-notification/testing`), nên phép
+hòa giải thật — chứ không phải một bản mô phỏng — mới là thứ được kiểm thử. Phần duy nhất
+còn ở app là `desiredReminders()`: SDK **không bao giờ** tự đoán tập mong muốn.
+
+Engine phía sau là `react-native-notify-kit` (bản fork còn bảo trì của Notifee — kho Notifee
+đã lưu trữ ngày 2026-04-07).
+
+**Bổ sung 2026-08-30 — SDK 0.2.0**: hai thứ từng mất đi khi chuyển sang SDK đã được trả lại
+ở tầng khai báo tông, không cần bump `version` tông nào:
+
+- **Chuông lặp có giới hạn**: tông `task-reminder` khai `repeatAlert: { forMs: 15 phút }`.
+  Chuông lặp cho tới khi người dùng xử lý, hoặc tới khi hết 15 phút — và **thông báo vẫn nằm
+  lại** trong tray sau khi tắt tiếng, vì người vắng nhà vẫn phải thấy mình đã lỡ việc gì.
+  Kèm theo một bước bắt buộc: `registerBackgroundNotificationHandler` ở module scope trong
+  `index.js`, nếu không thì không có gì dừng chuông khi tiến trình đã chết. Mười lăm phút là
+  **sàn** chứ không phải điểm cắt chính xác: mốc dừng được đặt như một thông báo bình thường
+  nên thiếu quyền báo thức chính xác thì nó chạy quá giờ.
+- **Nhãn kênh**: `name`/`description` giờ thật sự tới màn hình cài đặt hệ thống, nên người
+  dùng đọc "Nhắc nhở công việc" thay vì `task-reminder`.
+
+Giới hạn còn lại, ghi ra chứ không lấp: iOS **không** lặp chuông (không có API loop, và mức
+cảnh báo duy nhất vượt được nút tắt tiếng cần entitlement Apple cấp theo đơn) — thông báo vẫn
+tới và vẫn kêu một lần; `timeSensitive` trên iOS cần capability riêng của app; âm trên Android
+dùng **âm lượng thông báo**, không phải âm lượng báo thức; và mỗi nhắc nhở có chuông chiếm
+thêm một suất trong hạn mức thông báo chờ của Android.
+
 ---
 
 ## R3 · Cử chỉ, hoạt ảnh và bottom sheet

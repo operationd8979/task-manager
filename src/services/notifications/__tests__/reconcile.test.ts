@@ -1,65 +1,93 @@
+import {
+	createReconciler,
+	createToneResolver,
+	REPEAT_STOP_PREFIX,
+	type NotificationRequest,
+	type PendingEntry,
+} from '@chipmobilesdk/rn-notification';
+import { createFakeEngine } from '@chipmobilesdk/rn-notification/testing';
+
 import type { RecurringRule } from '../../../domain/recurrence';
-import type { ReminderRequest } from '../../../domain/reminder';
 import type { Task } from '../../../domain/task';
 import { reconcileReminders, type ReconcileInput } from '../reconcile';
-import type {
-	ExactAlarmState,
-	PermissionState,
-	ReminderScheduler,
-} from '../scheduler';
+import { REMINDER_DOMAIN, REMINDER_TONES, TONE_ALERT, TONE_SILENT } from '../tones';
+
+const NOW = new Date('2026-08-03T06:00:00');
 
 /**
- * The property FR-041 actually asks for: running reconciliation twice must not
- * touch the OS the second time. A "cancel everything, reschedule everything"
- * implementation would pass a naive test and still leave a window with no
- * reminders at all — so the assertion here is on the CALLS, not the outcome.
+ * The real SDK reconciler over the SDK's own fake engine.
+ *
+ * The property FR-041 actually asks for — running reconciliation twice must not
+ * touch the OS the second time — is a property of the SDK's diffing, so the
+ * test drives the real thing. A hand-written fake reconciler would assert that
+ * the fake is idempotent, which is worth nothing.
+ *
+ * The clock is fixed at NOW: the reconciler refuses a moment more than 60s in
+ * the past, so a wall-clock `Date.now()` would reject every entry the moment the
+ * fixture date is behind the machine's.
  */
-function fakeScheduler() {
-	const held = new Map<string, ReminderRequest>();
-	const calls = { scheduled: [] as string[], cancelled: [] as string[] };
+function harness() {
+	const engine = createFakeEngine({
+		now: NOW.getTime(),
+		timeZone: 'Asia/Ho_Chi_Minh',
+		initialPermissions: { display: 'granted', exactAlarm: 'granted' },
+	});
 
-	const scheduler: ReminderScheduler = {
-		consumeLaunchTarget: async () => null,
-		onTap: () => () => undefined,
-		getNotificationPermission: async (): Promise<PermissionState> => 'granted',
-		requestNotificationPermission: async (): Promise<PermissionState> =>
-			'granted',
-		getExactAlarmState: async (): Promise<ExactAlarmState> => ({
-			required: false,
-			granted: true,
-		}),
-		requestExactAlarm: async (): Promise<ExactAlarmState> => ({
-			required: false,
-			granted: true,
-		}),
-		openSystemSettings: async () => undefined,
-		schedule: async request => {
-			held.set(request.id, request);
-			calls.scheduled.push(request.id);
-		},
-		cancel: async id => {
-			held.delete(id);
-			calls.cancelled.push(id);
-		},
-		// Mirrors the real adapter: what the OS holds is the last thing written
-		// under that id, so a re-schedule replaces rather than duplicates.
-		listScheduled: async () =>
-			[...held.values()].map(r => ({
-				id: r.id,
-				fireAt: r.fireAt,
-				tone: r.tone,
-			})),
+	const reconciler = createReconciler({
+		engine,
+		resolveTone: createToneResolver(REMINDER_TONES),
+		// Anchoring never converts the instant at schedule time — it only records
+		// the zone the entry was anchored against — so a fixed zone keeps the test
+		// independent of where it runs.
+		timeZone: () => 'Asia/Ho_Chi_Minh',
+		now: () => NOW.getTime(),
+		canScheduleExactly: () => true,
+	});
+
+	const service = {
+		reconcile: (desired: readonly NotificationRequest[]) =>
+			reconciler.reconcile({ domain: REMINDER_DOMAIN, desired }),
 	};
 
+	/**
+	 * The alert tone repeats, and a repeating notification costs a second entry:
+	 * the SDK schedules a `cms.stop:` marker that ends the sound once the
+	 * declared window elapses.
+	 *
+	 * `getPending()` already hides markers — that is what keeps a consumer's diff
+	 * (and therefore idempotence) blind to them — but the raw operation log does
+	 * not, so the assertions below filter it there. Markers are read back through
+	 * the port that exists for them.
+	 */
+	const ids = (kind: 'schedule' | 'cancel') =>
+		engine.operations
+			.filter(
+				op =>
+					op.kind === kind &&
+					!(op.id ?? '').startsWith(REPEAT_STOP_PREFIX),
+			)
+			.map(op => op.id);
+
 	return {
-		scheduler, held, calls, reset: () => {
-			calls.scheduled = [];
-			calls.cancelled = [];
-		}
+		service,
+		engine,
+		scheduled: () => ids('schedule'),
+		cancelled: () => ids('cancel'),
+		reset: () => engine.clearOperations(),
+		stops: () => engine.listRepeatStops(),
+		held: async () => {
+			const pending = await engine.getPending();
+			return new Map(pending.map(entry => [entry.id, entry] as const));
+		},
 	};
 }
 
-const NOW = new Date('2026-08-03T06:00:00');
+async function heldEntry(
+	fake: ReturnType<typeof harness>,
+	id: string,
+): Promise<PendingEntry | undefined> {
+	return (await fake.held()).get(id);
+}
 
 const task = (over: Partial<Task> = {}): Task => ({
 	id: 't1',
@@ -98,47 +126,50 @@ const input = (over: Partial<ReconcileInput> = {}): ReconcileInput => ({
 
 describe('reconcileReminders', () => {
 	it('schedules what is missing on the first run', async () => {
-		const { scheduler, calls } = fakeScheduler();
-		const report = await reconcileReminders(scheduler, input());
+		const fake = harness();
+		const report = await reconcileReminders(fake.service, input());
 		expect(report.scheduled).toBe(1);
-		expect(calls.scheduled).toEqual(['task:t1']);
+		expect(fake.scheduled()).toEqual(['task:t1']);
 	});
 
 	it('IS IDEMPOTENT: a second run touches nothing', async () => {
-		const fake = fakeScheduler();
-		await reconcileReminders(fake.scheduler, input());
+		const fake = harness();
+		await reconcileReminders(fake.service, input());
 		fake.reset();
 
-		const report = await reconcileReminders(fake.scheduler, input());
-		expect(fake.calls.scheduled).toEqual([]);
-		expect(fake.calls.cancelled).toEqual([]);
+		const report = await reconcileReminders(fake.service, input());
+		expect(fake.scheduled()).toEqual([]);
+		expect(fake.cancelled()).toEqual([]);
 		expect(report.scheduled).toBe(0);
 		expect(report.cancelled).toBe(0);
 		expect(report.unchanged).toBe(1);
 	});
 
 	it('cancels reminders the data no longer wants', async () => {
-		const fake = fakeScheduler();
-		await reconcileReminders(fake.scheduler, input());
+		const fake = harness();
+		await reconcileReminders(fake.service, input());
 		fake.reset();
 
-		await reconcileReminders(fake.scheduler, input({ tasks: [] }));
-		expect(fake.calls.cancelled).toEqual(['task:t1']);
+		await reconcileReminders(fake.service, input({ tasks: [] }));
+		expect(fake.cancelled()).toEqual(['task:t1']);
 	});
 
 	it('keeps no reminder for a completed task', async () => {
-		const { scheduler, held } = fakeScheduler();
-		await reconcileReminders(scheduler, input({ tasks: [task({ status: 'done' })] }));
-		expect(held.size).toBe(0);
+		const fake = harness();
+		await reconcileReminders(
+			fake.service,
+			input({ tasks: [task({ status: 'done' })] }),
+		);
+		expect((await fake.held()).size).toBe(0);
 	});
 
 	it('skips a reminder whose moment has already passed', async () => {
-		const { scheduler, held } = fakeScheduler();
+		const fake = harness();
 		await reconcileReminders(
-			scheduler,
+			fake.service,
 			input({ tasks: [task({ startTime: '05:00' })] }),
 		);
-		expect(held.size).toBe(0);
+		expect((await fake.held()).size).toBe(0);
 	});
 
 	/**
@@ -147,22 +178,68 @@ describe('reconcileReminders', () => {
 	 * down bought nothing.
 	 */
 	it('still notifies a task with no reminder, silently and at the start time', async () => {
-		const { scheduler, held } = fakeScheduler();
+		const fake = harness();
 		await reconcileReminders(
-			scheduler,
+			fake.service,
 			input({ tasks: [task({ reminderEnabled: false })] }),
 		);
-		const request = held.get('task:t1');
-		expect(request?.tone).toBe('silent');
-		expect(request?.fireAt).toEqual(new Date('2026-08-03T09:00:00'));
+		const entry = await heldEntry(fake, 'task:t1');
+		expect(entry?.tone).toBe(TONE_SILENT);
+		expect(entry?.resolvedAt).toBe(new Date('2026-08-03T09:00:00').getTime());
 	});
 
 	it('offsets and rings when the reminder is on', async () => {
-		const { scheduler, held } = fakeScheduler();
-		await reconcileReminders(scheduler, input());
-		const request = held.get('task:t1');
-		expect(request?.tone).toBe('alert');
-		expect(request?.fireAt).toEqual(new Date('2026-08-03T08:45:00'));
+		const fake = harness();
+		await reconcileReminders(fake.service, input());
+		const entry = await heldEntry(fake, 'task:t1');
+		expect(entry?.tone).toBe(TONE_ALERT);
+		expect(entry?.resolvedAt).toBe(new Date('2026-08-03T08:45:00').getTime());
+	});
+
+	/**
+	 * Every entry carries the domain as its group tag. Without it the SDK cannot
+	 * see the notification on a later pass — it would never be cancelled, and no
+	 * amount of correct data would fix it.
+	 */
+	it('tags every entry with the reconciliation domain', async () => {
+		const fake = harness();
+		await reconcileReminders(fake.service, input());
+		expect((await heldEntry(fake, 'task:t1'))?.groupTag).toBe(REMINDER_DOMAIN);
+	});
+
+	/** A tap has to be able to reopen the exact thing that was reminded about. */
+	it('carries the tap target on the entry', async () => {
+		const fake = harness();
+		await reconcileReminders(fake.service, input());
+		expect((await heldEntry(fake, 'task:t1'))?.routing).toEqual({
+			kind: 'task',
+			taskId: 't1',
+			taskDate: '2026-08-03',
+		});
+	});
+
+	/**
+	 * The whole point of a bounded repeat: something has to end the sound. The
+	 * marker IS that something, so its absence would mean a phone that rings for
+	 * fifteen minutes only because nobody was there to hear it stop.
+	 */
+	it('bounds a ringing reminder with a stop, and leaves a silent one alone', async () => {
+		const ringing = harness();
+		await reconcileReminders(ringing.service, input());
+		const stops = await ringing.stops();
+		expect(stops).toHaveLength(1);
+		expect(stops[0].targetId).toBe('task:t1');
+		// Fifteen minutes after the reminder sounds, not after the task starts.
+		expect(stops[0].dueAt).toBe(
+			new Date('2026-08-03T08:45:00').getTime() + 15 * 60 * 1000,
+		);
+
+		const quiet = harness();
+		await reconcileReminders(
+			quiet.service,
+			input({ tasks: [task({ reminderEnabled: false })] }),
+		);
+		expect(await quiet.stops()).toEqual([]);
 	});
 
 	/**
@@ -171,41 +248,42 @@ describe('reconcileReminders', () => {
 	 * from — the failure this pair of tests exists to catch.
 	 */
 	it('re-registers a task whose time moved', async () => {
-		const fake = fakeScheduler();
-		await reconcileReminders(fake.scheduler, input());
+		const fake = harness();
+		await reconcileReminders(fake.service, input());
 		fake.reset();
 
 		await reconcileReminders(
-			fake.scheduler,
+			fake.service,
 			input({ tasks: [task({ startTime: '11:00' })] }),
 		);
-		expect(fake.calls.scheduled).toEqual(['task:t1']);
-		expect(fake.calls.cancelled).toEqual([]);
-		expect(fake.held.get('task:t1')?.fireAt).toEqual(
-			new Date('2026-08-03T10:45:00'),
+		expect(fake.scheduled()).toEqual(['task:t1']);
+		expect(fake.cancelled()).toEqual([]);
+		expect((await heldEntry(fake, 'task:t1'))?.resolvedAt).toBe(
+			new Date('2026-08-03T10:45:00').getTime(),
 		);
 	});
 
 	it('re-registers a task whose reminder was switched off', async () => {
-		const fake = fakeScheduler();
-		await reconcileReminders(fake.scheduler, input());
+		const fake = harness();
+		await reconcileReminders(fake.service, input());
 		fake.reset();
 
 		await reconcileReminders(
-			fake.scheduler,
+			fake.service,
 			input({ tasks: [task({ reminderEnabled: false })] }),
 		);
-		expect(fake.calls.scheduled).toEqual(['task:t1']);
-		expect(fake.held.get('task:t1')?.tone).toBe('silent');
+		expect(fake.scheduled()).toEqual(['task:t1']);
+		expect((await heldEntry(fake, 'task:t1'))?.tone).toBe(TONE_SILENT);
 	});
 
 	it('pre-schedules a series across the window, one session per date', async () => {
-		const { scheduler, held } = fakeScheduler();
+		const fake = harness();
 		await reconcileReminders(
-			scheduler,
+			fake.service,
 			input({ tasks: [], rules: [rule()], overrides: [] }),
 		);
 		// Mondays inside the next 30 days, minus today's 06:50 which has passed.
+		const held = await fake.held();
 		expect(held.size).toBeGreaterThan(0);
 		for (const id of held.keys()) {
 			expect(id.startsWith('recurring:r1:')).toBe(true);
@@ -213,16 +291,16 @@ describe('reconcileReminders', () => {
 	});
 
 	it('honours a skipped session', async () => {
-		const fake = fakeScheduler();
+		const fake = harness();
 		await reconcileReminders(
-			fake.scheduler,
+			fake.service,
 			input({ tasks: [], rules: [rule()], overrides: [] }),
 		);
-		const before = fake.held.size;
+		const before = (await fake.held()).size;
 		fake.reset();
 
 		await reconcileReminders(
-			fake.scheduler,
+			fake.service,
 			input({
 				tasks: [],
 				rules: [rule()],
@@ -231,7 +309,7 @@ describe('reconcileReminders', () => {
 				],
 			}),
 		);
-		expect(fake.held.size).toBe(before - 1);
-		expect(fake.calls.cancelled).toEqual(['recurring:r1:2026-08-10']);
+		expect((await fake.held()).size).toBe(before - 1);
+		expect(fake.cancelled()).toEqual(['recurring:r1:2026-08-10']);
 	});
 });
