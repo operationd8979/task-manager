@@ -1,7 +1,9 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
+import { I18nProvider } from '@chipmobilesdk/rn-i18n';
 
 import type { TimelineItem } from '../../../../domain/timeline';
+import { i18n } from '../../../../i18n';
 import { TaskRow } from '../TaskRow';
 
 /**
@@ -33,16 +35,22 @@ function textOf(task: TimelineItem, now: Date): string {
 	let tree: ReactTestRenderer.ReactTestRenderer | undefined;
 	ReactTestRenderer.act(() => {
 		tree = ReactTestRenderer.create(
-			<TaskRow
-				task={task}
-				now={now}
-				countdownMinutes={5}
-				onToggleStatus={() => undefined}
-				onRestoreSkipped={() => undefined}
-				onOpen={() => undefined}
-				onMore={() => undefined}
-				onShiftTime={() => undefined}
-			/>,
+			// `i18n.init()` is deliberately not awaited: without it the instance
+			// stays on the primary locale, which is the Vietnamese these
+			// assertions are written against. Reading the device language here
+			// would make the suite depend on the machine running it.
+			<I18nProvider i18n={i18n}>
+				<TaskRow
+					task={task}
+					now={now}
+					countdownMinutes={5}
+					onToggleStatus={() => undefined}
+					onRestoreSkipped={() => undefined}
+					onOpen={() => undefined}
+					onMore={() => undefined}
+					onShiftTime={() => undefined}
+				/>
+			</I18nProvider>,
 		);
 	});
 	const json = JSON.stringify(tree?.toJSON());

@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet as RNStyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
+import { I18nProvider } from '@chipmobilesdk/rn-i18n';
 
 import { ErrorState } from '../components/ErrorState';
 import { Skeleton, SkeletonGroup } from '../components/Skeleton';
-import { t } from '../lib/strings';
+import { i18n } from '../i18n';
+import { useT } from '../i18n/useT';
 import { DataError } from '../services/db/errors';
 import { openGateway, type DatabaseGateway } from '../services/db/gateway';
 import { createSettingsRepository } from '../services/db/settingsRepository';
@@ -37,6 +39,36 @@ type BootState =
 	| { status: 'failed' };
 
 /**
+ * The gateway the tree is actually given.
+ *
+ * `destroyAll` closes the handle before it deletes anything (see gateway.ts),
+ * so the gateway it was called on is dead the moment it returns — while every
+ * repository in the tree is still holding that same handle. That is what
+ * left "Xóa toàn bộ dữ liệu" on a screen that could not load, behind a Retry
+ * that re-read through the closed handle and failed identically every time;
+ * relaunching the app was the only cure, because relaunching is what opens a
+ * new handle. Rebooting here is that relaunch, without the relaunch.
+ */
+function withReboot(
+	gateway: DatabaseGateway,
+	reboot: () => void,
+): DatabaseGateway {
+	return {
+		...gateway,
+		async destroyAll() {
+			try {
+				await gateway.destroyAll();
+			} finally {
+				// In `finally` rather than after the await: the close comes first
+				// inside destroyAll, so a wipe that fails part-way leaves the handle
+				// exactly as dead as one that succeeds.
+				reboot();
+			}
+		},
+	};
+}
+
+/**
  * Composition root.
  *
  * The database is opened and the display-mode preference applied BEFORE the
@@ -47,12 +79,28 @@ export default function App() {
 	const [boot, setBoot] = useState<BootState>({ status: 'loading' });
 	const [attempt, setAttempt] = useState(0);
 
+	/**
+	 * Run the boot sequence again: open a new handle, re-apply the display mode,
+	 * and rebuild the tree on top of it. Both the Retry on a failed boot and a
+	 * wipe come through here.
+	 */
+	const reboot = useCallback(() => {
+		setBoot({ status: 'loading' });
+		setAttempt(n => n + 1);
+	}, []);
+
 	useEffect(() => {
 		let cancelled = false;
 		let opened: DatabaseGateway | null = null;
 
 		(async () => {
 			try {
+				// Before the database, not after it: the one screen below that can
+				// appear WITHOUT a database is the boot-failure state, and it is the
+				// screen a user in trouble actually reads. Resolving the language
+				// first is what lets it come out in theirs.
+				await i18n.init();
+
 				const gateway = await openGateway();
 				opened = gateway;
 
@@ -83,7 +131,7 @@ export default function App() {
 					await gateway.close();
 					return;
 				}
-				setBoot({ status: 'ready', gateway });
+				setBoot({ status: 'ready', gateway: withReboot(gateway, reboot) });
 			} catch (error) {
 				if (!cancelled) {
 					// The error log lives on the handle we just failed to open, so this
@@ -111,64 +159,64 @@ export default function App() {
 				// report into and the error log lives on the handle being closed.
 			});
 		};
-	}, [attempt]);
-
-	if (boot.status === 'loading') {
-		return (
-			<GestureHandlerRootView style={rootStyle.fill}>
-				<SafeAreaProvider>
-					<View style={styles.boot}>
-						<SkeletonGroup>
-							<Skeleton height={56} />
-							<Skeleton height={76} />
-							<Skeleton height={76} />
-							<Skeleton height={92} />
-						</SkeletonGroup>
-					</View>
-				</SafeAreaProvider>
-			</GestureHandlerRootView>
-		);
-	}
-
-	if (boot.status === 'failed') {
-		return (
-			<GestureHandlerRootView style={rootStyle.fill}>
-				<SafeAreaProvider>
-					<View style={styles.boot}>
-						<ErrorState
-							title={t('timeline.errorTitle')}
-							body={t('timeline.errorBody')}
-							retryLabel={t('timeline.retry')}
-							onRetry={() => {
-								setBoot({ status: 'loading' });
-								setAttempt(n => n + 1);
-							}}
-						/>
-					</View>
-				</SafeAreaProvider>
-			</GestureHandlerRootView>
-		);
-	}
+	}, [attempt, reboot]);
 
 	return (
-		<GestureHandlerRootView style={rootStyle.fill}>
-			<SafeAreaProvider>
-				<DatabaseProvider gateway={boot.gateway}>
-					{/* Inside DatabaseProvider: it reads tasks and rules to rebuild the
-              reminder schedule on launch and on every foreground return. */}
-					<ReminderProvider>
-						<BottomSheetModalProvider>
-							<NavigationContainer>
-								{/* Above the navigator on purpose — see UndoProvider. */}
-								<UndoProvider>
-									<RootStack />
-								</UndoProvider>
-							</NavigationContainer>
-						</BottomSheetModalProvider>
-					</ReminderProvider>
-				</DatabaseProvider>
-			</SafeAreaProvider>
-		</GestureHandlerRootView>
+		<I18nProvider i18n={i18n}>
+			<GestureHandlerRootView style={rootStyle.fill}>
+				<SafeAreaProvider>
+					{boot.status === 'loading' ? (
+						<View style={styles.boot}>
+							<SkeletonGroup>
+								<Skeleton height={56} />
+								<Skeleton height={76} />
+								<Skeleton height={76} />
+								<Skeleton height={92} />
+							</SkeletonGroup>
+						</View>
+					) : null}
+
+					{boot.status === 'failed' ? <BootFailed onRetry={reboot} /> : null}
+
+					{boot.status === 'ready' ? (
+						<DatabaseProvider gateway={boot.gateway}>
+							{/* Inside DatabaseProvider: it reads tasks and rules to rebuild
+                  the reminder schedule on launch and on every foreground
+                  return. */}
+							<ReminderProvider>
+								<BottomSheetModalProvider>
+									<NavigationContainer>
+										{/* Above the navigator on purpose — see UndoProvider. */}
+										<UndoProvider>
+											<RootStack />
+										</UndoProvider>
+									</NavigationContainer>
+								</BottomSheetModalProvider>
+							</ReminderProvider>
+						</DatabaseProvider>
+					) : null}
+				</SafeAreaProvider>
+			</GestureHandlerRootView>
+		</I18nProvider>
+	);
+}
+
+/**
+ * Its own component so that it sits INSIDE `I18nProvider` and can subscribe to
+ * the active language. `App` renders the provider, so it is above it and has no
+ * translation of its own to reach for.
+ */
+function BootFailed({ onRetry }: { onRetry: () => void }) {
+	const t = useT();
+	return (
+		<View style={styles.boot}>
+			<ErrorState
+				title={t('timeline.errorTitle')}
+				body={t('timeline.errorBody')}
+				retryLabel={t('timeline.retry')}
+				onRetry={onRetry}
+			/>
+		</View>
 	);
 }
 

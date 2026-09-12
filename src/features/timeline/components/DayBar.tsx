@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native-unistyles';
 
 import { Chevron } from '../../../components/Chevron';
 import { Text } from '../../../components/Text';
-import { t } from '../../../lib/strings';
+import { useT } from '../../../i18n/useT';
 import { today, type LocalDate } from '../../../lib/date';
 import { appTheme } from '../../../theme/theme';
 import {
@@ -42,6 +42,7 @@ export function DayBar({
 	onOpenSettings,
 	onToday,
 }: DayBarProps) {
+	const t = useT();
 	const isToday = date === today();
 
 	return (

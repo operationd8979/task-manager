@@ -4,7 +4,8 @@ import { StyleSheet } from 'react-native-unistyles';
 
 import { Sheet } from '../../../components/Sheet';
 import { Text } from '../../../components/Text';
-import { t, type StringKey } from '../../../lib/strings';
+import type { Translate } from '../../../i18n';
+import { useT } from '../../../i18n/useT';
 import { appTheme } from '../../../theme/theme';
 import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
@@ -22,6 +23,13 @@ export interface RowActionsSheetProps {
 	 * session belongs to its own date, so only its time is on offer.
 	 */
 	isOccurrence: boolean;
+	/**
+	 * A session that has already been skipped has nothing left to skip. The row
+	 * keeps its own restore button, so the way back is still one tap away; what
+	 * goes is the entry that would write the state the session is already in.
+	 * Always false for a one-off task.
+	 */
+	isSkipped: boolean;
 	onAction: (action: RowAction) => void;
 	onClose: () => void;
 }
@@ -38,15 +46,17 @@ export interface RowActionsSheetProps {
  * it opens a warning naming the sessions it would end (change.md §1).
  */
 function actionsFor(
+	t: Translate,
 	isOccurrence: boolean,
-): ReadonlyArray<{ action: RowAction; key: StringKey }> {
+	isSkipped: boolean,
+): ReadonlyArray<{ action: RowAction; label: string }> {
 	return [
-		{ action: 'move', key: 'actions.move' },
-		{ action: 'edit', key: 'actions.edit' },
-		...(isOccurrence
-			? [{ action: 'skip' as const, key: 'scope.skipThisSession' as const }]
+		{ action: 'move', label: t('actions.move') },
+		{ action: 'edit', label: t('actions.edit') },
+		...(isOccurrence && !isSkipped
+			? [{ action: 'skip' as const, label: t('scope.skipThisSession') }]
 			: []),
-		{ action: 'delete', key: 'actions.delete' },
+		{ action: 'delete', label: t('actions.delete') },
 	];
 }
 
@@ -60,10 +70,12 @@ function actionsFor(
 export function RowActionsSheet({
 	title,
 	isOccurrence,
+	isSkipped,
 	onAction,
 	onClose,
 }: RowActionsSheetProps) {
-	const actions = actionsFor(isOccurrence);
+	const t = useT();
+	const actions = actionsFor(t, isOccurrence, isSkipped);
 	return (
 		<Sheet title={t('actions.title')} onClose={onClose}>
 			<Text style={styles.subject} numberOfLines={2}>
@@ -74,14 +86,14 @@ export function RowActionsSheet({
 					<Pressable
 						key={item.action}
 						accessibilityRole="button"
-						accessibilityLabel={t(item.key)}
+						accessibilityLabel={item.label}
 						onPress={() => onAction(item.action)}
 						style={styles.row}>
 						<Text
 							style={
 								item.action === 'delete' ? styles.destructive : styles.label
 							}>
-							{t(item.key)}
+							{item.label}
 						</Text>
 					</Pressable>
 				))}

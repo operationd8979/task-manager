@@ -10,7 +10,7 @@ import { createFakeEngine } from '@chipmobilesdk/rn-notification/testing';
 import type { RecurringRule } from '../../../domain/recurrence';
 import type { Task } from '../../../domain/task';
 import { reconcileReminders, type ReconcileInput } from '../reconcile';
-import { REMINDER_DOMAIN, REMINDER_TONES, TONE_ALERT, TONE_SILENT } from '../tones';
+import { REMINDER_DOMAIN, reminderTones, TONE_ALERT, TONE_SILENT } from '../tones';
 
 const NOW = new Date('2026-08-03T06:00:00');
 
@@ -35,7 +35,7 @@ function harness() {
 
 	const reconciler = createReconciler({
 		engine,
-		resolveTone: createToneResolver(REMINDER_TONES),
+		resolveTone: createToneResolver(reminderTones()),
 		// Anchoring never converts the instant at schedule time — it only records
 		// the zone the entry was anchored against — so a fixed zone keeps the test
 		// independent of where it runs.

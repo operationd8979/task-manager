@@ -1,0 +1,307 @@
+{
+	"actions": {
+		"delete": "Delete",
+		"edit": "Edit",
+		"move": "Move",
+		"title": "Actions"
+	},
+	"calendar": {
+		"backToToday": "BACK TO TODAY",
+		"busyFailed": "Couldn't count the busy days",
+		"day": "Day {{date}}",
+		"dayBusy": "Day {{date}}, has tasks",
+		"month": "{{month}} {{year}}",
+		"nextMonth": "Next month",
+		"previousMonth": "Previous month",
+		"title": "Pick a date"
+	},
+	"common": {
+		"apply": "APPLY",
+		"cancel": "CANCEL",
+		"done": "DONE"
+	},
+	"day": {
+		"backToToday": "BACK TO TODAY",
+		"next": "Next day",
+		"openCalendar": "Open the date picker",
+		"previous": "Previous day",
+		"settings": "Settings",
+		"today": "TODAY"
+	},
+	"deleteSeries": {
+		"confirm": "DELETE SERIES",
+		"effect": {
+			"one": "This drops {{count}} session from today on.",
+			"other": "This drops {{count}} sessions from today on."
+		},
+		"effectOpen": {
+			"one": "This drops {{count}} session in the next 12 months, and every one after that.",
+			"other": "This drops {{count}} sessions in the next 12 months, and every one after that."
+		},
+		"keepsPast": "Past sessions stay in your history.",
+		"subject": "{{title}}",
+		"title": "Delete the repeating task?"
+	},
+	"duration": {
+		"days": {
+			"one": "{{count}} day",
+			"other": "{{count}} days"
+		},
+		"hours": {
+			"one": "{{count}} hour",
+			"other": "{{count}} hours"
+		},
+		"minutes": {
+			"one": "{{count}} minute",
+			"other": "{{count}} minutes"
+		}
+	},
+	"form": {
+		"close": "Close",
+		"date": "Date",
+		"editSeriesTitle": "Edit repeating task",
+		"editTitle": "Edit task",
+		"end": "Ends",
+		"endUnset": "—",
+		"name": "Task name",
+		"newTitle": "New task",
+		"noEndTime": "No end time",
+		"noRepeat": "No repeat",
+		"note": "Note",
+		"plus30": "+30 min",
+		"plus45": "+45 min",
+		"plus60": "+1 hour",
+		"reminder": "Reminder",
+		"reminderBefore": "{{minutes}} min before",
+		"reminderOff": "Reminder off",
+		"reminderOffHint": "Still shows a notification at the start time, but without a sound.",
+		"reminderOn": "Reminder on",
+		"reminderOnTime": "On time",
+		"repeat": "Repeat",
+		"save": "CREATE TASK",
+		"saveEdit": "SAVE",
+		"saving": "SAVING…",
+		"seriesScope": "Changes apply to the whole series. The new time counts from today; past sessions keep the old one.",
+		"seriesStart": "Series starts",
+		"start": "Starts"
+	},
+	"format": {
+		"dayLabel": "{{weekday}} {{monthNumber}}/{{dayNumber}}"
+	},
+	"month": {
+		"inline": {
+			"1": "January",
+			"2": "February",
+			"3": "March",
+			"4": "April",
+			"5": "May",
+			"6": "June",
+			"7": "July",
+			"8": "August",
+			"9": "September",
+			"10": "October",
+			"11": "November",
+			"12": "December"
+		},
+		"standalone": {
+			"1": "January",
+			"2": "February",
+			"3": "March",
+			"4": "April",
+			"5": "May",
+			"6": "June",
+			"7": "July",
+			"8": "August",
+			"9": "September",
+			"10": "October",
+			"11": "November",
+			"12": "December"
+		}
+	},
+	"notify": {
+		"alertDescription": "Rings before a task is due to start.",
+		"alertName": "Task reminders",
+		"silentDescription": "Tells you a task is starting, with no sound and no vibration.",
+		"silentName": "Task notices"
+	},
+	"permission": {
+		"deniedBody": "The app isn't allowed to show notifications, so reminders won't appear.",
+		"deniedTitle": "Reminders are switched off",
+		"grant": "GRANT PERMISSION",
+		"inexactBody": "Without the exact-alarm permission, reminders are still set but may fire a few minutes late.",
+		"openSettings": "OPEN SETTINGS"
+	},
+	"reminder": {
+		"offsetShort": "−{{minutes}}′",
+		"onTime": "on time"
+	},
+	"repeat": {
+		"byLastDay": "On the last day",
+		"byMonthDay": "By day of month",
+		"byWeekday": "By weekday",
+		"dayOfMonth": "Day {{day}}",
+		"endDate": "End date",
+		"lastDayHint": "One session a month, on the last day of the month — the 28th, 29th, 30th or 31st.",
+		"monthDays": "Days of the month",
+		"noEndDate": "No end",
+		"none": "No repeat",
+		"patternLastDay": "the last day",
+		"patternMonthDays": "day {{days}}",
+		"presetDaily": "Every day",
+		"presetWeekdays": "Mon–Fri",
+		"presetWeekend": "Weekend",
+		"preview": "Sessions on {{days}} at {{time}}, from {{start}}{{end}}.",
+		"previewNone": "No session would be created.",
+		"previewOpenEnded": " with no end date",
+		"previewUntil": " until {{end}}",
+		"skipsMonth": "No session in {{months}}, because that month doesn't have the day you picked.",
+		"skipsMonths": "No session in {{months}}, because those months don't have the days you picked.",
+		"startDate": "Start date",
+		"summary": "Repeats {{days}} at {{time}}",
+		"summaryDaily": "Repeats every day at {{time}}",
+		"title": "Set up the repeat",
+		"untilDate": "Until",
+		"weekdays": "Days of the week"
+	},
+	"row": {
+		"countdown": "{{time}} LEFT",
+		"countdownLabel": "{{minutes}} minutes {{seconds}} seconds until it starts",
+		"done": "DONE",
+		"dragHandle": "Drag to change the time of {{title}}. Or use More actions, then Change time.",
+		"edited": "EDITED FOR THIS DAY",
+		"more": "More actions",
+		"overdue": "{{duration}} LATE",
+		"reminder": "REMINDER {{offset}}",
+		"reminderMayBeLate": "MAY BE LATE",
+		"reminderOnTime": "REMINDER ON TIME",
+		"repeats": "REPEATS {{days}}",
+		"restoreSkipped": "Un-skip {{title}}",
+		"skipped": "SKIPPED",
+		"toggleDone": "Mark {{title}} done",
+		"toggleProcessing": "Mark {{title}} not done"
+	},
+	"save": {
+		"failedTitle": "Not saved",
+		"retry": "TRY SAVING AGAIN"
+	},
+	"scope": {
+		"cancel": "CANCEL — CHANGE NOTHING",
+		"changedTime": "moved to {{time}}.",
+		"countFailed": "Couldn't count the sessions this affects",
+		"counting": "Counting the sessions this affects…",
+		"seriesEffect": {
+			"one": "Affects {{count}} session in the next 12 months",
+			"other": "Affects {{count}} sessions in the next 12 months"
+		},
+		"seriesEffectOpen": {
+			"one": "Affects {{count}} session in the next 12 months, and every one after that",
+			"other": "Affects {{count}} sessions in the next 12 months, and every one after that"
+		},
+		"skipThisSession": "Skip this session",
+		"subject": "{{title}} · {{date}} · repeating",
+		"thisOnly": "THIS SESSION ONLY",
+		"thisOnlyEffect": "Affects 1 session · the rest stay as they are",
+		"title": "Apply the change to?",
+		"wholeSeries": "THE WHOLE SERIES"
+	},
+	"settings": {
+		"back": "Back",
+		"countdown": "COUNTDOWN",
+		"countdownBefore": "{{minutes}} min",
+		"countdownHint": "Applies to every task, including ones with no reminder. From this point the task row shows a countdown ticking every second. It changes nothing about notifications.",
+		"countdownOffset": "Start the countdown before",
+		"data": "DATA",
+		"dataOnDevice": "Your data is only on this device. Uninstalling the app loses it.",
+		"destroyAll": "DELETE ALL DATA",
+		"destroyBody": {
+			"one": "This can't be undone. {{count}} task and every reminder it has will be deleted.",
+			"other": "This can't be undone. {{count}} tasks and every reminder they have will be deleted."
+		},
+		"destroyConfirm": "DELETE",
+		"destroyTitle": "Delete all data?",
+		"display": "DISPLAY",
+		"displayMode": "Mode",
+		"exactAlarmPermission": "Permission to remind at the exact time",
+		"firstDayOfWeek": "Week starts on",
+		"granted": "✓ Granted",
+		"itemCount": {
+			"one": "Storing {{count}} task.",
+			"other": "Storing {{count}} tasks."
+		},
+		"language": "LANGUAGE",
+		"languageHint": "A new language applies right away, with no restart. Task names and notes you typed stay exactly as you wrote them.",
+		"languageLabel": "Language",
+		"mayBeLate": "Reminders may fire late.",
+		"modeAuto": "Automatic",
+		"modeAutoHint": "Follow the device",
+		"modeDark": "Dark",
+		"modeLight": "Light",
+		"monday": "Monday",
+		"notGranted": "⚠ Not granted",
+		"notificationPermission": "Permission to show notifications",
+		"reminders": "REMINDERS",
+		"saveFailed": "Couldn't save that choice",
+		"sunday": "Sunday"
+	},
+	"shift": {
+		"commonTimes": "Common times",
+		"dateOnlyHere": "This is the only place the date can change. Dragging only changes the time within the same day.",
+		"dropPreview": "Drop to move to {{time}}",
+		"moveTitle": "Move",
+		"timeTitle": "Change time"
+	},
+	"timeline": {
+		"emptyBody": "Add a task, or look at another day.",
+		"emptyTitle": "Nothing planned for this day",
+		"errorBody": "Your data is still on this device. Nothing is lost.",
+		"errorTitle": "Couldn't read your data",
+		"loadingSlow": "Still reading your data",
+		"newTask": "+ NEW TASK",
+		"newTaskSwipeHint": "Swipe up to add a task",
+		"retry": "TRY AGAIN"
+	},
+	"undo": {
+		"action": "UNDO",
+		"deleted": "Deleted {{title}}.",
+		"scopeThisOnly": "This session only: {{change}}",
+		"scopeWholeSeries": "Whole series: {{change}}",
+		"seriesDeleted": "Ended the series {{title}} from today.",
+		"seriesRemoved": "Deleted the series {{title}}.",
+		"skipped": "Skipped {{title}} on {{date}}."
+	},
+	"unsaved": {
+		"discard": "Close and discard changes",
+		"keepEditing": "Keep editing",
+		"saveAndClose": "Save and close",
+		"title": "You have unsaved changes"
+	},
+	"validate": {
+		"endBeforeStart": "The end time has to be after {{start}}. Leave it empty for a single moment.",
+		"endDateBeforeStart": "The end date has to be {{start}} or later.",
+		"monthDayRequired": "Pick at least one day of the month.",
+		"reminderInPast": "The reminder time has already passed, so the app won't set a reminder for this task.",
+		"startInPast": "The start time has already passed, so there will be no notification for this task.",
+		"titleRequired": "Enter a task name to save.",
+		"weekdayRequired": "Pick at least one day of the week."
+	},
+	"weekday": {
+		"long": {
+			"1": "Monday",
+			"2": "Tuesday",
+			"3": "Wednesday",
+			"4": "Thursday",
+			"5": "Friday",
+			"6": "Saturday",
+			"7": "Sunday"
+		},
+		"short": {
+			"1": "Mon",
+			"2": "Tue",
+			"3": "Wed",
+			"4": "Thu",
+			"5": "Fri",
+			"6": "Sat",
+			"7": "Sun"
+		}
+	}
+}

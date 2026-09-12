@@ -29,6 +29,11 @@ FR-053a, FR-060…062) và vào Phase 11 của [tasks.md](./tasks.md). Mục *R�
 hiện khi triển khai* bên dưới ghi năm chỗ mà hành vi mặc định của thư viện đi ngược lại điều
 kế hoạch giả định — đó là phần đắt nhất của vòng này và là phần dễ mất nhất nếu không ghi lại.
 
+**Trạng thái 2026-09-12**: giao diện đã có ba ngôn ngữ — tiếng Việt, tiếng Anh, tiếng Nhật
+(FR-058a…c). Danh mục chuỗi tập trung của vòng trước là thứ khiến việc này không phải sửa
+từng màn hình, đúng như R9 dự đoán; phần tốn công nằm ở `src/lib/format.ts` và ở ba chỗ
+L-8…L-10 bên dưới, không nằm ở các màn hình.
+
 ## Technical Context
 
 **Language/Version**: TypeScript `^5.8.3`, `strict: true` kế thừa từ `@react-native/typescript-config`
@@ -58,10 +63,12 @@ bản là những gì thực sự nằm trong [package.json](../../package.json)
 | `react-native-localize` | `^3.7.0` | Peer bắt buộc của SDK thông báo — múi giờ nền tảng cho việc neo lại giờ treo tường | FR-033…044 |
 | `@react-native-community/datetimepicker` | `^9.1.0` | Bộ chọn ngày/giờ **gốc** của hệ điều hành theo Principle I | FR-007, FR-021 |
 | `react-native-unistyles` *(khai báo lại)* | `^3.3.0` | App import trực tiếp nhưng chưa khai trong `package.json`; trước đó chỉ tồn tại nhờ peer của gói theme | Constitution III |
+| `@chipmobilesdk/rn-i18n` | `^0.1.1` | Ba ngôn ngữ: chọn theo thiết bị, fallback giữa các ngôn ngữ, số nhiều (Hermes không có `Intl.PluralRules`), đổi lúc chạy, và CLI đồng bộ khóa giữa mã nguồn và ba file JSON | FR-058a…c |
 
-**Không** thêm: thư viện i18n (một ngôn ngữ — xem R9), thư viện quản lý state toàn cục (xem
-R11), `react-native-quick-crypto` (chỉ cần khi bật mã hóa — xem R5), `@shopify/flash-list`
-(chỉ leo thang nếu `FlatList` trượt SC-006 — xem R8).
+**Không** thêm: thư viện quản lý state toàn cục (xem R11), `react-native-quick-crypto` (chỉ
+cần khi bật mã hóa — xem R5), `@shopify/flash-list` (chỉ leo thang nếu `FlatList` trượt SC-006
+— xem R8). *Thư viện i18n từng nằm trong danh sách này khi ứng dụng còn một ngôn ngữ; xem
+phần thay thế của R9.*
 
 **Storage**: `@chipmobilesdk/rn-local-db@0.1.1` trên `op-sqlite`. Phạm vi dữ liệu
 `{ kind: 'guest' }` — ứng dụng không có tài khoản. Mã hóa **tắt**: dữ liệu công việc không
@@ -88,8 +95,8 @@ trên thiết bị cấu hình thấp (SC-006).
 
 **Constraints**: Hoạt động đầy đủ ở chế độ máy bay (SC-007); chế độ sáng và tối đều hoàn
 chỉnh (FR-056); vùng chạm ≥44×44pt và bố cục chịu được cỡ chữ hệ thống tới 170% (FR-057);
-điều hướng sâu tối đa 3 cấp; giao diện chỉ tiếng Việt, mọi chuỗi lấy từ danh mục tập trung
-(FR-058a).
+điều hướng sâu tối đa 3 cấp; ba ngôn ngữ giao diện — Việt, Anh, Nhật — đổi được lúc chạy,
+mọi chuỗi lấy từ danh mục tập trung, mỗi ngôn ngữ một danh mục đầy đủ (FR-058a…c).
 
 **Scale/Scope**: 9 màn hình (S-01…S-09), 8 luồng (F-1…F-8), 4 thực thể lưu trữ + 1 bảng cài
 đặt, 96 yêu cầu chức năng, 18 tiêu chí thành công (80/15 khi lập kế hoạch; phần chênh đến từ
@@ -196,10 +203,16 @@ src/
 │   ├── task.ts  recurrence.ts  occurrence.ts  reminder.ts
 │   ├── timeline.ts  settings.ts      # ② thay cho overlap.ts, xem ghi chú
 │   └── __tests__/
+├── i18n/                             # Ba ngôn ngữ (FR-058a…c) — thay cho lib/strings.ts
+│   ├── index.ts                      # Instance SDK + `t` cho chỗ không có render
+│   ├── useT.ts                       # `t` gắn theo ngôn ngữ — xem ③ bên dưới
+│   ├── config.ts  storage.ts         # Ba locale; lựa chọn lưu bằng MMKV, không phải SQLite
+│   ├── keys.generated.ts             # SINH RA bởi `npm run i18n:sync`, không sửa tay
+│   └── locales/                      # vi-VN.json  en-US.json  ja-JP.json
 ├── lib/
 │   ├── date.ts                       # Ngày/giờ địa phương, không phụ thuộc đồng hồ máy chủ
-│   ├── format.ts  haptics.ts
-│   ├── strings.ts                    # Danh mục chuỗi tập trung (FR-058a)
+│   ├── format.ts                     # Chuỗi ghép lúc chạy — cũng lấy chữ từ danh mục
+│   ├── haptics.ts
 │   └── __tests__/
 └── types/
 
@@ -266,6 +279,9 @@ chúng sẽ tái xuất hiện ở bất kỳ tính năng nào chạm vào cùng
 | L-5 | Đổi cấu hình kênh thông báo là đủ để mọi nhắc nhở nhận cấu hình mới | Kênh Android **bất biến sau khi tạo**, và phép hòa giải (FR-041) cố ý không đụng vào id đã đúng lịch. Hai điều đó cộng lại: thêm âm báo chỉ có tác dụng với người cài mới | Đổi id kênh, và khi phát hiện kênh cũ vẫn còn thì hủy toàn bộ nhắc nhở đang chờ để lần hòa giải kế tiếp dựng lại chúng trên kênh mới (FR-035c) |
 | L-6 | Định danh ổn định là đủ để hòa giải nhận ra thông báo nào đã lỗi thời | Định danh được tính **từ công việc**, nên nó sống sót qua mọi lần sửa: dời một việc từ 09:00 sang 11:00 vẫn ra `task:{id}`. Phép hòa giải so định danh báo "đã đúng" và không đặt lại lần nào — người dùng bị báo theo giờ đã bỏ đi, vĩnh viễn. Cùng lỗi khiến bật/tắt nhắc nhở trên việc đã lưu không có tác dụng | `listScheduled()` trả về `{id, fireAt, tone}` (qua `notifee.getTriggerNotifications()`, không phải `getTriggerNotificationIds()`), và hòa giải so cả ba. Đặt lại bằng cách **ghi đè trên cùng id** nên vẫn không mở ra khoảng trống (FR-041a) |
 | L-7 | `bypassDnd: true` là đủ để chuông kêu khi máy im lặng | `bypassDnd` chỉ áp dụng cho **Không làm phiền**. Chế độ im lặng tắt cứng luồng âm thanh thông báo ở tầng hệ điều hành, và không thuộc tính kênh nào mở lại được | Chưa xử lý — cần tạo kênh ở tầng native với `AudioAttributes` USAGE_ALARM để phát trên luồng báo thức. Ghi vào Out of Scope của spec, là hạng mục kế tiếp |
+| L-8 | `useTranslation()` trả về một `t` dùng được trong mảng phụ thuộc của `useMemo` | Nó dựng **closure mới mỗi lần render**. Cho `t` vào mảng phụ thuộc thì memo hỏng hoàn toàn; bỏ ra thì giá trị đóng băng ở ngôn ngữ của lần render đầu — hàng công việc vẫn ghi "QUÁ HẠN" sau khi người dùng đổi sang tiếng Anh. Cả hai vế đều là lỗi thật, và `react-hooks/exhaustive-deps` tìm ra **bảy** chỗ ngay lần đầu | `src/i18n/useT.ts` giữ đúng **một** binding cho mỗi ngôn ngữ trong một `Map`. Danh tính đổi khi và chỉ khi ngôn ngữ đổi, nên `t` trở thành một phụ thuộc trung thực: memo tính lại đúng một lần lúc đổi ngôn ngữ, không phải mỗi render (SC-006) |
+| L-9 | CLI của SDK chạy được bằng lệnh trong README | `node --experimental-strip-types` **từ chối** mọi file nằm dưới `node_modules` (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`) — vĩnh viễn, theo thiết kế của Node. Lệnh in trong README không chạy trên Node 22.12 | `scripts/i18n-sync.mjs` sao thư mục tooling ra thư mục tạm của hệ điều hành (khóa theo số phiên bản gói) rồi chạy từ đó. Ràng buộc nằm ở **đường dẫn**, không ở mã |
+| L-10 | Trình trích xuất khóa chỉ cần thấy `t('...')` là đủ | Nó xóa khỏi cả ba file JSON mọi khóa nó không thấy được **tĩnh**. `t(preset.key)`, `t(chip.key)` và `messageKey` sinh từ tầng miền đều vô hình với nó, nên lần chạy đầu sẽ lặng lẽ xóa đúng những khóa đó | Đổi tên trường thành `labelKey`/`messageKey` và khai thêm một mẫu regex trong `i18n-sync.config.json`: app tự nói cho công cụ biết khóa của mình nằm ở đâu. Những chỗ còn lại viết thành `t('literal')` tường minh (`switch` trong `format.ts`). Đổi lại, lần chạy đó phát hiện **5 khóa chết** không quy tắc lint nào thấy được |
 
 Một quan sát chung, đắt hơn cả năm dòng trên: **ký tự không phải biểu tượng.** Căn giữa `‹`
 trong một ô vuông không cho ra một mũi tên nằm giữa ô vuông, vì phông chữ đặt nét theo

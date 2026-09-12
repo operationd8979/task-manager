@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { Chevron } from '../../../components/Chevron';
 import { Sheet } from '../../../components/Sheet';
 import { Text } from '../../../components/Text';
+import { useT } from '../../../i18n/useT';
 import {
 	addDays,
 	parseLocalDate,
@@ -14,8 +15,7 @@ import {
 	type LocalDate,
 	type Weekday,
 } from '../../../lib/date';
-import { weekdayShort } from '../../../lib/format';
-import { t } from '../../../lib/strings';
+import { monthStandalone, weekdayShort } from '../../../lib/format';
 import { appTheme } from '../../../theme/theme';
 import {
 	BAR_HEIGHT,
@@ -47,6 +47,7 @@ export function DatePickerSheet({
 	onSelect,
 	onClose,
 }: DatePickerSheetProps) {
+	const t = useT();
 	const [anchor, setAnchor] = useState(selected);
 	const busy = useBusyDays(anchor);
 
@@ -89,7 +90,7 @@ export function DatePickerSheet({
 				</Pressable>
 				<Text style={styles.monthLabel}>
 					{t('calendar.month', {
-						month: anchorMonth,
+						month: monthStandalone(anchorMonth),
 						year: anchorDate.getFullYear(),
 					})}
 				</Text>
@@ -147,6 +148,7 @@ function DayCell({
 	isCounting: boolean;
 	onPress: () => void;
 }) {
+	const t = useT();
 	styles.useVariants({ inMonth, isSelected, isBusy, isCounting });
 	const dayNumber = parseLocalDate(date).getDate();
 

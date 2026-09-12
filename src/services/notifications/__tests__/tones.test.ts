@@ -3,9 +3,10 @@ import {
 	validateToneDeclarations,
 } from '@chipmobilesdk/rn-notification';
 
-import { REMINDER_TONES, TONE_ALERT, TONE_SILENT } from '../tones';
+import { reminderTones, TONE_ALERT, TONE_SILENT } from '../tones';
 
-const toneById = (id: string) => REMINDER_TONES.find(tone => tone.id === id);
+const toneById = (id: string) =>
+	reminderTones().find(tone => tone.id === id);
 
 /**
  * The SDK validates these at `channels.apply()`, which is on a device, at
@@ -15,7 +16,7 @@ const toneById = (id: string) => REMINDER_TONES.find(tone => tone.id === id);
  */
 describe('reminder tones', () => {
 	it('declares a configuration the SDK accepts', () => {
-		expect(() => validateToneDeclarations(REMINDER_TONES)).not.toThrow();
+		expect(() => validateToneDeclarations(reminderTones())).not.toThrow();
 	});
 
 	it('rings repeatedly, bounded to fifteen minutes', () => {
@@ -43,7 +44,7 @@ describe('reminder tones', () => {
 	 * A label equal to the id means they are reading a developer identifier.
 	 */
 	it('gives every tone a label a person can read', () => {
-		for (const tone of REMINDER_TONES) {
+		for (const tone of reminderTones()) {
 			expect(tone.name).not.toBe(tone.id);
 			expect(tone.name.trim().length).toBeGreaterThan(0);
 		}

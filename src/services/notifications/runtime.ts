@@ -28,7 +28,7 @@ import {
 } from '@chipmobilesdk/rn-notification';
 
 import { notificationEngine } from './engine';
-import { LEGACY_CHANNEL_IDS, REMINDER_DOMAIN, REMINDER_TONES } from './tones';
+import { LEGACY_CHANNEL_IDS, REMINDER_DOMAIN, reminderTones } from './tones';
 
 /**
  * Everything above this file talks to the SDK through this service.
@@ -55,6 +55,16 @@ export interface ReminderNotifications {
 	 * Additive only: it can never cancel a reminder reconciliation created.
 	 */
 	runMaintenance(): Promise<MaintenanceResult | undefined>;
+	/**
+	 * Re-declares the tones so their name and description follow the app's
+	 * language (FR-058a).
+	 *
+	 * Cheap and safe to call whenever: the SDK fingerprints the two label fields
+	 * and touches the platform only when they actually moved. A label change is
+	 * never a version change, so no channel is recreated and every setting the
+	 * user adjusted on it survives.
+	 */
+	applyToneLabels(): Promise<void>;
 	/** The readable answer to "why didn't it arrive". Diagnostics only. */
 	captureSnapshot(): Promise<StateSnapshot>;
 }
@@ -102,7 +112,7 @@ async function build(): Promise<ReminderNotifications> {
 	// The same instance `index.js` registered the repeat-expiry handler on.
 	const engine = notificationEngine();
 	const store = createMmkvStore();
-	const resolveTone = createToneResolver(REMINDER_TONES);
+	const resolveTone = createToneResolver(reminderTones());
 	const now = () => Date.now();
 	// The SDK's own reader, exported from 0.1.1. `Intl` is documented in React
 	// Native as not reliably updating when the device zone changes, so a
@@ -112,7 +122,7 @@ async function build(): Promise<ReminderNotifications> {
 	const timeZone = createPlatformTimeZoneReader();
 
 	const { runtime } = await initialize(
-		{ tones: REMINDER_TONES, eventSink: sink },
+		{ tones: reminderTones(), eventSink: sink },
 		{ engine, store },
 	);
 
@@ -155,7 +165,7 @@ async function build(): Promise<ReminderNotifications> {
 		exactAlarm === 'granted' || exactAlarm === 'notRequired';
 
 	const channels = createChannels({ engine, state: runtime.state, now, emit });
-	await channels.apply(REMINDER_TONES);
+	await channels.apply(reminderTones());
 
 	// The pre-SDK build's channels outlive the code that made them. Left alone
 	// they sit in system settings as dead entries the user can still toggle.
@@ -247,6 +257,10 @@ async function build(): Promise<ReminderNotifications> {
 			const result = await runtime.maintenance.runAutomatic('foreground');
 			lastMaintenance = result ?? lastMaintenance;
 			return result;
+		},
+
+		async applyToneLabels() {
+			await channels.apply(reminderTones());
 		},
 
 		captureSnapshot: () => snapshot.capture(),

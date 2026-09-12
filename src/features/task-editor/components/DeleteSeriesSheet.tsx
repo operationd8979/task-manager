@@ -6,8 +6,8 @@ import { Sheet } from '../../../components/Sheet';
 import { Skeleton } from '../../../components/Skeleton';
 import { Text } from '../../../components/Text';
 import { countOccurrences, type RecurringRule } from '../../../domain/recurrence';
+import { useT } from '../../../i18n/useT';
 import { addDays, compareDate, type LocalDate } from '../../../lib/date';
-import { t } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
 import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
@@ -44,6 +44,7 @@ export function DeleteSeriesSheet({
 	onConfirm,
 	onCancel,
 }: Readonly<DeleteSeriesSheetProps>) {
+	const t = useT();
 	const [count, setCount] = useState<CountState>({ status: 'counting' });
 
 	useEffect(() => {
@@ -79,8 +80,8 @@ export function DeleteSeriesSheet({
 			return t('scope.counting');
 		}
 		return rule.endDate === null
-			? t('deleteSeries.effectOpen', { count: count.count })
-			: t('deleteSeries.effect', { count: count.count });
+			? t('deleteSeries.effectOpen', undefined, { count: count.count })
+			: t('deleteSeries.effect', undefined, { count: count.count });
 	};
 
 	/**

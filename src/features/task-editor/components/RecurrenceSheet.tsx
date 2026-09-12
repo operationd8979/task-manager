@@ -17,8 +17,9 @@ import {
 	type LocalTime,
 	type Weekday,
 } from '../../../lib/date';
+import type { AppI18nKey } from '../../../i18n';
+import { useT } from '../../../i18n/useT';
 import { monthList, repeatPatternLabel, weekdayShort } from '../../../lib/format';
-import { t } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
 import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
 import { DateTimeField } from './DateTimeField';
@@ -31,10 +32,10 @@ const DAYS_OF_MONTH: readonly number[] = Array.from(
 	(_, i) => i + 1,
 );
 
-const PRESETS = [
-	{ key: 'repeat.presetWeekdays' as const, days: [1, 2, 3, 4, 5] as Weekday[] },
-	{ key: 'repeat.presetWeekend' as const, days: [6, 7] as Weekday[] },
-	{ key: 'repeat.presetDaily' as const, days: [...ALL_WEEKDAYS] as Weekday[] },
+const PRESETS: ReadonlyArray<{ labelKey: AppI18nKey; days: Weekday[] }> = [
+	{ labelKey: 'repeat.presetWeekdays', days: [1, 2, 3, 4, 5] as Weekday[] },
+	{ labelKey: 'repeat.presetWeekend', days: [6, 7] as Weekday[] },
+	{ labelKey: 'repeat.presetDaily', days: [...ALL_WEEKDAYS] as Weekday[] },
 ];
 
 /** What the segmented control holds — 'none' is the absence of a rule. */
@@ -74,6 +75,7 @@ export function RecurrenceSheet({
 	onDone,
 	onClose,
 }: Readonly<RecurrenceSheetProps>) {
+	const t = useT();
 	const [mode, setMode] = useState<RepeatMode>(value?.frequency ?? 'none');
 	/**
 	 * Every weekday is the starting point for a repeat that has not been set up
@@ -137,6 +139,7 @@ export function RecurrenceSheet({
 		startTime,
 		startDate,
 		endDate,
+		t,
 	]);
 
 	const toggleDay = (day: Weekday) =>
@@ -231,8 +234,8 @@ export function RecurrenceSheet({
 							<ChipRow>
 								{PRESETS.map(preset => (
 									<Chip
-										key={preset.key}
-										label={t(preset.key)}
+										key={preset.labelKey}
+										label={t(preset.labelKey)}
 										selected={sameDays(days, preset.days)}
 										onPress={() => setDays(preset.days)}
 									/>
@@ -265,12 +268,13 @@ export function RecurrenceSheet({
 								<Text style={styles.warning}>
 									{/* Số ít và số nhiều là hai câu khác nhau: "vì các tháng đó"
                       với đúng một tháng đọc như một lỗi dịch. */}
-									{t(
-										emptyMonths.length === 1
-											? 'repeat.skipsMonth'
-											: 'repeat.skipsMonths',
-										{ months: monthList(emptyMonths) },
-									)}
+									{emptyMonths.length === 1
+										? t('repeat.skipsMonth', {
+											months: monthList(emptyMonths),
+										})
+										: t('repeat.skipsMonths', {
+											months: monthList(emptyMonths),
+										})}
 								</Text>
 							) : null}
 						</Field>

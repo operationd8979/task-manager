@@ -6,8 +6,8 @@ import { Chip, ChipRow } from '../../../components/Chip';
 import { Sheet } from '../../../components/Sheet';
 import { Text } from '../../../components/Text';
 import type { Task } from '../../../domain/task';
+import { useT } from '../../../i18n/useT';
 import type { LocalDate, LocalTime } from '../../../lib/date';
-import { t } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
 import { BAR_HEIGHT } from '../../../theme/tokens';
 import { DateTimeField } from './DateTimeField';
@@ -45,6 +45,7 @@ export function TimeShiftSheet({
 	onApply,
 	onClose,
 }: TimeShiftSheetProps) {
+	const t = useT();
 	const [date, setDate] = useState(subject.taskDate);
 	const [time, setTime] = useState(subject.startTime);
 

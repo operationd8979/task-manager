@@ -1,0 +1,280 @@
+{
+	"actions": {
+		"delete": "Xóa",
+		"edit": "Sửa",
+		"move": "Di chuyển",
+		"title": "Thao tác"
+	},
+	"calendar": {
+		"backToToday": "VỀ HÔM NAY",
+		"busyFailed": "Chưa đếm được ngày bận",
+		"day": "Ngày {{date}}",
+		"dayBusy": "Ngày {{date}}, có công việc",
+		"month": "{{month}}, {{year}}",
+		"nextMonth": "Tháng sau",
+		"previousMonth": "Tháng trước",
+		"title": "Chọn ngày"
+	},
+	"common": {
+		"apply": "ÁP DỤNG",
+		"cancel": "HỦY",
+		"done": "XONG"
+	},
+	"day": {
+		"backToToday": "VỀ HÔM NAY",
+		"next": "Ngày sau",
+		"openCalendar": "Mở lịch chọn ngày",
+		"previous": "Ngày trước",
+		"settings": "Cài đặt",
+		"today": "HÔM NAY"
+	},
+	"deleteSeries": {
+		"confirm": "XÓA CHUỖI",
+		"effect": "Sẽ bỏ {{count}} buổi từ hôm nay trở đi.",
+		"effectOpen": "Sẽ bỏ {{count}} buổi trong 12 tháng tới, và mọi buổi sau đó.",
+		"keepsPast": "Các buổi đã qua vẫn giữ nguyên trong lịch sử.",
+		"subject": "{{title}}",
+		"title": "Xóa công việc lặp?"
+	},
+	"duration": {
+		"days": "{{count}} ngày",
+		"hours": "{{count}} giờ",
+		"minutes": "{{count}} phút"
+	},
+	"form": {
+		"close": "Đóng",
+		"date": "Ngày",
+		"editSeriesTitle": "Sửa công việc lặp",
+		"editTitle": "Sửa công việc",
+		"end": "Kết thúc",
+		"endUnset": "—",
+		"name": "Tên công việc",
+		"newTitle": "Công việc mới",
+		"noEndTime": "Không có giờ kết thúc",
+		"noRepeat": "Không lặp",
+		"note": "Ghi chú",
+		"plus30": "+30 phút",
+		"plus45": "+45 phút",
+		"plus60": "+1 giờ",
+		"reminder": "Nhắc nhở",
+		"reminderBefore": "Trước {{minutes}} phút",
+		"reminderOff": "Nhắc nhở tắt",
+		"reminderOffHint": "Vẫn hiện thông báo vào giờ bắt đầu, nhưng không reo chuông.",
+		"reminderOn": "Nhắc nhở bật",
+		"reminderOnTime": "Đúng giờ",
+		"repeat": "Lặp lại",
+		"save": "TẠO CÔNG VIỆC",
+		"saveEdit": "LƯU",
+		"saving": "ĐANG LƯU…",
+		"seriesScope": "Thay đổi áp dụng cho toàn bộ chuỗi. Giờ mới tính từ hôm nay; các buổi đã qua giữ giờ cũ.",
+		"seriesStart": "Bắt đầu chuỗi",
+		"start": "Bắt đầu"
+	},
+	"format": {
+		"dayLabel": "{{weekday}} {{day}}/{{month}}"
+	},
+	"month": {
+		"inline": {
+			"1": "tháng 1",
+			"2": "tháng 2",
+			"3": "tháng 3",
+			"4": "tháng 4",
+			"5": "tháng 5",
+			"6": "tháng 6",
+			"7": "tháng 7",
+			"8": "tháng 8",
+			"9": "tháng 9",
+			"10": "tháng 10",
+			"11": "tháng 11",
+			"12": "tháng 12"
+		},
+		"standalone": {
+			"1": "Tháng 1",
+			"2": "Tháng 2",
+			"3": "Tháng 3",
+			"4": "Tháng 4",
+			"5": "Tháng 5",
+			"6": "Tháng 6",
+			"7": "Tháng 7",
+			"8": "Tháng 8",
+			"9": "Tháng 9",
+			"10": "Tháng 10",
+			"11": "Tháng 11",
+			"12": "Tháng 12"
+		}
+	},
+	"notify": {
+		"alertDescription": "Chuông báo trước giờ bắt đầu công việc.",
+		"alertName": "Nhắc nhở công việc",
+		"silentDescription": "Nhắc công việc bắt đầu, không chuông không rung.",
+		"silentName": "Thông báo công việc"
+	},
+	"permission": {
+		"deniedBody": "Ứng dụng chưa được phép hiện thông báo, nên nhắc nhở sẽ không xuất hiện.",
+		"deniedTitle": "Nhắc nhở đang bị tắt",
+		"grant": "CẤP QUYỀN",
+		"inexactBody": "Thiếu quyền báo thức chính xác, nên nhắc nhở vẫn được đặt nhưng có thể phát trễ vài phút.",
+		"openSettings": "MỞ CÀI ĐẶT"
+	},
+	"reminder": {
+		"offsetShort": "−{{minutes}}′",
+		"onTime": "đúng giờ"
+	},
+	"repeat": {
+		"byLastDay": "Lặp cuối tháng",
+		"byMonthDay": "Lặp theo ngày",
+		"byWeekday": "Lặp theo thứ",
+		"dayOfMonth": "Ngày {{day}}",
+		"endDate": "Ngày kết thúc",
+		"lastDayHint": "Mỗi tháng một buổi, vào ngày cuối cùng của tháng — 28, 29, 30 hoặc 31 tùy tháng.",
+		"monthDays": "Các ngày trong tháng",
+		"noEndDate": "Không giới hạn",
+		"none": "Không lặp",
+		"patternLastDay": "cuối tháng",
+		"patternMonthDays": "ngày {{days}}",
+		"presetDaily": "Hằng ngày",
+		"presetWeekdays": "T2–T6",
+		"presetWeekend": "Cuối tuần",
+		"preview": "Sẽ tạo buổi vào {{days}} lúc {{time}}, từ {{start}}{{end}}.",
+		"previewNone": "Chưa tạo được buổi nào.",
+		"previewOpenEnded": " và không có ngày kết thúc",
+		"previewUntil": " đến {{end}}",
+		"skipsMonth": "Không có buổi nào vào {{months}}, vì tháng đó không có ngày đã chọn.",
+		"skipsMonths": "Không có buổi nào vào {{months}}, vì các tháng đó không có ngày đã chọn.",
+		"startDate": "Ngày bắt đầu",
+		"summary": "Lặp {{days}} lúc {{time}}",
+		"summaryDaily": "Lặp hằng ngày lúc {{time}}",
+		"title": "Thiết lập lặp lại",
+		"untilDate": "Đến ngày",
+		"weekdays": "Các thứ trong tuần"
+	},
+	"row": {
+		"countdown": "CÒN {{time}}",
+		"countdownLabel": "Còn {{minutes}} phút {{seconds}} giây nữa đến giờ",
+		"done": "HOÀN THÀNH",
+		"dragHandle": "Kéo để đổi giờ {{title}}. Hoặc dùng nút Thao tác khác → Đổi giờ.",
+		"edited": "ĐÃ CHỈNH RIÊNG",
+		"more": "Thao tác khác",
+		"overdue": "QUÁ HẠN {{duration}}",
+		"reminder": "NHẮC {{offset}}",
+		"reminderMayBeLate": "CÓ THỂ TRỄ",
+		"reminderOnTime": "NHẮC ĐÚNG GIỜ",
+		"repeats": "LẶP {{days}}",
+		"restoreSkipped": "Bỏ đánh dấu bỏ qua {{title}}",
+		"skipped": "ĐÃ BỎ QUA",
+		"toggleDone": "Đánh dấu hoàn thành {{title}}",
+		"toggleProcessing": "Bỏ đánh dấu hoàn thành {{title}}"
+	},
+	"save": {
+		"failedTitle": "Chưa lưu được",
+		"retry": "THỬ LƯU LẠI"
+	},
+	"scope": {
+		"cancel": "HỦY — KHÔNG THAY ĐỔI GÌ",
+		"changedTime": "đã đổi giờ sang {{time}}.",
+		"countFailed": "Không đếm được số buổi bị ảnh hưởng",
+		"counting": "Đang đếm số buổi bị ảnh hưởng…",
+		"seriesEffect": "Ảnh hưởng {{count}} buổi trong 12 tháng tới",
+		"seriesEffectOpen": "Ảnh hưởng {{count}} buổi trong 12 tháng tới, và mọi buổi sau đó",
+		"skipThisSession": "Bỏ qua buổi này",
+		"subject": "{{title}} · {{date}} · lặp lại",
+		"thisOnly": "CHỈ LẦN NÀY",
+		"thisOnlyEffect": "Ảnh hưởng 1 buổi · các buổi còn lại giữ nguyên",
+		"title": "Áp dụng thay đổi cho?",
+		"wholeSeries": "TOÀN BỘ CHUỖI"
+	},
+	"settings": {
+		"back": "Quay lại",
+		"countdown": "ĐẾM NGƯỢC",
+		"countdownBefore": "{{minutes}} phút",
+		"countdownHint": "Áp dụng cho mọi công việc, kể cả công việc không bật nhắc nhở. Đến mốc này, dòng công việc hiện đồng hồ đếm ngược từng giây. Không ảnh hưởng đến thông báo.",
+		"countdownOffset": "Bắt đầu đếm ngược trước",
+		"data": "DỮ LIỆU",
+		"dataOnDevice": "Dữ liệu chỉ lưu trên máy này. Gỡ ứng dụng là mất.",
+		"destroyAll": "XÓA TOÀN BỘ DỮ LIỆU",
+		"destroyBody": "Thao tác này không hoàn tác được. {{count}} công việc cùng mọi nhắc nhở sẽ bị xóa.",
+		"destroyConfirm": "XÓA",
+		"destroyTitle": "Xóa toàn bộ dữ liệu?",
+		"display": "HIỂN THỊ",
+		"displayMode": "Chế độ",
+		"exactAlarmPermission": "Quyền nhắc đúng thời điểm",
+		"firstDayOfWeek": "Ngày bắt đầu tuần",
+		"granted": "✓ Đã cấp",
+		"itemCount": "Đang lưu {{count}} công việc.",
+		"language": "NGÔN NGỮ",
+		"languageHint": "Đổi ngôn ngữ áp dụng ngay, không cần khởi động lại. Tên và ghi chú công việc bạn đã nhập giữ nguyên.",
+		"languageLabel": "Ngôn ngữ",
+		"mayBeLate": "Nhắc nhở có thể bị phát trễ.",
+		"modeAuto": "Tự động",
+		"modeAutoHint": "Theo máy",
+		"modeDark": "Tối",
+		"modeLight": "Sáng",
+		"monday": "Thứ Hai",
+		"notGranted": "⚠ Chưa cấp",
+		"notificationPermission": "Quyền hiện thông báo",
+		"reminders": "NHẮC NHỞ",
+		"saveFailed": "Chưa lưu được lựa chọn",
+		"sunday": "Chủ Nhật"
+	},
+	"shift": {
+		"commonTimes": "Giờ hay dùng",
+		"dateOnlyHere": "Đây là nơi duy nhất đổi được ngày. Kéo-thả chỉ đổi giờ trong cùng một ngày.",
+		"dropPreview": "Thả để đổi sang {{time}}",
+		"moveTitle": "Di chuyển",
+		"timeTitle": "Đổi giờ"
+	},
+	"timeline": {
+		"emptyBody": "Tạo một công việc, hoặc xem ngày khác.",
+		"emptyTitle": "Ngày này chưa có công việc",
+		"errorBody": "Dữ liệu vẫn nằm trên máy, chưa mất.",
+		"errorTitle": "Chưa đọc được dữ liệu",
+		"loadingSlow": "Vẫn đang đọc dữ liệu",
+		"newTask": "+ CÔNG VIỆC MỚI",
+		"newTaskSwipeHint": "Vuốt lên để tạo công việc mới",
+		"retry": "THỬ LẠI"
+	},
+	"undo": {
+		"action": "HOÀN TÁC",
+		"deleted": "Đã xóa {{title}}.",
+		"scopeThisOnly": "Chỉ lần này: {{change}}",
+		"scopeWholeSeries": "Toàn bộ chuỗi: {{change}}",
+		"seriesDeleted": "Đã kết thúc chuỗi {{title}} từ hôm nay.",
+		"seriesRemoved": "Đã xóa chuỗi {{title}}.",
+		"skipped": "Đã bỏ qua {{title}} ngày {{date}}."
+	},
+	"unsaved": {
+		"discard": "Thoát và bỏ thay đổi",
+		"keepEditing": "Tiếp tục sửa",
+		"saveAndClose": "Lưu rồi thoát",
+		"title": "Còn thay đổi chưa lưu"
+	},
+	"validate": {
+		"endBeforeStart": "Giờ kết thúc phải sau {{start}}. Bỏ trống nếu chỉ là một mốc giờ.",
+		"endDateBeforeStart": "Ngày kết thúc phải từ {{start}} trở đi.",
+		"monthDayRequired": "Chọn ít nhất một ngày trong tháng.",
+		"reminderInPast": "Thời điểm nhắc đã qua, nên ứng dụng sẽ không đặt nhắc nhở cho công việc này.",
+		"startInPast": "Giờ bắt đầu đã qua, nên sẽ không có thông báo cho công việc này.",
+		"titleRequired": "Nhập tên công việc để lưu được.",
+		"weekdayRequired": "Chọn ít nhất một thứ trong tuần."
+	},
+	"weekday": {
+		"long": {
+			"1": "Thứ Hai",
+			"2": "Thứ Ba",
+			"3": "Thứ Tư",
+			"4": "Thứ Năm",
+			"5": "Thứ Sáu",
+			"6": "Thứ Bảy",
+			"7": "Chủ Nhật"
+		},
+		"short": {
+			"1": "T2",
+			"2": "T3",
+			"3": "T4",
+			"4": "T5",
+			"5": "T6",
+			"6": "T7",
+			"7": "CN"
+		}
+	}
+}

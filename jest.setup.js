@@ -129,6 +129,17 @@ jest.mock('@gorhom/bottom-sheet', () => {
  */
 jest.mock('react-native-localize', () => ({
 	getTimeZone: () => 'Asia/Ho_Chi_Minh',
+	// Pins the device language for tests. Without it the i18n SDK falls back to
+	// Intl, which resolves to whatever locale the machine running the suite is
+	// set to — and the assertions below are about Vietnamese copy.
+	getLocales: () => [
+		{
+			languageCode: 'vi',
+			countryCode: 'VN',
+			languageTag: 'vi-VN',
+			isRTL: false,
+		},
+	],
 }));
 
 jest.mock('react-native-notify-kit', () => ({ __esModule: true, default: {} }));

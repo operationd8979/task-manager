@@ -1,0 +1,280 @@
+{
+	"actions": {
+		"delete": "削除",
+		"edit": "編集",
+		"move": "移動",
+		"title": "操作"
+	},
+	"calendar": {
+		"backToToday": "今日に戻る",
+		"busyFailed": "予定のある日を数えられませんでした",
+		"day": "{{date}}",
+		"dayBusy": "{{date}}、予定あり",
+		"month": "{{year}}年{{month}}",
+		"nextMonth": "次の月",
+		"previousMonth": "前の月",
+		"title": "日付を選ぶ"
+	},
+	"common": {
+		"apply": "適用",
+		"cancel": "キャンセル",
+		"done": "完了"
+	},
+	"day": {
+		"backToToday": "今日に戻る",
+		"next": "次の日",
+		"openCalendar": "カレンダーを開く",
+		"previous": "前の日",
+		"settings": "設定",
+		"today": "今日"
+	},
+	"deleteSeries": {
+		"confirm": "繰り返しを削除",
+		"effect": "今日以降の{{count}}回がなくなります。",
+		"effectOpen": "今後12か月の{{count}}回と、それ以降のすべてがなくなります。",
+		"keepsPast": "過去の回は履歴に残ります。",
+		"subject": "{{title}}",
+		"title": "繰り返しタスクを削除しますか？"
+	},
+	"duration": {
+		"days": "{{count}}日",
+		"hours": "{{count}}時間",
+		"minutes": "{{count}}分"
+	},
+	"form": {
+		"close": "閉じる",
+		"date": "日付",
+		"editSeriesTitle": "繰り返しタスクを編集",
+		"editTitle": "タスクを編集",
+		"end": "終了",
+		"endUnset": "—",
+		"name": "タスク名",
+		"newTitle": "新しいタスク",
+		"noEndTime": "終了時刻なし",
+		"noRepeat": "繰り返さない",
+		"note": "メモ",
+		"plus30": "+30分",
+		"plus45": "+45分",
+		"plus60": "+1時間",
+		"reminder": "通知",
+		"reminderBefore": "{{minutes}}分前",
+		"reminderOff": "通知オフ",
+		"reminderOffHint": "開始時刻に通知は出ますが、音は鳴りません。",
+		"reminderOn": "通知オン",
+		"reminderOnTime": "定刻",
+		"repeat": "繰り返し",
+		"save": "タスクを作成",
+		"saveEdit": "保存",
+		"saving": "保存中…",
+		"seriesScope": "変更は繰り返し全体に適用されます。新しい時刻は今日から有効で、過去の回は元の時刻のままです。",
+		"seriesStart": "繰り返しの開始",
+		"start": "開始"
+	},
+	"format": {
+		"dayLabel": "{{monthNumber}}月{{dayNumber}}日 {{weekday}}"
+	},
+	"month": {
+		"inline": {
+			"1": "1月",
+			"2": "2月",
+			"3": "3月",
+			"4": "4月",
+			"5": "5月",
+			"6": "6月",
+			"7": "7月",
+			"8": "8月",
+			"9": "9月",
+			"10": "10月",
+			"11": "11月",
+			"12": "12月"
+		},
+		"standalone": {
+			"1": "1月",
+			"2": "2月",
+			"3": "3月",
+			"4": "4月",
+			"5": "5月",
+			"6": "6月",
+			"7": "7月",
+			"8": "8月",
+			"9": "9月",
+			"10": "10月",
+			"11": "11月",
+			"12": "12月"
+		}
+	},
+	"notify": {
+		"alertDescription": "タスクの開始前に鳴る通知です。",
+		"alertName": "タスクの通知",
+		"silentDescription": "タスクの開始をお知らせします。音とバイブはありません。",
+		"silentName": "タスクのお知らせ"
+	},
+	"permission": {
+		"deniedBody": "通知の表示が許可されていないため、リマインダーは表示されません。",
+		"deniedTitle": "通知がオフになっています",
+		"grant": "権限を許可",
+		"inexactBody": "正確なアラームの権限がないため、通知は設定されますが数分遅れることがあります。",
+		"openSettings": "設定を開く"
+	},
+	"reminder": {
+		"offsetShort": "−{{minutes}}分",
+		"onTime": "定刻"
+	},
+	"repeat": {
+		"byLastDay": "月末に繰り返す",
+		"byMonthDay": "日付で繰り返す",
+		"byWeekday": "曜日で繰り返す",
+		"dayOfMonth": "{{day}}日",
+		"endDate": "終了日",
+		"lastDayHint": "毎月1回、その月の最終日に実行します。28日・29日・30日・31日のいずれかです。",
+		"monthDays": "日付",
+		"noEndDate": "無期限",
+		"none": "繰り返さない",
+		"patternLastDay": "月末",
+		"patternMonthDays": "{{days}}日",
+		"presetDaily": "毎日",
+		"presetWeekdays": "月〜金",
+		"presetWeekend": "週末",
+		"preview": "{{days}}の{{time}}に実行します。{{start}}から{{end}}。",
+		"previewNone": "実行される回がありません。",
+		"previewOpenEnded": "、終了日なし",
+		"previewUntil": "{{end}}まで",
+		"skipsMonth": "{{months}}には選んだ日がないため、その月は実行されません。",
+		"skipsMonths": "{{months}}には選んだ日がないため、それらの月は実行されません。",
+		"startDate": "開始日",
+		"summary": "{{days}}の{{time}}に繰り返し",
+		"summaryDaily": "毎日{{time}}に繰り返し",
+		"title": "繰り返しの設定",
+		"untilDate": "終了日",
+		"weekdays": "曜日"
+	},
+	"row": {
+		"countdown": "残り{{time}}",
+		"countdownLabel": "開始まで{{minutes}}分{{seconds}}秒",
+		"done": "完了",
+		"dragHandle": "ドラッグして{{title}}の時刻を変更します。その他の操作から時刻を変更することもできます。",
+		"edited": "この日だけ変更済み",
+		"more": "その他の操作",
+		"overdue": "{{duration}}超過",
+		"reminder": "通知 {{offset}}",
+		"reminderMayBeLate": "遅れる可能性",
+		"reminderOnTime": "定刻に通知",
+		"repeats": "繰り返し {{days}}",
+		"restoreSkipped": "{{title}}のスキップを取り消す",
+		"skipped": "スキップ済み",
+		"toggleDone": "{{title}}を完了にする",
+		"toggleProcessing": "{{title}}の完了を取り消す"
+	},
+	"save": {
+		"failedTitle": "保存できませんでした",
+		"retry": "もう一度保存"
+	},
+	"scope": {
+		"cancel": "キャンセル — 何も変更しない",
+		"changedTime": "{{time}}に変更しました。",
+		"countFailed": "影響する回数を数えられませんでした",
+		"counting": "影響する回数を数えています…",
+		"seriesEffect": "今後12か月の{{count}}回に影響します",
+		"seriesEffectOpen": "今後12か月の{{count}}回と、それ以降のすべてに影響します",
+		"skipThisSession": "この回をスキップ",
+		"subject": "{{title}} · {{date}} · 繰り返し",
+		"thisOnly": "この回のみ",
+		"thisOnlyEffect": "1回に影響 · 他の回はそのまま",
+		"title": "変更の適用範囲は？",
+		"wholeSeries": "繰り返し全体"
+	},
+	"settings": {
+		"back": "戻る",
+		"countdown": "カウントダウン",
+		"countdownBefore": "{{minutes}}分",
+		"countdownHint": "通知をオフにしたタスクも含め、すべてのタスクに適用されます。この時点から、タスクの行に1秒ごとのカウントダウンが表示されます。通知には影響しません。",
+		"countdownOffset": "開始前にカウントダウンを始める",
+		"data": "データ",
+		"dataOnDevice": "データはこの端末にのみ保存されます。アプリを削除すると失われます。",
+		"destroyAll": "すべてのデータを削除",
+		"destroyBody": "この操作は取り消せません。{{count}}件のタスクとすべての通知が削除されます。",
+		"destroyConfirm": "削除",
+		"destroyTitle": "すべてのデータを削除しますか？",
+		"display": "表示",
+		"displayMode": "モード",
+		"exactAlarmPermission": "正確な時刻に通知する権限",
+		"firstDayOfWeek": "週の始まり",
+		"granted": "✓ 許可済み",
+		"itemCount": "{{count}}件のタスクを保存しています。",
+		"language": "言語",
+		"languageHint": "言語の変更はすぐに反映され、再起動は不要です。入力したタスク名やメモはそのまま残ります。",
+		"languageLabel": "言語",
+		"mayBeLate": "通知が遅れることがあります。",
+		"modeAuto": "自動",
+		"modeAutoHint": "端末に合わせる",
+		"modeDark": "ダーク",
+		"modeLight": "ライト",
+		"monday": "月曜日",
+		"notGranted": "⚠ 未許可",
+		"notificationPermission": "通知を表示する権限",
+		"reminders": "通知",
+		"saveFailed": "選択を保存できませんでした",
+		"sunday": "日曜日"
+	},
+	"shift": {
+		"commonTimes": "よく使う時刻",
+		"dateOnlyHere": "日付を変更できるのはここだけです。ドラッグでは同じ日の中で時刻だけが変わります。",
+		"dropPreview": "離すと{{time}}に移動します",
+		"moveTitle": "移動",
+		"timeTitle": "時刻を変更"
+	},
+	"timeline": {
+		"emptyBody": "タスクを追加するか、別の日を見てください。",
+		"emptyTitle": "この日の予定はありません",
+		"errorBody": "データは端末に残っています。失われていません。",
+		"errorTitle": "データを読み込めませんでした",
+		"loadingSlow": "まだ読み込んでいます",
+		"newTask": "＋ 新しいタスク",
+		"newTaskSwipeHint": "上にスワイプしてタスクを追加",
+		"retry": "もう一度"
+	},
+	"undo": {
+		"action": "元に戻す",
+		"deleted": "{{title}}を削除しました。",
+		"scopeThisOnly": "この回のみ：{{change}}",
+		"scopeWholeSeries": "繰り返し全体：{{change}}",
+		"seriesDeleted": "{{title}}の繰り返しを今日で終了しました。",
+		"seriesRemoved": "{{title}}の繰り返しを削除しました。",
+		"skipped": "{{date}}の{{title}}をスキップしました。"
+	},
+	"unsaved": {
+		"discard": "破棄して閉じる",
+		"keepEditing": "編集を続ける",
+		"saveAndClose": "保存して閉じる",
+		"title": "保存していない変更があります"
+	},
+	"validate": {
+		"endBeforeStart": "終了時刻は{{start}}より後にしてください。時点だけを記録するなら空のままにします。",
+		"endDateBeforeStart": "終了日は{{start}}以降にしてください。",
+		"monthDayRequired": "日付を1つ以上選んでください。",
+		"reminderInPast": "通知の時刻はすでに過ぎているため、このタスクの通知は設定されません。",
+		"startInPast": "開始時刻はすでに過ぎているため、このタスクの通知はありません。",
+		"titleRequired": "保存するにはタスク名を入力してください。",
+		"weekdayRequired": "曜日を1つ以上選んでください。"
+	},
+	"weekday": {
+		"long": {
+			"1": "月曜日",
+			"2": "火曜日",
+			"3": "水曜日",
+			"4": "木曜日",
+			"5": "金曜日",
+			"6": "土曜日",
+			"7": "日曜日"
+		},
+		"short": {
+			"1": "月",
+			"2": "火",
+			"3": "水",
+			"4": "木",
+			"5": "金",
+			"6": "土",
+			"7": "日"
+		}
+	}
+}

@@ -1,0 +1,17 @@
+{
+	"sourceGlobs": ["src/**/*.ts", "src/**/*.tsx"],
+	"patterns": [
+		{
+			"regex": "[^\\w.]t\\(\\s*'(?<key>[A-Za-z0-9_.-]+)'",
+			"ambiguousRegex": "[^\\w.]t\\(\\s*(?!')"
+		},
+		{
+			"regex": "(?:messageKey|labelKey):\\s*'(?<key>[A-Za-z0-9_.-]+)'"
+		}
+	],
+	"localesDir": "src/i18n/locales",
+	"locales": ["vi-VN", "en-US", "ja-JP"],
+	"generateKeysFile": "src/i18n/keys.generated.ts",
+	"keysTypeName": "AppI18nKey",
+	"placeholder": "template"
+}

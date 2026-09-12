@@ -7,6 +7,7 @@
 		"build:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-android.ps1 -Format apk",
 		"build:aab": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-android.ps1 -Format aab",
 		"icons:android": "node scripts/generate-android-icons.mjs",
+		"i18n:sync": "node scripts/i18n-sync.mjs --config i18n-sync.config.json",
 		"ios": "react-native run-ios",
 		"lint": "eslint .",
 		"postinstall": "node scripts/sync-sdk-skills.mjs && node scripts/check-native-deps.mjs",
@@ -16,7 +17,8 @@
 		"check:native": "node scripts/check-native-deps.mjs"
 	},
 	"dependencies": {
-		"@chipmobilesdk/rn-local-db": "0.1.1",
+		"@chipmobilesdk/rn-i18n": "^0.1.1",
+		"@chipmobilesdk/rn-local-db": "0.1.2",
 		"@chipmobilesdk/rn-notification": "0.2.0",
 		"@chipmobilesdk/rn-theme": "0.2.2",
 		"@dr.pogodin/react-native-fs": "^2.39.2",

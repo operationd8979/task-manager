@@ -6,8 +6,8 @@ import { Sheet } from '../../../components/Sheet';
 import { Skeleton } from '../../../components/Skeleton';
 import { Text } from '../../../components/Text';
 import { countOccurrences, type RecurringRule } from '../../../domain/recurrence';
+import { useT } from '../../../i18n/useT';
 import { addDays, type LocalDate } from '../../../lib/date';
-import { t } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
 import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
@@ -48,6 +48,7 @@ export function ScopeSheet({
 	onChoose,
 	onCancel,
 }: ScopeSheetProps) {
+	const t = useT();
 	const [count, setCount] = useState<CountState>({ status: 'counting' });
 
 	useEffect(() => {
@@ -81,8 +82,8 @@ export function ScopeSheet({
 			return t('scope.countFailed');
 		}
 		return rule.endDate === null
-			? t('scope.seriesEffectOpen', { count: count.count })
-			: t('scope.seriesEffect', { count: count.count });
+			? t('scope.seriesEffectOpen', undefined, { count: count.count })
+			: t('scope.seriesEffect', undefined, { count: count.count });
 	};
 
 	// `onClose` is what back triggers. It cancels, exactly as the Huỷ button

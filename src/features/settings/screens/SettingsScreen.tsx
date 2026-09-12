@@ -3,6 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
+import { useLocale } from '@chipmobilesdk/rn-i18n';
 
 import { useReminders } from '../../../app/providers/ReminderProvider';
 import { Chevron } from '../../../components/Chevron';
@@ -13,8 +14,8 @@ import { Skeleton, SkeletonGroup } from '../../../components/Skeleton';
 import { Text } from '../../../components/Text';
 import { COUNTDOWN_OFFSETS } from '../../../domain/countdown';
 import type { DisplayMode } from '../../../domain/settings';
+import { useT } from '../../../i18n/useT';
 import type { Weekday } from '../../../lib/date';
-import { t } from '../../../lib/strings';
 import { applyDisplayMode } from '../../../theme/mode';
 import { appTheme } from '../../../theme/theme';
 import {
@@ -27,6 +28,8 @@ import {
 import { useSettings } from '../hooks/useSettings';
 
 export function SettingsScreen() {
+	const t = useT();
+	const { locale, supportedLocales, setLocale } = useLocale();
 	const navigation = useNavigation();
 	const settings = useSettings();
 	const reminders = useReminders();
@@ -172,11 +175,42 @@ export function SettingsScreen() {
 						) : null}
 					</View>
 
+					{/* Its own section rather than a row under HIỂN THỊ. Someone who
+              opens Cài đặt because the app is in a language they cannot read
+              is looking for a heading, and a heading they cannot read is
+              still one they can count down to in the same place every time. */}
+					<Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+
+					<View style={styles.row}>
+						<Text style={styles.rowLabel}>{t('settings.languageLabel')}</Text>
+						<ChipRow>
+							{supportedLocales.map(option => (
+								<Chip
+									key={option.code}
+									// The endonym, never a translation of it — see i18n/config.ts.
+									label={option.displayName}
+									selected={option.code === locale}
+									onPress={() => {
+										setLocale(option.code).catch(() => undefined);
+									}}
+								/>
+							))}
+						</ChipRow>
+						{/* No save-failure line here, unlike the rows above: the switch is
+                held in memory and persistence is best-effort, so the choice
+                the user just made is always the one on screen. The worst a
+                failed write costs is that the next launch re-detects the
+                device language. */}
+						<Text style={styles.hint}>{t('settings.languageHint')}</Text>
+					</View>
+
 					<Text style={styles.sectionTitle}>{t('settings.data')}</Text>
 					<View style={styles.row}>
 						<Text style={styles.rowLabel}>{t('settings.dataOnDevice')}</Text>
 						<Text style={styles.hint}>
-							{t('settings.itemCount', { count: settings.state.taskCount })}
+							{t('settings.itemCount', undefined, {
+									count: settings.state.taskCount,
+								})}
 						</Text>
 					</View>
 
@@ -188,16 +222,18 @@ export function SettingsScreen() {
 							{/* The one place a written confirmation survives: there is no
                   undo and no copy anywhere else (FR-011b, FR-054). */}
 							<Text style={styles.hint}>
-								{t('settings.destroyBody', { count: settings.state.taskCount })}
+								{t('settings.destroyBody', undefined, {
+										count: settings.state.taskCount,
+									})}
 							</Text>
 							<Pressable
 								accessibilityRole="button"
 								accessibilityLabel={t('settings.destroyConfirm')}
 								onPress={() => {
-									settings
-										.destroyAll()
-										.then(() => navigation.goBack())
-										.catch(() => undefined);
+									// No goBack afterwards: the wipe closes the database, so
+									// the composition root reopens it and rebuilds the tree,
+									// which lands on the timeline, emptied (see App.tsx).
+									settings.destroyAll().catch(() => undefined);
 								}}
 								style={styles.destroyAction}>
 								<Text style={styles.destroyLabel}>
@@ -238,6 +274,7 @@ function PermissionRow({
 	note?: string;
 	onOpen: () => void;
 }) {
+	const t = useT();
 	return (
 		<View style={styles.row}>
 			<Text style={styles.rowLabel}>{label}</Text>

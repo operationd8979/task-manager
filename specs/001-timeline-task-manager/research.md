@@ -268,6 +268,38 @@ phần thân hàm.
 **Ràng buộc kiểm tra được**: một quy tắc lint cấm chuỗi ký tự trong JSX ở `src/features/` và
 `src/components/`. Không có quy tắc đó thì FR-058a chỉ là lời hứa.
 
+**Thay thế 2026-09-12 — chuyển sang `@chipmobilesdk/rn-i18n`**: yêu cầu đổi (FR-058a…c: ba
+ngôn ngữ — Việt, Anh, Nhật), nên lý do "một ngôn ngữ" ở trên không còn. Dùng SDK nội bộ vì nó
+đã sở hữu đúng những thứ mà bản tự viết sẽ phải làm lại: chọn ngôn ngữ theo thiết bị, chuỗi
+fallback giữa các ngôn ngữ, số nhiều theo quy tắc của gói (Hermes **không** có
+`Intl.PluralRules`), đổi ngôn ngữ lúc chạy không cần khởi động lại, và một CLI trích xuất khóa
+từ mã nguồn rồi đồng bộ ba file JSON.
+
+Dự đoán của quyết định gốc đúng: `t(key, params)` là thứ giữ cho việc này không phải sửa từng
+màn hình. Cái *thật sự* tốn công không phải 14 file gọi `t`, mà là ba chỗ dưới đây — không chỗ
+nào nhìn ra được trước khi bắt tay:
+
+1. **`src/lib/format.ts`**. Nửa số chữ tiếng Việt của ứng dụng không nằm trong danh mục mà
+   nằm ở đây, trong các hàm ghép chuỗi lúc chạy: tên thứ, tên tháng, "5 giờ", "cuối tháng".
+   Chúng vô hình với `jsx-no-literals` vì không phải JSX.
+2. **Khóa động**. `t(preset.key)` và `messageKey` sinh từ tầng miền không được trình quét
+   nhìn thấy, nên CLI sẽ xóa những khóa đó khỏi cả ba file như khóa thừa. Xử lý bằng cách
+   đặt tên trường là `labelKey`/`messageKey` rồi khai báo thêm một mẫu regex trong
+   `i18n-sync.config.json` — app tự nói cho công cụ biết khóa của mình nằm ở đâu.
+3. **Danh tính của `t`** — xem L-8 trong *Ràng buộc thư viện phát hiện khi triển khai*
+   của [plan.md](./plan.md). Đây là chỗ tốn nhất trong ba chỗ.
+
+Cùng lần chạy đó, CLI xóa 5 khóa chưa bao giờ được dùng (`form.delete`,
+`form.notePlaceholder`, `permission.inexactTitle`, `settings.backupUnknown`,
+`timeline.loading`). Chúng đã nằm trong danh mục từ đầu và không quy tắc lint nào thấy được:
+lint cấm chuỗi viết thẳng, nó không biết khóa nào không ai gọi.
+
+**Đã loại (lần này)**: *`i18next` + `react-i18next`* — phủ được, nhưng kéo theo một hệ sinh
+thái plugin cho những thứ SDK đã làm sẵn, và không có phần trích xuất khóa nào ràng buộc được
+ba file JSON với mã nguồn. *Tự mở rộng `strings.ts` thành ba object* — rẻ đúng một tuần, rồi
+phải tự viết lại phát hiện ngôn ngữ thiết bị, fallback, số nhiều và lưu lựa chọn; và không có
+gì bắt ba object phải cùng tập khóa.
+
 ---
 
 ## R10 · Nhật ký lỗi cục bộ

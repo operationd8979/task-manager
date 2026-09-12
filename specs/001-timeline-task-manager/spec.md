@@ -16,6 +16,7 @@
 - Q: Người dùng di chuyển công việc bằng những cách nào trong phiên bản đầu tiên? → A: Kéo-thả để đổi khung giờ trong cùng một ngày, còn đổi ngày dùng hành động "Di chuyển" hoặc sửa trong form.
 - Q: Phiên bản đầu tiên hỗ trợ những mốc nhắc nhở nào? → A: Đúng giờ và trước 5, 10, 15, 30, 60 phút; đặt được cho từng công việc và từng quy tắc lặp, kèm một giá trị mặc định đổi được trong Cài đặt.
 - Q: Ngôn ngữ giao diện và hạ tầng chuỗi cho phiên bản đầu tiên? → A: Giao diện chỉ tiếng Việt, nhưng mọi chuỗi hiển thị nằm trong một danh mục tập trung để thêm ngôn ngữ sau mà không phải sửa từng màn hình.
+  - **Cập nhật 2026-09-12**: đã thêm tiếng Anh và tiếng Nhật. Dự đoán trên đúng — danh mục tập trung là thứ khiến việc này không phải sửa từng màn hình, xem FR-058a…c.
 - Q: Ứng dụng ghi nhận lỗi kỹ thuật như thế nào để có thể chẩn đoán sự cố? → A: Nhật ký lỗi cục bộ có giới hạn dung lượng và tự xoay vòng, không chứa tên hay ghi chú công việc, không bao giờ gửi ra khỏi thiết bị, và không dùng analytics hay crash reporting của bên thứ ba.
 
 ### Session 2026-08-02
@@ -367,7 +368,9 @@ Người dùng xem trạng thái quyền thông báo, mở cài đặt hệ th�
 - **FR-056**: Ứng dụng MUST hoạt động đầy đủ ở cả chế độ sáng và chế độ tối.
 - **FR-057**: Mọi thành phần tương tác MUST có nhãn cho trình đọc màn hình, vùng chạm đủ lớn theo chuẩn của nền tảng, và bố cục MUST không bị cắt chữ khi người dùng phóng to cỡ chữ hệ thống.
 - **FR-058**: Ứng dụng MUST KHÔNG yêu cầu đăng nhập, đăng ký, hoặc bất kỳ thông tin định danh cá nhân nào, và MUST KHÔNG yêu cầu quyền hệ thống không liên quan tới chức năng.
-- **FR-058a**: Mọi chuỗi hiển thị cho người dùng, gồm cả nội dung nhắc nhở và thông báo lỗi, MUST được lấy từ một danh mục chuỗi tập trung; MUST KHÔNG viết thẳng chuỗi hiển thị trong màn hình hay thành phần giao diện. Phiên bản đầu tiên chỉ cung cấp bản tiếng Việt.
+- **FR-058a**: Mọi chuỗi hiển thị cho người dùng, gồm cả nội dung nhắc nhở và thông báo lỗi, MUST được lấy từ một danh mục chuỗi tập trung; MUST KHÔNG viết thẳng chuỗi hiển thị trong màn hình hay thành phần giao diện. Ứng dụng MUST cung cấp ba ngôn ngữ: tiếng Việt, tiếng Anh và tiếng Nhật, mỗi ngôn ngữ một danh mục **đầy đủ** — một khóa thiếu ở một ngôn ngữ là lỗi ở khâu dựng, không phải chuỗi rỗng lúc chạy.
+- **FR-058b**: Lần chạy đầu tiên, ứng dụng MUST chọn ngôn ngữ theo ngôn ngữ của thiết bị nếu thiết bị dùng một trong ba ngôn ngữ đó; nếu không thì dùng tiếng Việt. Người dùng MUST đổi được ngôn ngữ trong Cài đặt, lựa chọn MUST có hiệu lực ngay mà không cần khởi động lại, và MUST được ghi nhớ giữa các lần mở. Tên mỗi ngôn ngữ trong danh sách chọn MUST viết bằng chính ngôn ngữ đó.
+- **FR-058c**: Đổi ngôn ngữ MUST KHÔNG đụng tới dữ liệu người dùng: tên công việc, ghi chú và lịch nhắc giữ nguyên. Tên và mô tả của kênh thông báo — phần duy nhất của ứng dụng mà người dùng đọc trong màn hình cài đặt của hệ điều hành — MUST đổi theo ngôn ngữ đã chọn, và việc đổi đó MUST KHÔNG tạo lại kênh (làm mất các tùy chỉnh thông báo của người dùng).
 - **FR-059**: Android và iOS MUST cho cùng kết quả nghiệp vụ đối với trạng thái công việc, lặp lại, điều chỉnh riêng, di chuyển công việc, lưu trữ dữ liệu và lịch nhắc nhở.
 - **FR-060**: Việc chuyển giữa các màn hình và giữa các ngày trên timeline MUST có chuyển cảnh có hướng, cho thấy nội dung mới đến từ đâu. Chuyển cảnh MUST chạy trên luồng hoạt ảnh của nền tảng, MUST KHÔNG chặn thao tác kế tiếp, và MUST KHÔNG làm trượt ngân sách 60 FPS của SC-006.
 - **FR-061**: Khi bàn phím đang mở trong một form, chạm vào một điều khiển không phải ô nhập MUST vừa thực thi điều khiển đó vừa đóng bàn phím. Nuốt lần chạm đầu chỉ để đóng bàn phím, hoặc để bàn phím che phần còn lại của form, đều là hỏng.

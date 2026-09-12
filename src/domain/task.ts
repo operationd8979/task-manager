@@ -1,3 +1,4 @@
+import type { AppI18nKey } from '../i18n/keys.generated';
 import {
 	compareTime,
 	isLocalDate,
@@ -31,8 +32,16 @@ export type NewTask = Omit<Task, 'id'>;
 /** A field-addressed validation problem, so the form can mark the right input. */
 export interface FieldError {
 	field: keyof NewTask;
-	/** Key into the string catalogue; the domain never holds display text. */
-	messageKey: string;
+	/**
+	 * Key into the string catalogue; the domain never holds display text.
+	 *
+	 * Imported from the GENERATED key module rather than from `src/i18n`, which
+	 * pulls in React Native. This is a type-only import and is erased, so the
+	 * domain layer still runs under `npx jest src/domain` with no renderer
+	 * (Principle II) — and a key that no longer exists in any locale becomes a
+	 * compile error here rather than a raw key on the form.
+	 */
+	messageKey: AppI18nKey;
 	params?: Record<string, string>;
 }
 

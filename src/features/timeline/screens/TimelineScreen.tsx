@@ -27,9 +27,9 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../domain/settings';
 import { withStartTime, type Task } from '../../../domain/task';
 import { withTimeFrom, type RecurringRule } from '../../../domain/recurrence';
 import type { TimelineItem } from '../../../domain/timeline';
+import { useT } from '../../../i18n/useT';
 import { addDays, compareDate, today, type LocalTime } from '../../../lib/date';
 import { dayLabel } from '../../../lib/format';
-import { t } from '../../../lib/strings';
 import { createRecurrenceRepository } from '../../../services/db/recurrenceRepository';
 import { createSettingsRepository } from '../../../services/db/settingsRepository';
 import { createTaskRepository } from '../../../services/db/taskRepository';
@@ -103,6 +103,7 @@ type Overlay =
 	| { kind: 'shift'; item: TimelineItem; mode: 'time' | 'move' };
 
 export function TimelineScreen() {
+	const t = useT();
 	const navigation = useNavigation();
 	const insets = useSafeAreaInsets();
 	const { handle } = useDatabase();
@@ -367,7 +368,7 @@ export function TimelineScreen() {
 				})
 				.catch(reload);
 		},
-		[recurrence, reload, reminders, undo],
+		[recurrence, reload, reminders, undo, t],
 	);
 
 	/**
@@ -454,13 +455,14 @@ export function TimelineScreen() {
 					reminders.sync();
 					// The toast restates the scope that was applied, because that is
 					// the thing the user most needs to confirm (ux-ui-spec §4).
+					const change = t('scope.changedTime', {
+						time: action.startTime,
+					});
 					undo.offer({
-						message: t(
+						message:
 							scope === 'thisOnly'
-								? 'undo.scopeThisOnly'
-								: 'undo.scopeWholeSeries',
-							{ change: t('scope.changedTime', { time: action.startTime }) },
-						),
+								? t('undo.scopeThisOnly', { change })
+								: t('undo.scopeWholeSeries', { change }),
 						undo: async () => {
 							if (scope === 'thisOnly') {
 								await recurrence.clearOverride(rule.id, occurrenceDate);
@@ -478,7 +480,7 @@ export function TimelineScreen() {
 				})
 				.catch(reload);
 		},
-		[pendingScope, recurrence, reload, undo, reminders],
+		[pendingScope, recurrence, reload, undo, reminders, t],
 	);
 
 	/**
@@ -553,7 +555,7 @@ export function TimelineScreen() {
 				})
 				.catch(reload);
 		},
-		[recurrence, reload, undo, reminders],
+		[recurrence, reload, undo, reminders, t],
 	);
 
 	/**
@@ -587,7 +589,7 @@ export function TimelineScreen() {
 				})
 				.catch(reload);
 		},
-		[repository, reload, undo, closeOverlay, reminders],
+		[repository, reload, undo, closeOverlay, reminders, t],
 	);
 
 	const handleAction = useCallback(
@@ -837,6 +839,7 @@ export function TimelineScreen() {
 				<RowActionsSheet
 					title={overlay.item.title}
 					isOccurrence={overlay.item.source.kind === 'occurrence'}
+					isSkipped={overlay.item.isSkipped}
 					onAction={action => handleAction(overlay.item, action)}
 					onClose={closeOverlay}
 				/>

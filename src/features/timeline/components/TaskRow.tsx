@@ -10,6 +10,7 @@ import {
 } from '../../../domain/countdown';
 import { isOverdue, overdueByMinutes } from '../../../domain/task';
 import type { TimelineItem } from '../../../domain/timeline';
+import { useT } from '../../../i18n/useT';
 import type { LocalTime } from '../../../lib/date';
 import {
 	countdownLabel,
@@ -18,7 +19,6 @@ import {
 	repeatPatternLabel,
 	timeRangeLabel,
 } from '../../../lib/format';
-import { t } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
 import { GLYPH_ALIGN, ROW_MIN_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
 import { useTaskDrag } from '../hooks/useTaskDrag';
@@ -81,6 +81,7 @@ export function TaskRow({
 	remindersMayBeLate = false,
 	swipeRef,
 }: TaskRowProps) {
+	const t = useT();
 	const skipped = task.isSkipped;
 	const done = task.status === 'done';
 	const overdue = !skipped && isOverdue(task, now);
@@ -163,6 +164,7 @@ export function TaskRow({
 		task.reminderEnabled,
 		task.reminderOffsetMinutes,
 		remindersMayBeLate,
+		t,
 	]);
 
 	// Screen readers get the row as one sentence rather than four fragments. The

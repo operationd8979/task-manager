@@ -8,8 +8,9 @@ import React, {
 	useState,
 } from 'react';
 
+
 import { Toast } from '../../components/Toast';
-import { t } from '../../lib/strings';
+import { useT } from '../../i18n/useT';
 import { DataError } from '../../services/db/errors';
 import { useDatabase } from './DatabaseProvider';
 
@@ -39,6 +40,7 @@ const UndoContext = createContext<UndoContextValue | null>(null);
  * TimelineScreen it would unmount on both.
  */
 export function UndoProvider({ children }: { children: React.ReactNode }) {
+	const t = useT();
 	const { errorLog } = useDatabase();
 	const [pending, setPending] = useState<UndoOffer | null>(null);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

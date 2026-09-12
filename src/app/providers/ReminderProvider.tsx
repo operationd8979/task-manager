@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { AppState } from 'react-native';
 import { canDisplay } from '@chipmobilesdk/rn-notification';
+import { useLocale } from '@chipmobilesdk/rn-i18n';
 
 import { DataError } from '../../services/db/errors';
 import { createRecurrenceRepository } from '../../services/db/recurrenceRepository';
@@ -69,6 +70,7 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 		required: false,
 		granted: true,
 	});
+	const { locale } = useLocale();
 	const [tick, setTick] = useState(0);
 	const [pendingTarget, setPendingTarget] = useState<ReminderTarget | null>(
 		null,
@@ -88,6 +90,30 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 		// Principle VII: the sink dies with the provider.
 		return () => setNotificationDiagnosticSink(null);
 	}, [errorLog]);
+
+	/**
+	 * Android shows the two tones in its OWN settings screen, under names this
+	 * app supplies. Those names are the one piece of app text that outlives the
+	 * app's process, so they have to be re-declared when the language changes or
+	 * a user who switched to English still finds "Nhắc nhở công việc" sitting in
+	 * their system settings.
+	 *
+	 * The SDK compares the labels against what the device holds and touches the
+	 * platform only when they moved, so the mount-time run is free and no channel
+	 * is ever recreated — every notification setting the user adjusted survives.
+	 */
+	useEffect(() => {
+		let cancelled = false;
+		getNotifications()
+			.then(service => (cancelled ? undefined : service.applyToneLabels()))
+			.catch(() => {
+				// A stale channel label is cosmetic. It must never be the reason a
+				// reminder fails to be scheduled, so nothing here rethrows.
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [locale]);
 
 	const readPermissions = useCallback(async () => {
 		const service = await getNotifications();

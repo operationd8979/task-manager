@@ -12,9 +12,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { useT } from '../i18n/useT';
 import { appTheme } from '../theme/theme';
 import { BAR_HEIGHT, GLYPH_ALIGN, TAP_TARGET_MIN } from '../theme/tokens';
-import { t } from '../lib/strings';
 import { Text } from './Text';
 
 /** Minimum gap to the screen edge, so the timeline stays visible behind. */
@@ -103,6 +103,7 @@ export function Sheet({
 	onClose,
 	scrollRef,
 }: SheetProps) {
+	const t = useT();
 	const sheet = useRef<BottomSheetModal>(null);
 	/** True once the owner has taken this sheet off screen. See `handleDismiss`. */
 	const removed = useRef(false);
@@ -234,7 +235,7 @@ export function Sheet({
 				)}
 			</View>
 		),
-		[title, blocking, onClose],
+		[title, blocking, onClose, t],
 	);
 
 	return (

@@ -1,48 +1,88 @@
+import { t } from '../i18n';
 import { parseLocalDate, weekdayOf, type LocalDate, type Weekday } from './date';
 import type { RepeatSummary } from '../domain/timeline';
 
 /**
- * Vietnamese display formatting.
+ * Display formatting that is composed at runtime.
  *
- * Kept out of strings.ts because these are composed at runtime rather than
- * looked up; the catalogue holds fixed sentences, this holds the rules that
- * build variable ones.
+ * Kept out of the catalogue because these are built rather than looked up; the
+ * catalogue holds fixed sentences, this holds the rules that assemble variable
+ * ones. Every word still comes from the catalogue — what lives here is the
+ * arithmetic and the ordering, not the language.
+ *
+ * These call the module-level `t` rather than the hook, because they are plain
+ * functions with no render of their own. That is safe as long as they are
+ * called DURING a render that subscribed to the locale, which every caller does
+ * via `useT()`. Calling one from a `useMemo` that omits `t` from its
+ * dependency list would freeze its output at the language of the first render —
+ * which is why `useT` gives `t` an identity that moves with the locale.
+ *
+ * The switch statements are deliberate. Building the key from the weekday
+ * number would read better and would also make all seven keys invisible to the
+ * extraction CLI, which would then delete them from every locale file as
+ * unused. Written out, each key is one the tooling can see and `tsc` can check.
  */
 
-const WEEKDAY_LONG: Record<Weekday, string> = {
-	1: 'Thứ Hai',
-	2: 'Thứ Ba',
-	3: 'Thứ Tư',
-	4: 'Thứ Năm',
-	5: 'Thứ Sáu',
-	6: 'Thứ Bảy',
-	7: 'Chủ Nhật',
-};
-
-const WEEKDAY_SHORT: Record<Weekday, string> = {
-	1: 'T2',
-	2: 'T3',
-	3: 'T4',
-	4: 'T5',
-	5: 'T6',
-	6: 'T7',
-	7: 'CN',
-};
-
-export function weekdayLong(date: LocalDate): string {
-	return WEEKDAY_LONG[weekdayOf(date)];
+function weekdayLongName(day: Weekday): string {
+	switch (day) {
+		case 1:
+			return t('weekday.long.1');
+		case 2:
+			return t('weekday.long.2');
+		case 3:
+			return t('weekday.long.3');
+		case 4:
+			return t('weekday.long.4');
+		case 5:
+			return t('weekday.long.5');
+		case 6:
+			return t('weekday.long.6');
+		case 7:
+			return t('weekday.long.7');
+	}
 }
 
 export function weekdayShort(day: Weekday): string {
-	return WEEKDAY_SHORT[day];
+	switch (day) {
+		case 1:
+			return t('weekday.short.1');
+		case 2:
+			return t('weekday.short.2');
+		case 3:
+			return t('weekday.short.3');
+		case 4:
+			return t('weekday.short.4');
+		case 5:
+			return t('weekday.short.5');
+		case 6:
+			return t('weekday.short.6');
+		case 7:
+			return t('weekday.short.7');
+	}
 }
 
-/** "Thứ Hai 03/08" — the day bar title. */
+export function weekdayLong(date: LocalDate): string {
+	return weekdayLongName(weekdayOf(date));
+}
+
+/**
+ * "Thứ Hai 03/08" · "Monday 8/3" · "8月3日 月曜日" — the day bar title.
+ *
+ * Both the zero-padded and the plain form of each number are handed to the
+ * template, because which one reads as natural is a property of the language,
+ * not of the data: Vietnamese wants 03/08, Japanese wants 8月3日.
+ */
 export function dayLabel(date: LocalDate): string {
 	const d = parseLocalDate(date);
-	const day = String(d.getDate()).padStart(2, '0');
-	const month = String(d.getMonth() + 1).padStart(2, '0');
-	return `${weekdayLong(date)} ${day}/${month}`;
+	const day = d.getDate();
+	const month = d.getMonth() + 1;
+	return t('format.dayLabel', {
+		weekday: weekdayLong(date),
+		day: String(day).padStart(2, '0'),
+		month: String(month).padStart(2, '0'),
+		dayNumber: day,
+		monthNumber: month,
+	});
 }
 
 /**
@@ -50,21 +90,27 @@ export function dayLabel(date: LocalDate): string {
  *
  * The overdue label must name how late it is; a bare exclamation mark tells the
  * user nothing they can act on (design/ux-ui-spec.md §1).
+ *
+ * The amount goes in as `count`, not as an ordinary variable, so English can
+ * pick "1 minute" over "1 minutes". Vietnamese and Japanese have one form and
+ * ignore the distinction.
  */
 export function durationLabel(minutes: number): string {
 	if (minutes < 60) {
-		return `${Math.max(minutes, 1)} phút`;
+		return t('duration.minutes', undefined, { count: Math.max(minutes, 1) });
 	}
 	const hours = Math.floor(minutes / 60);
 	if (hours < 24) {
-		return `${hours} giờ`;
+		return t('duration.hours', undefined, { count: hours });
 	}
-	return `${Math.floor(hours / 24)} ngày`;
+	return t('duration.days', undefined, { count: Math.floor(hours / 24) });
 }
 
 /** "−10′" / "đúng giờ" for the reminder chip on a row. */
 export function reminderOffsetLabel(minutes: number): string {
-	return minutes === 0 ? 'đúng giờ' : `−${minutes}′`;
+	return minutes === 0
+		? t('reminder.onTime')
+		: t('reminder.offsetShort', { minutes });
 }
 
 /**
@@ -73,6 +119,8 @@ export function reminderOffsetLabel(minutes: number): string {
  * Fixed width on purpose: the value changes every second, and a label that
  * switches between "5:00" and "59" makes the whole row twitch. Pair it with the
  * tabular-numeral clock token or the digits still shift inside that width.
+ *
+ * Digits only, so it is the same in all three languages.
  */
 export function countdownLabel(seconds: number): string {
 	const whole = Math.max(seconds, 0);
@@ -112,28 +160,80 @@ export function repeatPatternLabel(summary: RepeatSummary): string {
 		case 'weekly':
 			return weekdayList(summary.daysOfWeek);
 		case 'monthlyByDay':
-			return `ngày ${dayOfMonthList(summary.daysOfMonth)}`;
+			return t('repeat.patternMonthDays', {
+				days: dayOfMonthList(summary.daysOfMonth),
+			});
 		case 'monthlyLastDay':
-			return 'cuối tháng';
+			return t('repeat.patternLastDay');
 	}
 }
 
-const MONTH_NAMES = [
-	'tháng 1',
-	'tháng 2',
-	'tháng 3',
-	'tháng 4',
-	'tháng 5',
-	'tháng 6',
-	'tháng 7',
-	'tháng 8',
-	'tháng 9',
-	'tháng 10',
-	'tháng 11',
-	'tháng 12',
-];
+/**
+ * Two forms of every month name, because the calendar header and the mid-
+ * sentence warning need different ones: Vietnamese writes "Tháng 8" standing
+ * alone and "tháng 8" inside a sentence. English and Japanese happen to use the
+ * same string for both, which is exactly why the choice belongs to the
+ * catalogue rather than to a `toLowerCase()` here.
+ */
+export function monthStandalone(month: number): string {
+	switch (month) {
+		case 1:
+			return t('month.standalone.1');
+		case 2:
+			return t('month.standalone.2');
+		case 3:
+			return t('month.standalone.3');
+		case 4:
+			return t('month.standalone.4');
+		case 5:
+			return t('month.standalone.5');
+		case 6:
+			return t('month.standalone.6');
+		case 7:
+			return t('month.standalone.7');
+		case 8:
+			return t('month.standalone.8');
+		case 9:
+			return t('month.standalone.9');
+		case 10:
+			return t('month.standalone.10');
+		case 11:
+			return t('month.standalone.11');
+		default:
+			return t('month.standalone.12');
+	}
+}
+
+function monthInline(month: number): string {
+	switch (month) {
+		case 1:
+			return t('month.inline.1');
+		case 2:
+			return t('month.inline.2');
+		case 3:
+			return t('month.inline.3');
+		case 4:
+			return t('month.inline.4');
+		case 5:
+			return t('month.inline.5');
+		case 6:
+			return t('month.inline.6');
+		case 7:
+			return t('month.inline.7');
+		case 8:
+			return t('month.inline.8');
+		case 9:
+			return t('month.inline.9');
+		case 10:
+			return t('month.inline.10');
+		case 11:
+			return t('month.inline.11');
+		default:
+			return t('month.inline.12');
+	}
+}
 
 /** "tháng 2, tháng 4" — the months a day-of-month series will skip. */
 export function monthList(months: readonly number[]): string {
-	return months.map(m => MONTH_NAMES[m - 1] ?? `tháng ${m}`).join(', ');
+	return months.map(monthInline).join(', ');
 }

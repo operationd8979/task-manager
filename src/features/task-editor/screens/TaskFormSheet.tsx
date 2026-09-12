@@ -16,9 +16,10 @@ import {
 import type { RecurringRule } from '../../../domain/recurrence';
 import type { Task } from '../../../domain/task';
 import type { RepeatSummary } from '../../../domain/timeline';
+import type { AppI18nKey, Translate } from '../../../i18n';
+import { useT } from '../../../i18n/useT';
 import { minutesOf, timeFromMinutes, type LocalDate } from '../../../lib/date';
 import { repeatPatternLabel } from '../../../lib/format';
-import { t, type StringKey } from '../../../lib/strings';
 import { appTheme } from '../../../theme/theme';
 import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
 import { DateTimeField } from '../components/DateTimeField';
@@ -30,10 +31,10 @@ import {
 import { useTaskForm } from '../hooks/useTaskForm';
 
 /** Durations offered as one-tap end times (Principle I: selection over typing). */
-const DURATION_CHIPS: ReadonlyArray<{ minutes: number; key: StringKey }> = [
-	{ minutes: 30, key: 'form.plus30' },
-	{ minutes: 45, key: 'form.plus45' },
-	{ minutes: 60, key: 'form.plus60' },
+const DURATION_CHIPS: ReadonlyArray<{ minutes: number; labelKey: AppI18nKey }> = [
+	{ minutes: 30, labelKey: 'form.plus30' },
+	{ minutes: 45, labelKey: 'form.plus45' },
+	{ minutes: 60, labelKey: 'form.plus60' },
 ];
 
 export interface TaskFormSheetProps {
@@ -52,6 +53,7 @@ export function TaskFormSheet({
 	onSaved,
 	onClose,
 }: Readonly<TaskFormSheetProps>) {
+	const t = useT();
 	const form = useTaskForm({ task, rule, viewingDate, onSaved });
 	const series = form.mode === 'series';
 	// The sheet owns the scrolling now, so this reaches into it rather than
@@ -143,26 +145,28 @@ export function TaskFormSheet({
 		[form],
 	);
 
-	const message = (key: string | undefined, params?: Record<string, string>) =>
-		key === undefined ? undefined : t(key as StringKey, params);
+	const message = (
+		key: AppI18nKey | undefined,
+		params?: Record<string, string>,
+	) => (key === undefined ? undefined : t(key, params));
 
 	const endError = form.errorFor('endTime');
 
 	return (
 		<Sheet
-			title={seriesOrTaskTitle(series, task !== undefined)}
+			title={seriesOrTaskTitle(t, series, task !== undefined)}
 			onClose={requestClose}
 			scrollRef={scroll}
 			footer={
 				<Pressable
 					accessibilityRole="button"
 					accessibilityState={{ disabled: saving }}
-					accessibilityLabel={saveLabel(saving, task !== undefined || series)}
+					accessibilityLabel={saveLabel(t, saving, task !== undefined || series)}
 					disabled={saving}
 					onPress={submitAndNotify}
 					style={styles.primary}>
 					<Text style={styles.primaryLabel}>
-						{saveLabel(saving, task !== undefined || series)}
+						{saveLabel(t, saving, task !== undefined || series)}
 					</Text>
 				</Pressable>
 			}>
@@ -291,8 +295,8 @@ export function TaskFormSheet({
 					<ChipRow>
 						{DURATION_CHIPS.map(chip => (
 							<Chip
-								key={chip.key}
-								label={t(chip.key)}
+								key={chip.labelKey}
+								label={t(chip.labelKey)}
 								selected={false}
 								onPress={() => setEndFromDuration(chip.minutes)}
 							/>
@@ -321,7 +325,7 @@ export function TaskFormSheet({
 						<Field label={t('form.repeat')}>
 							<View style={styles.readOnly}>
 								<Text style={styles.readOnlyValue}>
-									{repeatSummary(form.values.recurrence, form.values.startTime)}
+									{repeatSummary(t, form.values.recurrence, form.values.startTime)}
 								</Text>
 							</View>
 							<Text style={styles.appliesAll}>{t('form.seriesScope')}</Text>
@@ -338,6 +342,7 @@ export function TaskFormSheet({
 								style={styles.repeatRow}>
 								<Text style={styles.repeatValue}>
 									{repeatSummary(
+										t,
 										form.values.recurrence,
 										form.values.startTime,
 									)}
@@ -457,6 +462,7 @@ export function TaskFormSheet({
  * that it just means every day.
  */
 function repeatSummary(
+	t: Translate,
 	value: RecurrenceValue | null,
 	startTime: string,
 ): string {
@@ -484,14 +490,18 @@ function patternOf(value: RecurrenceValue): RepeatSummary {
 }
 
 /** Which of the three things this sheet can be doing, in its header. */
-function seriesOrTaskTitle(series: boolean, editing: boolean): string {
+function seriesOrTaskTitle(
+	t: Translate,
+	series: boolean,
+	editing: boolean,
+): string {
 	if (series) {
 		return t('form.editSeriesTitle');
 	}
 	return editing ? t('form.editTitle') : t('form.newTitle');
 }
 
-function saveLabel(saving: boolean, editing: boolean): string {
+function saveLabel(t: Translate, saving: boolean, editing: boolean): string {
 	if (saving) {
 		return t('form.saving');
 	}
