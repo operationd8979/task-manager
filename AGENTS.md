@@ -1,8 +1,3 @@
-<!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
-<!-- SPECKIT END -->
-
 # Project context
 
 A React Native application. **Derive the stack from `package.json` and `tsconfig.json`
@@ -13,8 +8,16 @@ If those files do not exist yet, this repository is still the un-initialised boi
 the agent/spec system is present but the application has not been created. See `README.md`
 for the bootstrap steps before planning any feature.
 
-Binding engineering rules live in `.specify/memory/constitution.md`; read it before
-planning a feature, not before every edit.
+Binding engineering rules live in `docs/standards.md`; read it before planning or
+implementing a feature, not before every edit.
+
+# Feature workflow (SDD)
+
+Non-trivial features go `/sdd-spec` → `/sdd-plan` → `/sdd-design` (UI, optional) →
+`/sdd-implement`; any step can be re-run to refine. Feature docs live in
+`specs/<NNN>-<slug>/`. Shared rules are in `.claude/sdd/conventions.md` — read them before
+editing a spec, plan or design doc by hand. `/sdd-design-build-system` builds the Claude
+Design system from the theming source and records it in `docs/standards.md`.
 
 # SDK packages (@chipmobilesdk/*)
 
