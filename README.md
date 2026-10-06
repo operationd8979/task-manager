@@ -1,175 +1,125 @@
-This is a [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# React Native agent & spec boilerplate
 
-# Agent & specification system
+A fork-and-go starting point for React Native apps developed with coding agents.
 
-This repository is set up for spec-driven development with coding agents. Four layers,
-each with one job:
+**This repository contains the agent/specification system only — there is no application
+in it.** You fork it, create the app inside, then wire the two together. Keeping the app
+out means the boilerplate never carries a stale React Native version.
+
+## What you get
 
 | Layer | Location | Holds |
 |---|---|---|
-| Engineering standards | `.specify/memory/constitution.md` | Binding principles every feature must satisfy. Amendments are versioned. |
-| Agent routing | `AGENTS.md` | How an agent should navigate this repo and load context. Deliberately small — it is always in context. |
-| Spec workflow | `.specify/templates/` | Templates for `/speckit-specify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-checklist`. |
+| Engineering standards | `docs/standards.md` | Binding rules every feature must satisfy, plus verification commands and design targets. The only project-specific part of the workflow. |
+| Agent routing | `AGENTS.md` | How an agent navigates this repo and loads context. Deliberately small — it is always in context. |
+| Spec-driven workflow | `.claude/skills/sdd-*`, `.claude/sdd/` | `/sdd-spec` → `/sdd-plan` → `/sdd-design` → `/sdd-implement`, plus `/sdd-design-build-system`. Generic — no language, OS or project type baked in. |
 | Package knowledge | `.claude/skills/sdk-*/` | Skills shipped by installed SDK packages, synced on `npm install` and versioned with each package. Generated — never edited by hand. |
 
-Nothing here is pinned to a specific dependency version. Agents derive the stack from
-`package.json` and `tsconfig.json`, so the setup stays correct as the app upgrades and
-can be reused as a starting point for a new application.
+Nothing is pinned to a dependency version. Agents derive the stack from `package.json`
+and `tsconfig.json`.
 
-Useful commands:
+## Bootstrap a new app
 
-```sh
-npm run sync:skills   # re-sync SDK package skills (also runs on postinstall)
-```
-
-Start with `AGENTS.md`, then read the constitution before planning a feature.
-
-# Getting Started
-
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
-
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
+**1. Fork or clone, then create the application in place.**
 
 ```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
+npx @react-native-community/cli@latest init MyApp --directory . --skip-git-init
 ```
 
-## Step 2: Build and run your app
+Any generator works — the agent system does not care how the app was created.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+**2. Check `.gitignore` survived.**
 
-### Android
+The RN CLI writes its own `.gitignore`. If it overwrote this one, re-add the two blocks
+marked `BOILERPLATE` (secrets, and generated agent skills). Losing them means committing
+`.env` or generated skills.
+
+**3. Wire the agent system into the new `package.json`.**
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+node scripts/bootstrap-agent-system.mjs
 ```
 
-To build a release-variant artifact without starting Metro:
+This adds the `sync:skills` and `postinstall` scripts. It is idempotent and refuses to
+clobber an existing `postinstall`.
 
-```powershell
-# APK — installable on a device, for testing and sideloading.
-npm run build:apk
-
-# AAB — the format Google Play requires. Cannot be installed by hand.
-npm run build:aab
-```
-
-Both are copied to `.artifacts/android/` with the version in the file name. For
-APKs the script reads Gradle's `output-metadata.json`, so it does not depend on
-the default `app-release.apk` name; bundles have no such metadata file, so the
-`.aab` is located by listing `build/outputs/bundle/<variant>/`.
-
-Useful options can be passed after `--`:
-
-```powershell
-# Faster device-only artifact; keep just the common 64-bit Android ABI.
-# APK only — a bundle must carry every ABI, since Play splits it per device.
-npm run build:apk "--" -Architectures arm64-v8a
-
-# Reuse Gradle outputs and overwrite an existing copied artifact.
-npm run build:apk "--" -SkipClean -Force
-
-# Purge generated app/Gradle build directories when diagnosing CMake issues.
-npm run build:apk "--" -DeepClean -Force
-```
-
-The current Android `release` build type uses the debug signing configuration, so
-**neither artifact is store-ready yet**. Uploading to Play needs a real upload
-keystore wired into `android/app/build.gradle` first; see "Publishing" below.
-
-### App icon
-
-The launcher mark lives in two forms that have to stay in step:
-
-- `res/mipmap-anydpi-v26/ic_launcher.xml` — the adaptive icon used from Android
-  8 up, built from `res/drawable/ic_launcher_foreground.xml`, a monochrome layer
-  for Android 13 themed icons, and a background colour.
-- `res/mipmap-*/ic_launcher*.png` — raster fallbacks for Android 7, which
-  predates adaptive icons.
-
-Regenerate the PNGs (and a 512×512 for the Play listing) after changing the
-vector:
+The `@chipmobilesdk` scope is the built-in default, so nothing else is needed. Pass extra
+scopes only if the project also consumes skill-bearing packages from another org — those
+get recorded in `agentSkills.scopes`:
 
 ```sh
-npm run icons:android
+node scripts/bootstrap-agent-system.mjs @other-org
 ```
 
-`scripts/generate-android-icons.mjs` redraws the same geometry the vector uses.
-Editing one without the other leaves old and new icons on different Android
-versions.
+**4. Adapt `docs/standards.md` to the project.**
 
-### iOS
+It ships generic mobile standards. Review the rules, confirm the `## Verification` commands
+against the new `package.json`, and note the capabilities bare React Native lacks but the
+rules require (navigation, secure storage).
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+**5. Build the design system (optional, UI only).**
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+```
+/sdd-design-build-system
+```
+
+Builds a Claude Design system from the theming source named in `docs/standards.md` and
+records its link there, so every feature's design uses the same tokens. Re-run it after the
+theme changes.
+
+**6. Start the first feature.**
+
+```
+/sdd-spec <what to build>  →  /sdd-plan  →  /sdd-design (optional)  →  /sdd-implement
+```
+
+## Commands
 
 ```sh
-bundle install
+node scripts/bootstrap-agent-system.mjs   # one-time wiring (step 3)
+npm run sync:skills                      # re-sync SDK package skills
+cat .claude/skills/sdk-manifest.json     # which skills, which versions
 ```
 
-Then, and every time you update your native dependencies, run:
+## Spec-driven workflow
 
-```sh
-bundle exec pod install
-```
+| Command | Writes | Re-run to |
+|---|---|---|
+| `/sdd-spec <description>` | `specs/NNN-slug/spec.md` — stories, acceptance criteria, requirements | refine scope with feedback |
+| `/sdd-plan` | `plan.md` — approach, changes, decisions, 2–7 verifiable slices | absorb spec/design changes |
+| `/sdd-design` | Claude Design canvas + `design.md` screen map (UI only, optional) | apply canvas comments and edits |
+| `/sdd-implement [SL-n \| fix]` | code; ticks slices; AC evidence in `plan.md` | continue, or fix and refine |
+| `/sdd-design-build-system [source]` | Claude Design system; its link in `docs/standards.md` | re-sync after theme changes |
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+There is no task list file and no branch step. The plan holds milestones (slices); Claude
+breaks each slice into tasks while implementing and keeps the plan current. Each doc
+carries a `rev`, and later docs record the rev they were built from. A changed spec is
+therefore detected downstream and reconciled in place, not regenerated. Shared rules:
+`.claude/sdd/conventions.md`.
 
-```sh
-# Using npm
-npm run ios
+The design step needs a Claude Code session signed in to claude.ai, because canvases are
+Claude Design artifacts. Without one, `/sdd-design` writes a text-only `design.md`. Skipping
+design never blocks implementation.
 
-# OR using Yarn
-yarn ios
-```
+### Reusing the workflow in another repository
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+Copy `.claude/skills/sdd-*/` and `.claude/sdd/`, then create `docs/standards.md` from
+`.claude/sdd/standards-template.md` for that project (web app, API, library…). Delete its
+`## Design` section if the project has no UI. Nothing else is project-specific.
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## How package skills work
 
-## Step 3: Modify your app
+An SDK package ships `skills/sdk-<name>/SKILL.md` and lists `"skills"` in its
+`package.json` `files` array. On install, `scripts/sync-sdk-skills.mjs` copies each skill
+into `.claude/skills/`, stamps it with the **installed** version, and prunes skills whose
+package was removed.
 
-Now that you have successfully run the app, let's make changes!
+The point is context economy: only one description line per package stays loaded, and the
+skill body loads when an agent actually invokes it. Skill bodies link into the installed
+`README.md` rather than duplicating it, so they cannot drift from the package.
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+## Updating the boilerplate
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Projects forked from here do not track this repository. To pull improvements, cherry-pick
+`.claude/skills/sdd-*/`, `.claude/sdd/`, `AGENTS.md`, and `scripts/`. Never cherry-pick
+`package.json` or `docs/standards.md`, which are project-specific.
