@@ -4,9 +4,21 @@
 > còn mở. Nó **không** chốt thiết kế kỹ thuật, không nêu tên API, không mô tả cấu
 > trúc mã. Dùng nó làm đầu vào cho `/sdd-spec` → `/sdd-plan`.
 >
-> Phần **§4 Những quyết định cần làm rõ** là phần quan trọng nhất cần giải quyết
-> trước khi lập kế hoạch. Mọi mục còn lại được viết để câu hỏi ở §4 có đủ ngữ cảnh
-> mà trả lời.
+> **§4** ghi lại tám quyết định sản phẩm, đã chốt ngày 2026-10-10. Hai mục được chốt lại
+> trong cùng ngày sau khi cân rủi ro:
+>
+> - **§4.3** — interstitial hiện **sau khi** đã quay về timeline và task mới đã hiển thị,
+>   không chặn ngay lúc bấm Lưu. Tần suất "mỗi 3 task" không đổi.
+> - **§4.4** — banner **ghim ngoài vùng vuốt chuyển ngày**, không nằm trong danh sách
+>   task. Phương án "là một item của danh sách" bị bỏ vì giãn cách yêu cầu của
+>   `@chipmobilesdk/rn-ads` 0.3.0 sẽ làm nó vắng mặt phần lớn thời gian.
+>
+> **Ba câu hỏi nhỏ còn mở**: điểm vào paywall; ghim banner ở đáy hay đỉnh và thứ tự xếp
+> lớp với snackbar hoàn tác cùng nút thêm task; và cách đếm bộ đếm 3 task.
+>
+> **§16** đánh giá hai SDK dùng chung. §16.1 là hạng mục đã được triển khai ở repo SDK
+> sau khi raw spec này nêu ra; phần còn lại ghi cái gì cố ý thuộc về ứng dụng. Mục §16
+> không thuộc phạm vi triển khai của app này.
 
 ## 1. Mục đích
 
@@ -55,8 +67,8 @@ quyết định ở §4 phải tương thích với các sự thật dưới đ�
 | 1 | **Không có đăng nhập, không có tài khoản người dùng** — nằm ngoài phạm vi theo spec 001 | Quyền lợi chỉ gắn với **tài khoản cửa hàng** trên máy, không gắn với tài khoản ứng dụng. Không có nhu cầu phân vùng quyền lợi theo người dùng app. Khôi phục giao dịch đi qua tài khoản cửa hàng. |
 | 2 | **Dữ liệu chỉ nằm trên thiết bị, không đồng bộ, không sao lưu đám mây** | Không có backend nào để xác thực biên nhận. Quyền lợi mặc định được tính ở phía client. |
 | 3 | **Sao lưu nền tảng đã bị TẮT cho dữ liệu công việc** — để bảo đảm dữ liệu biến mất khi gỡ app | **Bất đối xứng quan trọng:** dữ liệu công việc *cố ý* không sống sót qua gỡ app, nhưng quyền lợi đã mua **buộc phải** quay lại sau khi cài lại. Hai thứ này phải được xử lý khác nhau. |
-| 4 | **Timeline dùng cử chỉ vuốt ngang để chuyển ngày**, và kéo-thả trong phạm vi một ngày | Vị trí banner phải không được xung đột với hai cử chỉ này, và không được làm dịch chuyển layout khiến kéo-thả lệch. |
-| 5 | **Có snackbar hoàn tác (undo)** sau khi xóa công việc | Banner xuất hiện/biến mất không được đẩy snackbar ra khỏi tầm nhìn hoặc làm người dùng bấm nhầm. |
+| 4 | **Timeline dùng cử chỉ vuốt ngang để chuyển ngày**, và kéo-thả trong phạm vi một ngày | Vị trí banner phải không được xung đột với hai cử chỉ này, và không được làm dịch chuyển layout khiến kéo-thả lệch. **Đã xử lý ở §4.4** bằng cách ghim banner ngoài vùng vuốt. |
+| 5 | **Có snackbar hoàn tác (undo)** sau khi xóa công việc | Banner xuất hiện/biến mất không được đẩy snackbar ra khỏi tầm nhìn hoặc làm người dùng bấm nhầm. **Còn mở**: thứ tự xếp lớp ở đáy màn hình, xem §4.4. |
 | 6 | **Ba ngôn ngữ: vi-VN, en-US, ja-JP** | Mọi nội dung của paywall, nút khôi phục, trạng thái chờ thanh toán, thông báo lỗi đều phải dịch đủ ba. Giá tiền phải lấy từ cửa hàng, không tự dựng chuỗi. |
 | 7 | **Có chế độ sáng/tối, kể cả chế độ Tự động** | Placeholder giữ chỗ banner, paywall và mọi trạng thái phải đúng ở cả hai chế độ. Nội dung quảng cáo thì do nhà cung cấp dựng, không theme được. |
 | 8 | **Mục tiêu hiệu năng: tối đa 5.000 công việc, timeline phải mượt** | Banner không được gây re-render timeline, không được làm tụt frame khi cuộn hoặc vuốt chuyển ngày. |
@@ -102,104 +114,147 @@ mã của ứng dụng này, và đó là thiết kế có chủ ý.
 - Không có backend ở phiên bản này. Xác thực biên nhận phía server để dành.
 - Không dùng giao dịch production thật để kiểm thử thủ công.
 
-## 4. Những quyết định cần làm rõ
+## 4. Những quyết định đã chốt
 
-Đây là phần cần giải quyết trong `/sdd-spec`. Mỗi mục nêu lựa chọn và hệ quả, không
-nêu kết luận.
+> **Chốt ngày 2026-10-10.** Tám câu hỏi mở ban đầu đã được chủ sản phẩm trả lời. Phần
+> dưới ghi lại quyết định kèm hệ quả kéo theo. Hai mục có **rủi ro cần xác nhận lại**
+> trước khi implement — xem §4.3 và §4.4.
 
-### 4.1. Mô hình bán gói bỏ quảng cáo
+### 4.1. Mô hình bán — **CHỐT: mua một lần vĩnh viễn**
 
-| Lựa chọn | Ưu | Nhược |
-|---|---|---|
-| **Mua một lần vĩnh viễn** | Dễ hiểu, dễ bán cho một app tiện ích nhỏ; không cần quản lý vòng đời thuê bao | Doanh thu một lần; không có thu nhập định kỳ |
-| **Thuê bao** | Doanh thu định kỳ | Người dùng phản ứng xấu khi phải trả theo kỳ chỉ để bỏ quảng cáo; kéo theo toàn bộ vòng đời gia hạn, ân hạn, tạm giữ, đổi gói |
-| **Cả hai** | Người dùng chọn | Phức tạp gấp đôi ở paywall và ở quyền lợi |
+Một sản phẩm `one_time_permanent` duy nhất.
 
-Cần chốt: **mô hình nào**, và nếu có thuê bao thì chính sách trong thời gian ân hạn
-và tạm giữ là gì. Lưu ý một hạn chế nền tảng đã biết: trên Android, phía client
-**không phân biệt được** thời gian ân hạn với trạng thái tạm giữ; muốn chính xác thì
-cần dữ liệu từ server.
+Hệ quả: không có vòng đời thuê bao, nên **toàn bộ phần ân hạn / tạm giữ / đổi gói /
+quản lý thuê bao nằm ngoài phạm vi**. Hạn chế đã biết của nền tảng về việc không phân
+biệt được ân hạn với tạm giữ trên Android **không còn liên quan**. Không cần lối đi tới
+màn hình quản lý thuê bao của cửa hàng.
 
-### 4.2. Gói đó bán cái gì ngoài việc bỏ quảng cáo
+### 4.2. Gói bán cái gì — **CHỐT: chỉ bỏ quảng cáo**
 
-- **Chỉ bỏ quảng cáo** — thông điệp sạch, dễ định giá, nhưng giá trị cảm nhận thấp.
-- **Bỏ quảng cáo + một vài tính năng trả phí** — giá trị cao hơn, nhưng cần quyết định
-  tính năng nào và điều đó mở ra một hạng mục sản phẩm riêng.
+Đúng **một** khóa quyền lợi. Gói không mở thêm tính năng nào.
 
-Nếu chọn phương án bundle, cần chốt **ngay bây giờ** là bao nhiêu khóa quyền lợi, vì
-một khóa hay nhiều khóa ảnh hưởng tới cấu hình và tới paywall.
+Hệ quả: paywall chỉ có một lựa chọn, thông điệp đơn giản. Nếu sau này muốn thêm tier
+trả phí thì đó là hạng mục riêng, và khóa quyền lợi hiện tại không được đổi tên.
 
-### 4.3. Format quảng cáo nào được dùng
+### 4.3. Format quảng cáo — **CHỐT: banner + interstitial mỗi 3 task, hiện sau khi về timeline**
 
-SDK hỗ trợ bốn format. Với một app dùng theo nhịp ngắn, mỗi format có đặc thù riêng:
+- **Banner**: hiển thị thường trực trên timeline.
+- **Interstitial**: cứ mỗi **3 task được tạo mới**, hiện quảng cáo toàn màn **sau khi đã
+  quay về timeline và task mới đã hiển thị** (xem phần dưới).
+- Không dùng rewarded. Không dùng app-open.
 
-| Format | Phù hợp với app này? | Cân nhắc |
-|---|---|---|
-| **Banner** trên timeline | Có khả năng cao nhất | Phải tránh xung đột cử chỉ vuốt/kéo-thả (§2.2 #4), và phải giữ chỗ ổn định để không đẩy layout |
-| **Interstitial** | Cần hết sức cẩn trọng | App được mở hàng chục lần mỗi ngày trong vài giây. Chen toàn màn hình sai nhịp sẽ phá trải nghiệm và đẩy người dùng đi |
-| **Rewarded** | Chỉ khi có thứ để thưởng | App hiện không có vật phẩm tiêu hao hay giới hạn nào để mở bằng quảng cáo. Nếu dùng, cần định ra phần thưởng trước |
-| **App-open** | Rủi ro cao | Chính là khoảnh khắc người dùng mở app để xem nhanh hôm nay có gì. Có thể là format gây phản ứng xấu nhất với app này |
+Hệ quả: việc đếm "mỗi 3 task" là **logic của ứng dụng** — SDK quảng cáo cố ý không có
+cơ chế giới hạn tần suất. Bộ đếm cần quyết định: đếm theo phiên hay đếm bền qua các lần
+mở app, và có đếm cả task sinh từ quy tắc lặp hay chỉ task tạo thủ công.
 
-Cần chốt: **dùng những format nào ở phiên bản đầu**, và nếu có interstitial/app-open
-thì **thời điểm và tần suất** cụ thể.
+**Thời điểm hiện interstitial — CHỐT LẠI ngày 2026-10-10: sau khi đã quay về timeline
+và task mới đã hiển thị**, không chặn ngay lúc bấm Lưu.
 
-### 4.4. Banner đặt ở đâu trên timeline
+Lý do thay đổi so với phương án ban đầu:
 
-Cần chốt vị trí và hành vi, vì đây là nơi va chạm với cử chỉ:
+- **Chính sách.** Google khuyến nghị interstitial đặt ở *điểm chuyển tiếp tự nhiên*,
+  không chen vào giữa một hành động người dùng vừa chủ động thực hiện. Bấm "Lưu" có kỳ
+  vọng rõ ràng: thấy task xuất hiện trên timeline. Chen toàn màn đúng khoảnh khắc đó là
+  kiểu đặt dễ bị gắn cờ.
+- **Trải nghiệm.** Chặn lúc bấm Lưu làm người dùng mất luôn phản hồi "đã lưu thành
+  công" — họ không thấy task mình vừa tạo.
 
-- Trên cùng / dưới cùng / chèn giữa danh sách?
-- Khi chưa có quảng cáo hoặc quảng cáo lỗi: **giữ chỗ** hay **thu lại**? Giữ chỗ thì
-  layout ổn định nhưng chiếm không gian vô ích; thu lại thì layout nhảy.
-- Trên màn hình nào ngoài timeline, nếu có? Màn tạo/sửa công việc nên sạch hay không?
-- Màn hình Cài đặt có quảng cáo không?
+Tần suất **không đổi**: vẫn mỗi 3 task tạo mới. Chỉ thời điểm dịch sang sau khi
+timeline đã hiển thị task mới. Việc quay về timeline chính là điểm chuyển tiếp tự nhiên
+mà chính sách khuyến nghị.
 
-### 4.5. Chuyện gì xảy ra trên iOS — câu hỏi lớn nhất
+Hệ quả cho implement: bộ đếm tăng khi lưu thành công, nhưng lệnh hiện quảng cáo phát ở
+thời điểm timeline đã render xong task mới. Hai việc này tách nhau.
 
-Spec 001 ghi nền tảng mục tiêu là **Android và iOS**. Cả hai SDK **chỉ triển khai
-Android**; trên iOS chúng báo "không khả dụng" một cách an toàn chứ không lỗi.
+### 4.4. Vị trí banner — **CHỐT LẠI ngày 2026-10-10: ghim ngoài vùng vuốt, không nằm trong danh sách**
 
-Hệ quả nếu phát hành iOS hôm nay: trên iOS app sẽ **không có quảng cáo** và **không
-bán được gì**. Tức là bản iOS là bản miễn phí, sạch quảng cáo. Cần chốt một trong các
-hướng:
+Banner **không** là một dòng trong danh sách task. Nó được ghim ở một vị trí cố định của
+màn hình timeline, **bên ngoài** vùng vuốt chuyển ngày. Khi không có hàng hoặc lỗi thì
+**thu lại hoàn toàn**, không giữ chỗ — giữ nguyên lựa chọn ban đầu về cách xử lý lỗi.
 
-| Hướng | Hệ quả |
+**Lý do đổi khỏi phương án "là một item của danh sách":**
+
+`@chipmobilesdk/rn-ads` 0.3.0 cưỡng chế giãn cách tối thiểu 60 giây giữa hai yêu cầu cho
+cùng một vị trí banner (§16.1). Một dòng banner nằm *bên trong* vùng vuốt sẽ bị hủy và
+dựng lại mỗi lần đổi ngày → bị giãn cách chặn → thu lại → **biến mất**. Thực tế người
+dùng sẽ thấy banner ở ngày đầu tiên rồi mất suốt cả phút khi vuốt qua lại. Vị trí banner
+là quyết định hình ảnh; việc banner có hiện hay không là quyết định doanh thu — và phương
+án ghim giữ được cái thứ hai.
+
+**Những gì phương án này giải quyết luôn:**
+
+| Vấn đề ở bản trước | Trạng thái |
 |---|---|
-| Chỉ phát hành Android ở hạng mục này; iOS để sau | Đơn giản nhất, nhưng phải chốt lại phạm vi nền tảng của spec 001 |
-| Phát hành cả hai, iOS tạm miễn phí không quảng cáo | Người dùng iOS được lợi, nhưng tạo bất đối xứng khó giải thích và khó thu lại về sau |
-| Hoãn hạng mục này tới khi SDK có adapter iOS | Chậm doanh thu; phụ thuộc lịch của repo SDK |
+| Banner bị giãn cách mỗi lần vuốt chuyển ngày | **Hết.** Banner giữ nguyên mount khi đổi ngày, giữ được quảng cáo đã tải, chỉ tốn một yêu cầu mỗi phiên |
+| Banner xung đột cử chỉ vuốt ngang | **Hết.** Nó không còn nằm trong vùng nhận cử chỉ |
+| Banner làm lệch điểm thả khi kéo-thả task | **Hết.** Nó ở ngoài danh sách |
+| Layout nhảy mỗi lần vuốt | **Hết.** Chỉ nhảy một lần lúc banner xuất hiện hoặc biến mất trong phiên |
 
-Dù chọn hướng nào, **không được** để người dùng iOS thấy paywall mà bấm vào thì không
-mua được.
+Ghi chú về tự làm mới: AdMob có cơ chế tự làm mới banner cấu hình trong AdMob Console.
+Cơ chế đó chạy bên trong thành phần native, **không đi qua** giãn cách của SDK, nên ghim
+banner không làm mất khả năng tự làm mới.
 
-### 4.6. Quyền riêng tư và sự đồng ý cho quảng cáo
+**Cái mất phải chấp nhận:** không còn cảm giác quảng cáo "là một item của danh sách". Nếu
+sau này vẫn muốn quảng cáo hòa vào danh sách thật sự thì đó là **native ads**, một hạng
+mục riêng ở repo SDK — xem §16.3.
 
-- Ứng dụng sẽ bán/phát hành ở **những quốc gia nào**? Nếu có EU/EEA/UK thì phải có
-  luồng xin đồng ý cho quảng cáo cá nhân hóa, và SDK quảng cáo **chặn mọi yêu cầu
-  quảng cáo** cho tới khi cổng đồng ý cho phép.
-- **Ai dựng giao diện và nội dung đồng ý?** SDK chỉ tiêu thụ kết quả, không dựng
-  dialog và không cung cấp nội dung pháp lý.
-- App có hướng tới trẻ em không? (Mặc định: không, nhưng cần khai báo rõ vì nó đổi
-  cấu hình quảng cáo và phân loại nội dung trên store.)
-- Khai báo **Data safety** của Play sẽ thay đổi: thêm advertising ID và dữ liệu do
-  SDK quảng cáo thu. Cần biết trước ai chịu trách nhiệm cập nhật.
+> **Hai câu hỏi nhỏ còn mở về vị trí ghim, cần chốt ở `/sdd-spec` hoặc `/sdd-design`:**
+>
+> **1. Ghim ở đáy hay đỉnh?** Đáy là quy ước phổ biến cho banner neo, và đỉnh màn hình
+> timeline đang là vùng điều hướng ngày. **Khuyến nghị: đáy.**
+>
+> **2. Nếu ghim đáy, thứ tự xếp lớp với những thứ đã có ở đáy là gì?** Màn hình timeline
+> hiện đã có snackbar hoàn tác, và rất có thể có nút thêm task. Cần chốt:
+> - Snackbar hoàn tác phải nổi **phía trên** banner, không bị banner che — thao tác hoàn
+>   tác có thời hạn, bị che là mất dữ liệu (xem FR-A12).
+> - Nút thêm task phải được nâng lên trên banner, không bị banner che.
+> - Banner phải nằm trên vùng cử chỉ hệ thống, không bị chồng.
+> - Khi banner thu lại, cả snackbar và nút thêm task phải tụt xuống lại mượt, không nhảy
+>   giật.
 
-### 4.7. Trạng thái Play Console hiện tại
+### 4.5. iOS — **CHỐT: chỉ hỗ trợ Android ở hạng mục này**
 
-`applicationId` là `com.taskmanager`, `versionCode` 1. Cần xác nhận:
+Không quan tâm iOS lúc này.
 
-- Đã tạo app trên Play Console chưa, hay chưa từng upload?
-- **Payments profile (hồ sơ thanh toán)** đã hoàn tất chưa? Chưa có thì không tạo được
-  sản phẩm nào, và việc duyệt mất ngày đến tuần. Đây là **đường găng thực sự**, không
-  phải phần mã nguồn.
-- Đã có keystore release thật chưa?
+Hệ quả: **phạm vi nền tảng của spec 001 cần được ghi nhận lại** — spec 001 ghi mục tiêu
+là Android và iOS. Không được để tồn tại trạng thái người dùng iOS thấy paywall mà bấm
+vào không mua được; cách đơn giản nhất là chưa phát hành iOS.
 
-Nếu cả ba đều chưa, thì phần lớn thời gian của hạng mục này là chờ duyệt hồ sơ, và kế
-hoạch phải sắp xếp để công việc mã nguồn không bị chặn bởi nó.
+### 4.6. Quyền riêng tư và đồng ý — **CHỐT: bán toàn thế giới, có luồng đồng ý GDPR**
 
-### 4.8. Giá
+Hệ quả: phải có luồng đồng ý cho EU/EEA/UK, và **không được gửi yêu cầu quảng cáo nào**
+trước khi cổng đồng ý cho phép.
 
-Cần chốt giá cho từng quốc gia mục tiêu, hoặc chốt một mức giá gốc và để Play quy đổi.
-Không thuộc phạm vi mã nguồn, nhưng thuộc phạm vi hạng mục.
+Tin tốt: SDK quảng cáo **đã bọc sẵn** luồng đồng ý của Google (UMP) — gồm cả **biểu mẫu
+do Google dựng**. Ứng dụng không phải tự thiết kế dialog đồng ý, chỉ cần gọi đúng thứ tự
+và hiển thị lối vào "Tùy chọn quyền riêng tư" ở Cài đặt cho người dùng đổi ý sau.
+
+Vẫn thuộc trách nhiệm ứng dụng: chính sách quyền riêng tư bằng ba ngôn ngữ, và khai báo
+Data safety phản ánh advertising ID.
+
+### 4.7. Trạng thái Play Console — **CHỐT: đã có tài khoản dev + payments profile; CHƯA tạo app**
+
+Hệ quả, và đây là đường găng thật của hạng mục:
+
+1. **Payments profile đã xong** — phần chờ duyệt lâu nhất đã qua. Tốt.
+2. **Chưa tạo app trên Play Console.** Cần: tạo app với `applicationId` chốt là
+   `com.taskmanager`, **tạo keystore release thật** (hiện release đang ký bằng debug
+   keystore — không upload được), hoàn thành mục App content, và **upload ít nhất một
+   bản lên kênh testing**.
+3. **Sản phẩm trong app không hoạt động với build chưa từng upload lên Play.** Vì vậy
+   không thể test mua hàng trên máy cho tới khi bước 2 xong.
+4. Cần tạo đơn vị quảng cáo trong tài khoản AdMob và liên kết với app.
+
+Việc mã nguồn và việc Play Console chạy song song được: toàn bộ logic nối dây kiểm thử
+được bằng bộ giả lập của hai SDK, không cần cửa hàng.
+
+### 4.8. Giá — **CHỐT: để Google quy đổi theo quốc gia**
+
+Đặt một mức giá gốc, để Play tự quy đổi theo từng thị trường.
+
+Hệ quả: củng cố yêu cầu đã có — **giá hiển thị phải lấy từ cửa hàng**, không được dựng
+chuỗi giá trong mã. Với ba ngôn ngữ và bán toàn cầu, đây là điều kiện bắt buộc chứ không
+phải khuyến nghị.
 
 ## 5. Thuật ngữ
 
@@ -246,8 +301,10 @@ không có cảnh quảng cáo hiện lên rồi biến mất.
   đó, quảng cáo phải ở trạng thái "chưa quyết định" và **không được yêu cầu quảng cáo**.
 - Khi quyền lợi xác nhận là có, quảng cáo bị tắt và không bao giờ bật lại trong phiên.
 - Khi quyền lợi xác nhận là không có, quảng cáo được bật.
-- Phải quyết định: trong lúc "chưa quyết định", chỗ dành cho banner **giữ chỗ hay thu
-  lại**? Giữ chỗ rồi thu lại sẽ làm layout nhảy ngay khi người dùng vừa mở app.
+- Theo §4.4, dòng banner **thu lại** khi chưa có gì để hiện. Nghĩa là trong lúc "chưa
+  quyết định" timeline không có dòng banner, và nó xuất hiện khi quyền lợi xác nhận là
+  không có. Hệ quả phải chấp nhận: layout nhảy một lần ngay sau khi mở app. Cần xác nhận
+  mức độ nhảy này ở `/sdd-design`.
 
 ### 7.2. Mua gói bỏ quảng cáo (P1)
 
@@ -272,8 +329,9 @@ chỗ khôi phục.
   lý dữ liệu hiện có.
 - Khôi phục phải báo rõ kết quả, **kể cả trường hợp "không tìm thấy giao dịch nào"** —
   không được hiển thị thông báo thành công sai sự thật.
-- Nếu chọn mô hình thuê bao thì còn cần lối đi tới màn hình quản lý thuê bao của cửa
-  hàng.
+- Không cần lối đi tới màn hình quản lý thuê bao, vì §4.1 chốt là mua một lần.
+- Cần có lối vào **"Tùy chọn quyền riêng tư"** ở Cài đặt để người dùng EU đổi lựa chọn
+  đồng ý quảng cáo sau này (§4.6).
 
 ### 7.4. Đã mua rồi, cài lại máy hoặc đổi máy (P1)
 
@@ -310,11 +368,14 @@ tự tắt khi tiền về, kể cả ở lần mở app sau.
 
 Là người dùng miễn phí, tôi vẫn dùng được app bình thường dù có quảng cáo.
 
-- Banner không được chặn cử chỉ vuốt chuyển ngày.
-- Banner không được làm lệch kéo-thả công việc trong ngày.
-- Banner không được đẩy snackbar hoàn tác ra khỏi tầm nhìn.
-- Quảng cáo toàn màn (nếu dùng) không được xuất hiện khi đang mở form, đang kéo-thả,
-  đang trong luồng xin quyền, hoặc khi một nhắc nhở vừa bật lên.
+- Banner ghim ngoài vùng vuốt, nên không chặn cử chỉ chuyển ngày và không làm lệch
+  kéo-thả công việc (§4.4). Vẫn phải kiểm chứng vùng chạm trên thiết bị thật.
+- Banner không được che snackbar hoàn tác hoặc nút thêm task. Hoàn tác có thời hạn — bị
+  che đồng nghĩa với mất dữ liệu.
+- Banner giữ nguyên khi người dùng vuốt qua lại giữa các ngày; nó không nhấp nháy theo
+  từng lần vuốt.
+- Quảng cáo toàn màn không được xuất hiện khi đang mở form, đang kéo-thả, đang trong
+  luồng xin quyền, khi một nhắc nhở vừa bật lên, hoặc khi snackbar hoàn tác còn hiệu lực.
 - Quảng cáo không có hàng, lỗi, hoặc bị chặn bởi cổng đồng ý — không cái nào được làm
   hỏng màn hình.
 
@@ -357,8 +418,14 @@ yêu cầu quảng cáo thật trong lúc phát triển.
 - Cổng thanh toán ngoài cửa hàng, ví điện tử, thẻ trực tiếp. Hàng hóa số trong app phải
   dùng hệ thống thanh toán của cửa hàng.
 - Quảng cáo gốc (native ads) và quảng cáo tự bán.
-- Tier trả phí nhiều mức (ví dụ Pro/Premium) nếu §4.2 chốt là chỉ bỏ quảng cáo.
-- Sửa đổi SDK quảng cáo hoặc SDK thanh toán. Thiếu sót được ghi lại và xử lý ở repo SDK.
+- Tier trả phí nhiều mức (Pro/Premium). §4.2 chốt chỉ bỏ quảng cáo.
+- **Toàn bộ vòng đời thuê bao**: gia hạn, ân hạn, tạm giữ, đổi gói, màn hình quản lý
+  thuê bao. §4.1 chốt mua một lần vĩnh viễn.
+- **Quảng cáo có thưởng (rewarded) và quảng cáo khi mở app (app-open).** §4.3 chốt chỉ
+  dùng banner và interstitial.
+- **iOS.** §4.5 chốt chỉ Android.
+- Sửa đổi SDK quảng cáo hoặc SDK thanh toán *trong repo này*. Thiếu sót được ghi ở §16
+  và xử lý ở repo SDK.
 
 ## 9. Yêu cầu chức năng
 
@@ -382,11 +449,25 @@ yêu cầu quảng cáo thật trong lúc phát triển.
   vị quảng cáo theo từng môi trường.
 - **FR-A08**: Mọi format được chọn ở §4.3 phải có thời điểm hiển thị do ứng dụng quyết
   định tường minh. SDK không tự chọn thời điểm.
-- **FR-A09**: Ứng dụng phải định ra tần suất tối đa cho quảng cáo toàn màn, nếu dùng.
-  SDK không có cơ chế giới hạn tần suất.
+- **FR-A09**: Ứng dụng phải tự đếm và quyết định thời điểm hiện interstitial theo quy tắc
+  "mỗi 3 task tạo mới" (§4.3). SDK cố ý không có cơ chế giới hạn tần suất.
+- **FR-A09a**: Bộ đếm phải nêu rõ: đếm theo phiên hay bền qua các lần mở app, và có tính
+  task sinh từ quy tắc lặp hay chỉ task tạo thủ công.
 - **FR-A10**: Chỗ dành cho banner phải xử lý đủ các trạng thái: đang tải, có quảng cáo,
-  không có hàng, lỗi, bị chặn bởi đồng ý, không khả dụng, và bị tắt vì đã mua.
-- **FR-A11**: Banner không được xung đột với cử chỉ vuốt chuyển ngày và kéo-thả.
+  không có hàng, lỗi, bị chặn bởi đồng ý, không khả dụng, **bị giãn cách
+  (`throttled`)**, và bị tắt vì đã mua.
+- **FR-A10a**: Trạng thái `throttled` phải được phân biệt với `failed` và với "không có
+  hàng" trong log và trong chẩn đoán. Hiển thị cho người dùng có thể giống nhau (thu lại
+  chỗ), nhưng chỉ một trong ba là đáng điều tra.
+- **FR-A10b**: Banner phải được ghim **ngoài** vùng vuốt chuyển ngày, để nó không bị hủy
+  và dựng lại mỗi lần đổi ngày (§4.4). Đây là điều kiện để giãn cách yêu cầu của SDK
+  không làm banner vắng mặt phần lớn thời gian.
+- **FR-A10c**: Khi banner xuất hiện hoặc thu lại, snackbar hoàn tác và nút thêm task phải
+  dịch theo mà không bị che và không nhảy giật.
+- **FR-A11**: Banner không được xung đột với cử chỉ vuốt chuyển ngày và kéo-thả. Việc
+  ghim banner ngoài vùng vuốt (FR-A10b) loại bỏ xung đột này ở tầng cấu trúc, nhưng vẫn
+  phải kiểm chứng trên thiết bị — một banner ghim đáy vẫn có thể hứng cử chỉ nếu vùng
+  chạm của nó tràn lên phần danh sách.
 - **FR-A12**: Quảng cáo không được xuất hiện khi đang có lớp phủ, form, luồng xin quyền,
   hoặc snackbar hoàn tác đang hoạt động.
 - **FR-A13**: Nếu bán ở vùng cần đồng ý, không được có yêu cầu quảng cáo nào trước khi
@@ -404,8 +485,8 @@ yêu cầu quảng cáo thật trong lúc phát triển.
 - **FR-A19**: Mua lại khi đã sở hữu phải dẫn tới khôi phục quyền lợi, không phải báo lỗi.
 - **FR-A20**: Phải có nút khôi phục giao dịch, và kết quả phải phân biệt "đã khôi phục"
   với "không tìm thấy giao dịch nào".
-- **FR-A21**: Nếu chọn thuê bao, phải có lối đi tới màn hình quản lý thuê bao của cửa
-  hàng. Không được tự dựng màn hình hủy.
+- **FR-A21**: Paywall phải xử lý trạng thái "đã sở hữu" — người đã mua mở lại paywall
+  không được thấy nút mua còn hoạt động.
 
 ### 9.4. Môi trường và an toàn
 
@@ -499,6 +580,15 @@ yêu cầu quảng cáo thật trong lúc phát triển.
    trạng thái không tải được một cách gọn gàng.
 9. **Hoàn tiền**: quảng cáo bật lại ở lần đồng bộ kế tiếp.
 10. **Vuốt chuyển ngày khi có banner**: cử chỉ hoạt động bình thường, banner không chặn.
+10a. **Vuốt nhanh qua 10 ngày**: banner **giữ nguyên trên màn hình suốt quá trình**, và
+    tổng số yêu cầu quảng cáo gửi đi là **một**, không phải mười. Đây là kịch bản chứng
+    minh quyết định ghim ở §4.4 là đúng.
+10b. **Xoay máy khi đang có banner**: banner tự thích ứng chiều rộng mới và **không** bị
+    giãn cách chặn — xoay máy là miễn trừ có chủ ý của SDK.
+10c. **Xóa task khi banner đang hiện**: snackbar hoàn tác hiện **phía trên** banner, bấm
+    được, và không bị banner che.
+10d. **Banner thu lại giữa phiên**: snackbar và nút thêm task tụt xuống mượt, không nhảy
+    giật và không để lại khoảng trống.
 11. **Kéo-thả công việc khi có banner**: vị trí thả đúng, không lệch.
 12. **Snackbar hoàn tác khi có banner**: snackbar vẫn thấy và bấm được.
 13. **Xóa toàn bộ dữ liệu**: công việc bị xóa, **quyền lợi đã mua không bị xóa**.
@@ -545,7 +635,7 @@ yêu cầu quảng cáo thật trong lúc phát triển.
 - Ba ngôn ngữ và hai chế độ hiển thị đều đúng.
 - Có bằng chứng build phát triển không tạo được giao dịch thật.
 - Khai báo Data safety, phân loại nội dung, và chính sách quyền riêng tư đã cập nhật.
-- Quyết định về iOS (§4.5) đã được chốt và ghi lại.
+- Phạm vi nền tảng của spec 001 đã được ghi nhận lại theo §4.5 (chỉ Android).
 
 ## 15. Để dành cho giai đoạn plan/implement
 
@@ -566,3 +656,154 @@ spec không áp đặt trước:
 Mọi lựa chọn kỹ thuật phải giữ nguyên nguyên tắc: **hai SDK không biết nhau**, chính
 sách sản phẩm nằm ở ứng dụng, và không thứ gì liên quan tới quảng cáo hay thanh toán
 được phép làm hỏng việc quản lý công việc.
+
+## 16. Đánh giá hai SDK — có cần bổ sung gì ở tầng lib?
+
+> Phần này **không** thuộc phạm vi triển khai của app. Nó ghi lại kết luận sau khi đối
+> chiếu thiết kế đã chốt ở §4 với năng lực thật của hai SDK, để biết cái gì phải mở
+> hạng mục ở repo SDK và cái gì cố ý thuộc về ứng dụng.
+
+### 16.1. ✅ ĐÃ XONG — giãn cách yêu cầu theo từng vị trí (`rn-ads` 0.3.0)
+
+> **Trạng thái: đã triển khai và phát hành ngày 2026-10-10.** Mục này giữ lại phần phân
+> tích vì nó giải thích *vì sao* thuộc lib, và vì kết luận của nó ảnh hưởng trực tiếp tới
+> quyết định vị trí banner ở §4.4.
+
+**Những gì đã có trong 0.3.0:**
+
+- Giãn cách tối thiểu giữa hai **yêu cầu** cho cùng một vị trí, cấu hình được qua
+  `minRequestIntervalMs`, giới hạn 0–600.000 ms, kiểm tra ngay lúc khởi tạo và nêu tên
+  vị trí sai thay vì âm thầm từ chối mọi yêu cầu trong production.
+- **Mặc định theo format**: 60 giây cho banner — lấy đúng sàn làm mới banner mà AdMob
+  tự công bố, nên con số là của nhà cung cấp chứ không phải tự nghĩ ra. **Tắt (0) cho
+  interstitial, rewarded, app-open** — các format này được tải bằng lệnh tường minh chứ
+  không do renderer mount, nên chưa bao giờ có vấn đề này; đặt sàn mặc định ở đó sẽ phá
+  vỡ chính thiết kế "mỗi 3 task" của hạng mục này.
+- **Quan sát được**: vị trí báo trạng thái `throttled`, `load()` trả
+  `{ status: 'throttled', retryAfterMs }`, và phát sự kiện `request_throttled` kèm sàn
+  đã từ chối nó. `throttled` **khác** `failed` và khác no-fill: no-fill là mạng không có
+  hàng, còn đây là ta không hỏi.
+- **Không phát `load_started`** cho yêu cầu bị từ chối — một yêu cầu không xảy ra thì
+  không phải một vòng, và luồng sự kiện không được khai một yêu cầu tính tiền không tồn
+  tại.
+- **Hai miễn trừ có chủ ý**: xoay máy (đổi chiều rộng trong cùng một lần mount) không bị
+  tính, nếu không thì màn hình vừa xoay sẽ mất banner cả phút; và lời gọi tải trùng đồng
+  thời không bị tính, vì chúng đã được gộp vào yêu cầu đang bay sẵn.
+- **Chịu được đồng hồ nhảy lùi** — đổi giờ thủ công hoặc hiệu chỉnh NTP làm nó mở ra chứ
+  không khóa vị trí lại cho tới khi đồng hồ đuổi kịp.
+
+**Hệ quả cho hạng mục này — đã xử lý.** Giãn cách phạt nặng nhất đúng phương án "banner
+là một item trong danh sách", vì dòng banner nằm bên trong vùng vuốt. Câu trả lời kiến
+trúc — và cũng là điều README của SDK nói thẳng — là đưa banner ra ngoài vùng bị remount.
+**§4.4 đã chốt lại theo hướng đó**, nên hạng mục này không còn chịu ảnh hưởng của giãn
+cách trong vận hành bình thường: banner giữ nguyên mount khi đổi ngày và tốn một yêu cầu
+mỗi phiên.
+
+Giãn cách vẫn là lưới an toàn có ích về sau: nếu một màn hình mới nào đó đặt banner vào
+vùng bị remount, nó sẽ báo `throttled` thay vì âm thầm tạo lưu lượng dồn dập.
+
+### 16.1b. Phân tích gốc — vì sao việc này thuộc lib chứ không thuộc app
+
+**Vấn đề (trạng thái trước 0.3.0).** Timeline chuyển ngày bằng vuốt ngang, và theo §4.4
+dòng banner là một item trong danh sách của ngày đó. Mỗi lần chuyển ngày, dòng banner bị
+hủy và dựng lại, tạo một yêu cầu quảng cáo mới. SDK lúc đó đã bảo đảm *không tạo yêu cầu
+trùng khi đang tải*, nhưng **không có giãn cách tối thiểu giữa hai lần yêu cầu liên
+tiếp** cho cùng một vị trí. Vuốt nhanh qua 10 ngày tạo 10 yêu cầu trong vài giây.
+
+**Vì sao thuộc lib, không thuộc app.** Đây là ranh giới đáng giữ cho sạch:
+
+| Loại quyết định | Thuộc về |
+|---|---|
+| *Bao lâu hiện một interstitial một lần* | **Ứng dụng** — đây là chính sách sản phẩm |
+| *Bao lâu được phép gửi lại một yêu cầu cho cùng vị trí* | **SDK** — đây là an toàn tài khoản |
+
+Lưu lượng không hợp lệ có thể dẫn tới hạn chế hoặc đình chỉ tài khoản quảng cáo. Đó là
+cùng hạng với việc SDK đã tự thay đơn vị quảng cáo test ngoài production: một thuộc tính
+an toàn mà lib **cưỡng chế** thay vì ghi vào tài liệu rồi hy vọng từng app tự làm đúng.
+Nếu để mỗi app tự chống, mọi app đặt banner trong danh sách hoặc trong tab chuyển qua lại
+đều phải dựng lại cùng một cơ chế, và app nào quên thì trả giá bằng tài khoản.
+
+**Đề xuất đã được thực hiện đúng như nêu**: giãn cách tối thiểu cấu hình được cho mỗi vị
+trí, mặc định an toàn theo format, và việc bị giãn cách **quan sát được** qua trạng thái
+`throttled` cộng sự kiện `request_throttled` — để app phân biệt "đang chờ giãn cách" với
+"không có hàng", hai thứ cần hiển thị khác nhau. Chi tiết ở §16.1.
+
+### 16.2. Không cần bổ sung — giới hạn tần suất interstitial
+
+Việc đếm "mỗi 3 task" **phải** nằm ở ứng dụng. Nếu lib có cơ chế giới hạn tần suất thì
+lib bắt đầu sở hữu chính sách sản phẩm, trái với ranh giới mà cả hai SDK được xây trên.
+Mỗi app có nhịp khác nhau: app này đếm theo task tạo mới, app khác đếm theo lần mở màn
+hình, app khác nữa đếm theo thời gian. Không có mặc định nào đúng cho tất cả.
+
+Những thứ **lib đã làm đúng** và app không cần tự lo: từ chối hiện khi app đang không ở
+tiền cảnh, từ chối hiện khi đã có một quảng cáo toàn màn khác đang mở, và từ chối hiện
+một quảng cáo đã dùng rồi.
+
+### 16.3. Về câu hỏi "template" — phân biệt hai nghĩa
+
+Câu hỏi "quảng cáo có nhiều template, lib có cần enhance không" có hai nghĩa, và câu trả
+lời khác nhau:
+
+**Nghĩa 1 — các *format* quảng cáo.** Banner, interstitial, rewarded, app-open. SDK đã
+có đủ bốn. Với bốn format này, **nhận định của anh là đúng**: nội dung quảng cáo do
+Google dựng, lib lo việc yêu cầu và trình bày, app chỉ quyết định đặt ở đâu và lúc nào.
+Lib không cần thêm gì.
+
+**Nghĩa 2 — *native ads* và các template bố cục của chúng.** Đây là thứ khác hẳn, và là
+**khoảng trống thật** của SDK. Native ads không trả về một khối hình đã dựng sẵn; nó trả
+về **các thành phần rời**: tiêu đề, mô tả, ảnh, icon, nhãn nhà quảng cáo, nút hành động,
+xếp hạng. App tự bố cục chúng để trông giống nội dung của mình.
+
+Với native ads thì **"template là việc của app" không còn đúng hoàn toàn**, vì lib buộc
+phải:
+
+- Phơi các thành phần quảng cáo ra dưới dạng dữ liệu đã chuẩn hóa, không để lộ đối tượng
+  của nhà cung cấp.
+- Cưỡng chế các thành phần **bắt buộc phải hiển thị** theo chính sách của nhà cung cấp.
+- Cưỡng chế việc gắn **nhãn "Quảng cáo"** — bắt buộc, vì native ad trông giống nội dung.
+- Đăng ký đúng các vùng chạm để tính click và impression hợp lệ.
+
+**Có cần cho hạng mục này không? Không.** §4.4 chốt dùng banner thường, và một banner do
+Google dựng tự nó đã phân biệt được với nội dung nên không có rủi ro gây nhầm lẫn.
+
+**Khi nào cần?** Nếu sau này muốn quảng cáo **trông thật giống một task item** — tức là
+hòa vào danh sách chứ không phải một khối hình chữ nhật nằm giữa danh sách. Lúc đó đây là
+một hạng mục đáng kể ở repo SDK, không phải một tùy chọn nhỏ.
+
+**Mức ưu tiên: thấp**, và chỉ mở khi có nhu cầu sản phẩm rõ ràng.
+
+### 16.4. SDK thanh toán — đủ cho hạng mục này
+
+Đối chiếu thiết kế đã chốt với năng lực SDK:
+
+| Nhu cầu từ §4 | Trạng thái |
+|---|---|
+| Mua một lần vĩnh viễn | Có |
+| Một khóa quyền lợi duy nhất | Có |
+| Không có tài khoản ứng dụng | Phù hợp — quyền lợi gắn tài khoản cửa hàng; không cần phân vùng theo người dùng |
+| Khôi phục sau khi cài lại / đổi máy | Có |
+| Hoạt động offline, có ngưỡng dữ liệu cũ | Có |
+| Giá lấy từ cửa hàng, quy đổi theo quốc gia | Có |
+| Chặn giao dịch thật ở build phát triển | Có, và quan sát được |
+| Trạng thái "chưa biết" để tránh nháy quảng cáo | Có, và khớp đúng với trạng thái "chưa quyết định" của SDK quảng cáo |
+
+**Không tìm thấy khoảng trống nào cần bổ sung.** Những thứ SDK có mà hạng mục này không
+dùng — thuê bao, tiêu hao, đổi gói, điểm cắm xác thực server, phân vùng theo tài khoản —
+đều là năng lực sẵn có cho app sau, không phải gánh nặng.
+
+Một mục **tùy chọn, ưu tiên thấp**: Play có cơ chế **mã khuyến mãi** cho sản phẩm mua một
+lần, hữu ích khi tặng gói cho người đánh giá hoặc bù cho người dùng bị lỗi. SDK hiện không
+phơi luồng này. Chỉ mở nếu có nhu cầu kinh doanh thật.
+
+### 16.5. Việc cần xác minh, không được giả định
+
+- **Phiên bản SDK quảng cáo cần dùng: `0.3.0` hoặc mới hơn.** Các phiên bản trước không
+  có giãn cách yêu cầu, tức là thiết kế banner của hạng mục này sẽ tạo lưu lượng dồn dập
+  khi người dùng vuốt chuyển ngày.
+- **Tương thích React Native.** App này chạy React Native mới hơn repo SDK. SDK quảng cáo
+  có **khóa trần phiên bản** cho thư viện quảng cáo nền tảng vì lý do siêu dữ liệu trình
+  biên dịch Kotlin. Trần đó được xác định trên phiên bản React Native của repo SDK và
+  **phải kiểm tra lại** trên app này.
+- **SDK thanh toán chưa được xác minh trên thiết bị với thư viện billing đã cài.** Phần
+  nối với nhà cung cấp được viết theo tài liệu nhưng chưa chạy thật lần nào. Đây là hạng
+  mục xác minh, không phải hạng mục phát triển, nhưng phải làm trước khi phát hành.
