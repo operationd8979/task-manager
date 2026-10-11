@@ -28,6 +28,7 @@ import {
 	type ReminderTarget,
 } from '../../services/notifications/types';
 import { useDatabase } from './DatabaseProvider';
+import { useInterruptions } from './InterruptionProvider';
 
 export interface ReminderContextValue {
 	notification: PermissionState;
@@ -122,6 +123,8 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 		setExactAlarm(toExactAlarmState(report.exactAlarm));
 	}, []);
 
+	const interruptions = useInterruptions();
+
 	const ensurePermission = useCallback(async () => {
 		const service = await getNotifications();
 		const current = await service.permissions.getPermissions();
@@ -129,10 +132,17 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 		// Asked only when the user first turns a reminder on, never at first
 		// launch (FR-036a) — asking before they state the intent is the surest way
 		// to be refused, permanently.
-		const display =
-			current.display === 'notAsked'
-				? await service.permissions.requestDisplayPermission()
-				: current.display;
+		let display = current.display;
+		if (display === 'notAsked') {
+			// The system prompt can appear right after the form closes; nothing may
+			// cut in while it is up (specs/002-ads-and-remove-ads AC-8.5).
+			const release = interruptions?.acquire('permission');
+			try {
+				display = await service.permissions.requestDisplayPermission();
+			} finally {
+				release?.();
+			}
+		}
 		setNotification(toDisplayPermission(display));
 
 		// The exact-alarm state only matters once notifications are allowed.
@@ -141,7 +151,7 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 			setExactAlarm(toExactAlarmState(after.exactAlarm));
 		}
 		return canDisplay(display);
-	}, []);
+	}, [interruptions]);
 
 	const openSettings = useCallback(
 		async (target: 'notifications' | 'exact-alarm') => {

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
 import { useLocale } from '@chipmobilesdk/rn-i18n';
 
+import { useMonetization } from '../../../app/providers/MonetizationProvider';
 import { useReminders } from '../../../app/providers/ReminderProvider';
 import { Chevron } from '../../../components/Chevron';
 import { Chip, ChipRow } from '../../../components/Chip';
@@ -25,6 +26,7 @@ import {
 	NAV_CHEVRON_SIZE,
 	TAP_TARGET_MIN,
 } from '../../../theme/tokens';
+import { RemoveAdsSection } from '../../monetization';
 import { useSettings } from '../hooks/useSettings';
 
 export function SettingsScreen() {
@@ -33,6 +35,7 @@ export function SettingsScreen() {
 	const navigation = useNavigation();
 	const settings = useSettings();
 	const reminders = useReminders();
+	const monetization = useMonetization();
 	const [confirmDestroy, setConfirmDestroy] = useState(false);
 
 	return (
@@ -204,9 +207,18 @@ export function SettingsScreen() {
 						<Text style={styles.hint}>{t('settings.languageHint')}</Text>
 					</View>
 
+					{/* Next to data management, where restore is looked for
+              (specs/002 design D-9). Android only; renders nothing on iOS. */}
+					<RemoveAdsSection />
+
 					<Text style={styles.sectionTitle}>{t('settings.data')}</Text>
 					<View style={styles.row}>
 						<Text style={styles.rowLabel}>{t('settings.dataOnDevice')}</Text>
+						{/* Kept true while ads run: tasks stay here, but ads are served
+                by Google using the advertising ID (FR-14, design D-7). */}
+						{monetization?.adsActive ? (
+							<Text style={styles.hint}>{t('settings.dataAds')}</Text>
+						) : null}
 						<Text style={styles.hint}>
 							{t('settings.itemCount', undefined, {
 									count: settings.state.taskCount,

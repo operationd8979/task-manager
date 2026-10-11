@@ -1,5 +1,5 @@
 ---
-rev: 2
+rev: 3
 spec_rev: 1
 design_rev: 1
 ---
@@ -166,6 +166,19 @@ and owned states. The build environment is chosen when the bundle is built. All 
   sheet's pending, development-blocked and nothing-found blocks would be the second and
   third copies of the pattern (standards II). Styling them locally was rejected because it
   breaks that rule.
+- D-18 A local "pending since" marker. It is set when a purchase returns `pending`, cleared
+  once owned, and expires after 7 days, so a declined payment eventually offers Buy again
+  (AC-5.2, AC-5.5). The alternative was waiting for the SDK, rejected because rn-payment
+  0.1.0 reports pending only within the session it happened in, with no signal when one is
+  declined.
+  - You chose the marker on 2026-10-11, together with an SDK item:
+    `c:\cms\temp\rn-payment-v0.2-pending-visibility-change.md`.
+  - Cost: a declined payment shows "pending" until the TTL passes.
+- D-19 What the user is mid-way through lives in a generic `InterruptionProvider`
+  (`src/lib/interruptions.ts`), mounted outside the boot branch. The plan had put a
+  blockers registry inside the monetization provider. Rejected because the undo toast, the
+  permission prompt and the drag have to report from components that render without that
+  provider, and a wipe's reboot must not drop a wait in progress.
 
 ## Changes
 
@@ -198,57 +211,58 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - a placement or product ID is missing.
 
 **Config & services** (`src/services/monetization/`)
-- `appEnv.ts` (development), `appEnv.test.ts` and `appEnv.production.ts`: typed
-  `AppEnvironment` with:
+- `environment.ts`: the `AppEnvironment` type, Google's test units, the product ID.
+- `appEnv.ts` (development), `appEnv.testtrack.ts` (APP_ENV=test) and `appEnv.production.ts`:
   - name, `adsEnabled` and `sellingEnabled` (FR-19);
   - ads and payment environments (D-3);
   - banner and interstitial unit IDs, and the `remove_ads` product ID.
-- `catalog.ts`:
-  - placements `timeline_footer` (banner) and `task_break` (interstitial);
-  - payment catalog: `remove_ads` (`one_time_permanent`) → `no_ads`.
+  - The test file is not named `appEnv.test.ts`, because Jest would collect it as a test.
+- `catalog.ts`: placements `timeline_footer` and `task_break`; payment catalog `remove_ads`
+  (`one_time_permanent`) → `no_ads`; `buildAdsConfig` / `buildPaymentConfig`.
 - `runtime.ts`:
-  - lazily creates `createAds({ enabled: 'undecided', … })`, plus `createEngine` with
+  - lazily creates `createAds({ enabled: 'undecided', … })` and `createEngine` with
     `createStoreProvider()`;
   - Android only, and only when the env flags are on;
-  - catches `AdsConfigError` and `PaymentConfigError` and reports monetization `unavailable`
-    instead of crashing (FR-22);
-  - exposes a replaceable log sink.
-- `wiring.ts`:
-  - subscribes to entitlements and pushes the enablement through the D-9 latch;
-  - forwards events to the log sink with distinct codes: `ads.throttled`, `ads.no_fill`,
-    `ads.load_failed:<code>`, `ads.consent_blocked`, and `payment.<code>`;
-  - never logs unit or product IDs (FR-13).
-- `counterStore.ts`: MMKV `taskmanager.monetization`, key `interstitial.count`, with a memory
-  fallback (pattern of `src/i18n/storage.ts`).
+  - catches construction errors as `startupFailures` codes instead of crashing (FR-22).
+- `wiring.ts`: narrow ports; entitlement → enablement through the D-9 latch.
+- `diagnostics.ts`: SDK events → distinct log codes (FR-13), with no unit or product IDs.
+- `session.ts`: process-scoped wiring, store, purchasing and interstitial controller; payment
+  start; consent then initialize, once per process.
+- `purchasing.ts`: the sheet's facade, mapping SDK results to domain outcomes (FR-16, FR-17).
+- `localStore.ts`: MMKV `taskmanager.monetization` (`createMMKV`), holding
+  `interstitial.count` and `purchase.pendingSince` (D-18). `persistent: false` is logged.
+- `interstitial.ts`: counter, preload (skipped while loading or ready), show.
 
 **Domain** (`src/domain/monetization.ts`, renderer-free)
-- `toEnablement(status, latch)`, `latchReducer`.
-- `nextInterstitialCount`, `isInterstitialDue`, and `INTERSTITIAL_EVERY = 3`.
-- `canShowInterstitial(blockers)` (D-13).
-- `removeAdsSectionState(...)`: `checking | buy | pending | owned | unavailable | hidden`.
-- `purchaseOutcomeView(result)` (FR-16) and `restoreOutcomeView(outcome)` (FR-17).
+- `toPurchaseStatus`, `latchOwned`, `effectivePurchaseStatus`, `toAdsEnablement` (FR-1,
+  FR-3, FR-19).
+- `toPurchaseOutcome` (FR-16), `RestoreResult` (FR-17).
+- `isPendingShown`, `PENDING_MARKER_TTL_MS` (D-18).
+- `removeAdsSectionState`: `hidden | unavailable | owned | pending | checking | buy`.
+- `INTERSTITIAL_EVERY`, `nextInterstitialCount`, `isInterstitialDue`,
+  `shouldPreloadInterstitial`, `interstitialStep` (D-13).
 
 **App shell**
-- `src/app/providers/MonetizationProvider.tsx` (add):
-  - mounts `PaymentProvider` and `AdsProvider` around the singletons;
-  - runs AppState foreground → `handleForeground()`;
-  - consent orchestration: once enablement first becomes `enabled`, `requestInfoUpdate`,
-    then `showFormIfRequired` when no blocker is up, then `initialize`;
-  - provides `useMonetization()` with `adFree`, `adsActive`, `openRemoveAds()`,
-    `noteNewItemSaved()`, `blockers` and `consentState`;
-  - points the log sink at `useDatabase().errorLog`;
-  - releases its subscriptions on unmount.
+- `src/lib/interruptions.ts` and `src/app/providers/InterruptionProvider.tsx` (add): a
+  reference-counted record of what the user is mid-way through (overlay, drag, undo,
+  permission, consent, background), with `useInterruptionBlocker`. This replaces the plan's
+  "blockers registry" inside the monetization provider: undo, permission and drag register
+  from components that must keep rendering without any provider.
 - `src/app/providers/BottomInsetProvider.tsx` (add): a Reanimated shared value for extra
   bottom chrome. `BannerSlot` writes it; the toast reads it.
-- `src/app/App.tsx`: insert both providers. MonetizationProvider goes inside
-  ReminderProvider, above BottomSheetModalProvider; BottomInsetProvider sits above
-  UndoProvider.
-- `src/app/providers/ReminderProvider.tsx`: expose `permissionRequestInFlight` (observable)
-  around `ensurePermission`.
-- `src/app/providers/UndoProvider.tsx`: expose `isVisible`, and pass the bottom offset to the
-  toast.
-- `src/components/Toast.tsx`: accept an animated extra bottom offset (generic; it does not
-  know about ads).
+- `src/app/providers/MonetizationProvider.tsx` (add):
+  - subscribes to the session and does not own the SDKs;
+  - foreground → `handleForeground()` and `setAppActive`;
+  - consent and initialize when ads first become wanted;
+  - pending marker, store availability, the sheet request, and diagnostics into the error
+    log.
+- `src/app/App.tsx`: Interruption and BottomInset providers outside the boot branch;
+  Monetization inside ReminderProvider; `RemoveAdsSheetHost` under UndoProvider.
+- `src/app/providers/ReminderProvider.tsx`: holds `permission` while the system prompt is up.
+- `src/app/providers/UndoProvider.tsx`: holds `undo` while the toast is up; passes the bottom
+  inset to the toast.
+- `src/components/Toast.tsx`: an animated extra bottom offset (generic; knows nothing about
+  ads).
 
 **Features**
 - `src/components/Notice.tsx` (add, D-17):
@@ -277,6 +291,10 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - development-blocked: `Notice` warning, after which MUA turns disabled and outlined
     (design D-6);
   - a double-tap guard.
+  - The state machine lives in `hooks/useRemoveAdsFlow.ts`; the sheet only renders small
+    per-state views (Principle II).
+- `src/features/monetization/components/RemoveAdsSheetHost.tsx` (add): mounts the sheet over
+  any screen from below the bottom-sheet provider, and holds `overlay` while it is open.
 - `src/features/monetization/components/RemoveAdsSection.tsx` (add), SCR-3:
   - the "QUẢNG CÁO" section, placed between NGÔN NGỮ and DỮ LIỆU (design D-9);
   - states: free (Bỏ quảng cáo row with `Chevron`), checking (skeleton row plus text),
@@ -284,17 +302,19 @@ and owned states. The build environment is chosen when the bundle is built. All 
     unavailable on this device (text, no rows, FR-15);
   - the Restore row opens the sheet in `restore` mode (D-16).
 - `src/features/monetization/hooks/useInterstitial.ts` (add):
-  - counts creates;
-  - preloads at 2 (D-7);
-  - waits on the D-13 gate after the saved item renders, then `show('task_break')`;
-  - cancels on new blockers.
+  - counts creates through the session's controller, which preloads at 2 (D-7);
+  - waits on the D-13 gate until the timeline has redrawn with the saved item, then shows
+    after a 600 ms settle (`SHOW_AFTER_SETTLE_MS`);
+  - cancels on a new sheet, drag or real backgrounding.
 - `src/features/monetization/index.ts` (add): the feature's public API.
 - `src/features/timeline/screens/TimelineScreen.tsx`:
   - narrow the create-swipe detector to the button;
   - render `BannerSlot` between the button and the insets spacer (D-5);
   - register overlay and drag blockers;
   - call `noteNewItemSaved()` from `handleSaved` on creates.
-- `src/features/task-editor/screens/TaskFormSheet.tsx`: `onSaved(savedDate, { created })`.
+- `src/features/task-editor/hooks/useTaskForm.ts` and `screens/TaskFormSheet.tsx`:
+  `onSaved(savedDate, { created })`, true only for a new task or a new series.
+- `src/features/timeline/hooks/useTaskDrag.ts`: holds `drag` while a finger is mid-drag.
 - `src/features/settings/screens/SettingsScreen.tsx`:
   - add `RemoveAdsSection` (Android only);
   - add the ads line to the data statement only while ads are active, i.e. free and
@@ -322,8 +342,11 @@ and owned states. The build environment is chosen when the bundle is built. All 
 ## Data & interfaces
 
 - **Storage**:
-  - MMKV `taskmanager.monetization`: `interstitial.count`, an integer ≥ 0. Missing means 0,
-    and invalid values are reset to 0.
+  - MMKV `taskmanager.monetization`, created with `createMMKV` (react-native-mmkv v4):
+    - `interstitial.count`: an integer ≥ 0. Missing means 0, and invalid values are reset
+      to 0;
+    - `purchase.pendingSince`: epoch ms, removed when owned or past
+      `PENDING_MARKER_TTL_MS` (7 days, D-18).
   - It is not touched by `destroyAll`, and it is excluded from backup and device transfer.
   - The SDK-owned MMKV `chipmobilesdk.payment` gets the same exclusions.
 - **Keys**:
@@ -334,17 +357,21 @@ and owned states. The build environment is chosen when the bundle is built. All 
   sellingEnabled: boolean; adsEnvironment: 'development' | 'test' | 'production';
   paymentEnvironment: 'development' | 'production'; bannerUnitId: string;
   interstitialUnitId: string; removeAdsProductId: string }`.
-- **`useMonetization()`**: `{ adFree: 'unknown' | 'owned' | 'not_owned'; adsActive: boolean;
-  pending: boolean; storeAvailable: boolean; consentState;
-  openRemoveAds(options?: { mode?: 'buy' | 'restore' }): void; noteNewItemSaved(): void;
-  setBlocker(name: BlockerName, on: boolean): void }`. `mode` defaults to `'buy'` (D-16).
-  `BlockerName = 'overlay' | 'drag'`; the provider sets undo, permission, consent and
-  app-state itself.
+- **`useMonetization()`** (null outside the provider): `{ purchase: 'unknown' | 'owned' |
+  'not_owned'; adsActive: boolean; Banner: AdsBanner | null; removeAdsRequest: { mode } |
+  null; openRemoveAds(options?: { mode?: 'buy' | 'restore' }): void; closeRemoveAds(): void;
+  supported: boolean; storeAvailable: boolean; canBuy: boolean; pending: boolean;
+  markPending(): void; purchasing: Purchasing | null; interstitial: InterstitialController }`.
+  `mode` defaults to `'buy'` (D-16).
+- **`useInterruptionBlocker(reason, active)`**, with `reason`: `overlay | drag | undo |
+  permission | consent | background`. A no-op outside its provider.
 - **`TaskFormSheet.onSaved`**: `(savedDate: LocalDate, meta: { created: boolean }) => void`.
 - **Error log codes** (operation `monetization`):
   - ads: `ads.throttled`, `ads.no_fill`, `ads.load_failed:<AdsErrorCode>`,
-    `ads.show_failed:<status>`, `ads.consent_blocked`, `ads.config_unavailable`;
-  - payment: `payment.<PaymentErrorCode>` and `payment.config_unavailable`.
+    `ads.show_failed:<code>`, `ads.internal_error`, `ads.config_unavailable`;
+  - payment: `payment.<code>`, `payment.environment_blocked`,
+    `payment.internal_error:<code>`, `payment.config_unavailable`;
+  - `monetization.store_memory_only` when MMKV is unavailable.
 
 ## Standards
 
@@ -384,7 +411,7 @@ and owned states. The build environment is chosen when the bundle is built. All 
 
 ## Slices
 
-- [ ] SL-1 Foundation: SDKs, environments, wiring, refund. Covers FR-1, FR-2, FR-3, FR-4,
+- [x] SL-1 Foundation: SDKs, environments, wiring, refund. Covers FR-1, FR-2, FR-3, FR-4,
   FR-13, FR-15 (iOS), FR-18, FR-19, FR-22, FR-23, AC-7.2, AC-7.4 and US-9 (AC-9.1, AC-9.2,
   AC-9.3).
   Verify:
@@ -400,7 +427,7 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - A debug build launches, and logcat shows test-unit substitution and zero non-test ad
     requests.
   - The merged manifest lists exactly the rn-ads permission table plus one `BILLING`.
-- [ ] SL-2 Banner and consent on the timeline. Covers SCR-1, US-2 (AC-2.1–AC-2.9,
+- [x] SL-2 Banner and consent on the timeline. Covers SCR-1, US-2 (AC-2.1–AC-2.9,
   AC-2.11), AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.7, AC-6.1, AC-6.2, AC-6.3, AC-6.5 (form
   part), AC-6.6, FR-8, FR-9, FR-10 (consent), FR-12, FR-14 (no task content), FR-20, FR-21.
   Verify:
@@ -413,12 +440,12 @@ and owned states. The build environment is chosen when the bundle is built. All 
     - drag lands under the finger;
     - the undo toast sits above the banner and works;
     - tapping and swiping up the New-task bar both work;
-    - in airplane mode, the area collapses with no gap.
+    - in airplane mode, the area collapses with no gap (moved to SL-6, see Notes).
   - `debugGeography: 'eea'` shows the consent form over an idle timeline, never over a sheet.
-  - Perf: a 5,000-task fixture keeps SC-004/SC-006 with the banner shown.
+  - Perf: a 5,000-task fixture keeps SC-004/SC-006 with the banner shown (moved to SL-6).
   - Light and dark screenshots match the `Main`, `SCR1-collapsed` and `SCR1-undo-toast`
     artboards: bottom stack order, strip, and toast clear of the ad.
-- [ ] SL-3 Buy, restore, pending, Settings section. Covers SCR-2, SCR-3 (all but the
+- [x] SL-3 Buy, restore, pending, Settings section. Covers SCR-2, SCR-3 (all but the
   Privacy options row), US-3 (AC-3.1–AC-3.8), US-4 (AC-4.1–AC-4.6), US-5 (AC-5.1–AC-5.5),
   AC-1.6 (owned state), AC-2.10, AC-7.1, FR-5 (purchase), FR-6, FR-7, FR-14 (data
   statement), FR-15 (no store), FR-16, FR-17.
@@ -429,16 +456,16 @@ and owned states. The build environment is chosen when the bundle is built. All 
     - pending across sessions (app-kill simulation), already owned, unavailable in region,
       network, double tap;
     - restore: restored, nothing found, failed;
-    - wipe keeps `no_ads`.
+    - wipe keeps `no_ads` (moved to SL-6: needs an owned purchase on a real store).
   - Restore from Settings opens the sheet in `restore` mode, and each outcome shows there
     (D-16).
   - The `Notice` extraction leaves `TaskFormSheet`'s reminder warning unchanged; its
     existing tests stay green (D-17).
   - Debug build on device: Buy shows the "disabled in this build" message, and
-    `blockedOperations` is recorded.
+    `blockedOperations` is recorded (moved to SL-6: needs a device with the Play Store).
   - Three languages × light, dark and auto are screenshot-checked against the eight `SCR2-*`
-    and five `SCR3-*` artboards.
-- [ ] SL-4 Interstitial every 3 new items. Covers US-8 (AC-8.1–AC-8.9), AC-1.5, FR-5
+    and five `SCR3-*` artboards (partly done, rest moved to SL-6; see Notes).
+- [x] SL-4 Interstitial every 3 new items. Covers US-8 (AC-8.1–AC-8.9), AC-1.5, FR-5
   (counter), FR-10 (interstitial), FR-11.
   Verify:
   - Domain tests for the counter and gate.
@@ -460,7 +487,8 @@ and owned states. The build environment is chosen when the bundle is built. All 
     the purchase is not owned; withdrawing consent blocks the next load.
   - On device with `debugGeography: 'eea'`: the Settings entry reopens Google's form.
 - [ ] SL-6 Release readiness (needs the Play Console and AdMob setup). Covers AC-7.3, FR-24,
-  FR-21 (startup and size), FR-20 (final sweep), and AC-4.1 on a device.
+  FR-21 (startup, size and the 5,000-task perf check), FR-20 (final sweep), and on a device
+  AC-4.1, AC-4.5, AC-4.6, AC-7.1 and AC-2.8 (offline).
   Verify:
   - A release-configured `-Environment test` AAB on a Play testing track; a licence tester
     buys without a charge, the payment adapter is confirmed against `react-native-iap`
@@ -470,15 +498,133 @@ and owned states. The build environment is chosen when the bundle is built. All 
     AAB size delta is recorded.
   - Every FR-24 gate is ticked, with evidence of zero production transactions from
     development and test builds.
+  - Moved here from SL-2 and SL-3:
+    - a 5,000-task fixture keeps SC-004/SC-006 with the banner shown;
+    - offline collapse on a bundled release build;
+    - a debug build's Buy blocked on a Play Store device (AC-7.1);
+    - an owner wipes data and stays ad-free (AC-4.5);
+    - the remaining language × theme × auto screenshots of SCR-2 and SCR-3.
 
 ## Verification
 
 - Fast: `npx tsc --noEmit` · `npm run lint` · `npm test -- <touched paths>`
 - Full: `npx tsc --noEmit` · `npm run lint` · `npm test` · `npm run check:native` ·
   `npm run i18n:sync` (no diff) · `node scripts/check-release-config.mjs --env <env>`
-- Evidence:
+- Evidence (SL-1 to SL-4; "device" means the Pixel 3a API 36 emulator, debug build, with
+  the payment SDK's fake store as a temporary harness, since the image has no Play Store):
+  - AC-1.1 — `wiring.test` "disables ads for an owner from the first snapshot" ✓
+  - AC-1.2 — `sdkIntegration.test` "sends zero provider calls while the purchase is
+    unknown"; `BannerSlot.test` collapsed while undecided ✓
+  - AC-1.3 — `wiring.test` owner snapshot and latch ✓
+  - AC-1.4 — device: the banner appears once, animated, after not-owned resolves ✓
+  - AC-1.5 — `interstitial.test` "counts for an owner but never shows them one" ✓
+  - AC-1.6 — `RemoveAdsSection.test` owned state ✓ (the no-Privacy-options part waits on
+    SL-5)
+  - AC-1.7 — `wiring.test` owner from the cached snapshot ✓ (offline device check in SL-6)
+  - AC-2.1 — device screenshot (strip + banner under the New-task bar); `BannerSlot.test`
+    opens when ready ✓
+  - AC-2.2 — device: 10 day swipes, banner kept, 0 new `load_started`; `BannerSlot.test`
+    one mount over 10 re-renders ✓
+  - AC-2.3 — device: landscape keeps the banner, no throttle ✓
+  - AC-2.4 — device: day swipe with the banner shown ✓
+  - AC-2.5 — device: drag 16:00 → 17:30 lands under the finger ✓
+  - AC-2.6 — device: undo toast above the bar, clear of the ad; UNDO restores ✓
+  - AC-2.7 — device: tap and swipe-up on the New-task bar open the form ✓
+  - AC-2.8 — `BannerSlot.test` collapsed for idle, loading, undecided, throttled, failed,
+    unavailable ✓ (offline device check in SL-6)
+  - AC-2.9 — `BannerSlot.test` inset follows the slot; device: animated appearance ✓
+  - AC-2.10 — `BannerSlot.test` "opens the Remove-ads sheet from its link" ✓
+  - AC-2.11 — device: dark and light screenshots ✓
+  - AC-3.1 — `purchasing.test` store fields untouched; `useRemoveAdsFlow.test` ready ✓
+  - AC-3.2 — `useRemoveAdsFlow.test` success; `sdkIntegration.test` "turns ads off in the
+    session once the purchase succeeds" ✓
+  - AC-3.3 — `useRemoveAdsFlow.test` cancel says nothing ✓
+  - AC-3.4 — `useRemoveAdsFlow.test` already owned → restored ✓
+  - AC-3.5 — `purchasing.test` + `useRemoveAdsFlow.test` unavailable; device (fake store,
+    no product) ✓
+  - AC-3.6 — `useRemoveAdsFlow.test` error → Retry; `purchasing.test` error mapping ✓
+  - AC-3.7 — `useRemoveAdsFlow.test` double tap → one flow ✓
+  - AC-3.8 — device: Restore offered in the sheet ✓
+  - AC-4.1 — pending SL-6 (reinstall with a Play account)
+  - AC-4.2 — `useRemoveAdsFlow.test` restore mode → restored ✓
+  - AC-4.3 — `useRemoveAdsFlow.test` nothing found (also where not sold); device ✓
+  - AC-4.4 — `useRemoveAdsFlow.test` restore failed → error ✓
+  - AC-4.5 — pending SL-6 (`destroyAll` only deletes the local-db scope; the payment
+    snapshot is MMKV `chipmobilesdk.payment`)
+  - AC-4.6 — pending SL-6 (foreground sync on a real store)
+  - AC-5.1 — `useRemoveAdsFlow.test` pending recorded and shown ✓
+  - AC-5.2 — `useRemoveAdsFlow.test` opens in pending; `RemoveAdsSection.test` tag;
+    `monetization.test` `isPendingShown` ✓ (local marker, D-18)
+  - AC-5.3 — `useRemoveAdsFlow.test` "removes ads in place when the pending payment
+    settles" ✓
+  - AC-5.4 — `wiring.test` grant applies without restart; marker cleared once owned ✓
+  - AC-5.5 — `monetization.test` marker TTL ✓ (approximation, D-18)
+  - AC-6.1 — device, EEA debug geography: form over the idle timeline, 0 requests before
+    the answer ✓
+  - AC-6.2 — device: form waited while the New-task sheet was open, then appeared ✓
+  - AC-6.3 — device: declined → app works, allowed ad served ✓
+  - AC-6.4 — blocked on rn-ads 0.4.0 (SL-5)
+  - AC-6.5 — consent runs only once ads are wanted (`MonetizationProvider`), never for an
+    owner ✓ (entry part SL-5)
+  - AC-6.6 — `ensureAdsReady` leaves the gate closed on failure and retries next launch ✓
+    (code path; no network-failure device run)
+  - AC-7.1 — `useRemoveAdsFlow.test` dev-blocked state ✓ (Play-device check SL-6)
+  - AC-7.2 — `sdkIntegration.test` only test units; device logcat "This request is sent
+    from a test device" ✓
+  - AC-7.3 — pending SL-6
+  - AC-7.4 — `release-config-rules.test` (7 cases); CLI fails production, passes
+    test/development ✓
+  - AC-8.1 — `useInterstitial.test`; device: Ad3 visible, then the test interstitial ✓
+  - AC-8.2 — `interstitial.test` restart; device: count survived a restart (preload at 2) ✓
+  - AC-8.3 — `useTaskForm` reports `created: true` once for a new series ✓ (code path)
+  - AC-8.4 — device: 2 edits → 0 interstitial events, then 1 new task → still none ✓
+  - AC-8.5 — `useInterstitial.test` waits out the permission prompt ✓
+  - AC-8.6 — `useInterstitial.test` sheet / background cancel ✓
+  - AC-8.7 — `interstitial.test` not ready → stays due ✓
+  - AC-8.8 — device: after closing, same day with Ad3 and the banner ✓
+  - AC-8.9 — `useInterstitial.test` "never shows at launch" ✓
+  - AC-9.1, AC-9.2, AC-9.3 — `wiring.test` refund on next cold start, latch mid-session,
+    stale → held ✓
 
 ## Notes
+
+- Device discoveries, each fixed with a test or a code comment:
+  - `BannerSlot`: a flowing child of a zero-height wrapper is never laid out on the New
+    Architecture, so it was never measured and the slot never opened. The content is now
+    absolutely positioned.
+  - `BannerSlot`: in landscape, sub-pixel height noise re-ran the slide every ~100 ms. The
+    height is now rounded and changes under 1 pt are ignored.
+  - `localStore`: react-native-mmkv v4 has `createMMKV`; `new MMKV` threw and the store
+    silently fell back to memory, so the counter and pending marker were lost on restart.
+    It is fixed, and the fallback is now logged (`monetization.store_memory_only`).
+  - `interstitial`: the third save re-requested an ad that was already ready. Preload now
+    skips loading and ready placements.
+  - `Notice`: a spread shared `variants` object was invisible to the Unistyles Babel
+    plugin, so text stayed dark in dark mode. The variants are now inline per style.
+  - `useRemoveAdsFlow`: restore "nothing found" was lost where the product is not sold. The
+    unavailable state now carries the note.
+  - `InterruptionProvider`: AppState `unknown` was treated as background, which would block
+    every wait. Only `background`/`inactive` count now.
+  - `InteractionManager.runAfterInteractions` is deprecated in RN 0.86. Replaced by a named
+    600 ms settle.
+- Device-check harness: on the emulator only, `runtime.ts` used
+  `rn-payment/testing`'s fake store and logged ad events. It was removed before the full
+  checks, and no test double is imported by app code.
+- Pre-existing, outside this feature (reported, not fixed):
+  - `src/i18n/storage.ts` has the same `new MMKV` bug, so the chosen language is not
+    persisted across restarts (001 FR-058b). Seen on device: Japanese chosen, English after
+    a restart.
+  - Switching light/dark in Settings re-themes the timeline only partly (it keeps the old
+    background and loses its chevrons) until restart (001 FR-052c). Reproduced with this
+    feature's changes stashed.
+  - Editing a module imported by `App.tsx` while the app runs can trigger Fast Refresh
+    "handle is closed" or a blank reload. Dev only.
+- Choices worth a glance:
+  - `maxAdContentRating: 'PG'` — confirm against the content-rating gate (FR-24).
+  - In landscape the bottom chrome (bar + strip + banner) takes nearly half the screen; a
+    design follow-up.
+  - The dev environment uses Google's test units directly, so no substitution event fires;
+    the request is still marked as a test-device request.
 
 ## Changelog
 
@@ -487,3 +633,9 @@ and owned states. The build environment is chosen when the bundle is built. All 
   SCR-2 and SCR-3, with artboard checks. Added D-16 (restore mode, design D-8) and D-17
   (shared `Notice`). D-5 now cites design D-1. Changes updated for the strip, sheet states,
   Settings placement and data-statement rule (design D-1, D-3, D-4, D-6, D-7, D-9).
+- r3 (2026-10-11): implemented SL-1 to SL-4. Added D-18 (local pending marker, since rn-payment
+  0.1.0 exposes no pending item) and D-19 (a general `InterruptionProvider` replaces the
+  interstitial-only gate). Changes and Data & interfaces now match the files as built
+  (`session.ts`, `purchasing.ts`, `localStore.ts`, `BottomInsetProvider`). Device-only checks
+  that need a Play Store device, a release build or a perf fixture moved to SL-6. Evidence and
+  Notes filled in.

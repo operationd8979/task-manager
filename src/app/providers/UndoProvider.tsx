@@ -12,7 +12,9 @@ import React, {
 import { Toast } from '../../components/Toast';
 import { useT } from '../../i18n/useT';
 import { DataError } from '../../services/db/errors';
+import { useBottomInset } from './BottomInsetProvider';
 import { useDatabase } from './DatabaseProvider';
+import { useInterruptionBlocker } from './InterruptionProvider';
 
 /** FR-011a: the undo affordance is available for at least five seconds. */
 export const UNDO_WINDOW_MS = 5000;
@@ -122,6 +124,11 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
 
 	const value = useMemo<UndoContextValue>(() => ({ offer }), [offer]);
 
+	// An undo window is time-limited, so nothing may cover it while it is open
+	// (specs/002-ads-and-remove-ads FR-10), and it sits above the banner slot.
+	useInterruptionBlocker('undo', pending !== null);
+	const extraBottom = useBottomInset();
+
 	return (
 		<UndoContext.Provider value={value}>
 			{children}
@@ -130,6 +137,7 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
 					message={pending.message}
 					actionLabel={t('undo.action')}
 					onAction={() => settle('undo')}
+					extraBottom={extraBottom}
 				/>
 			) : null}
 		</UndoContext.Provider>

@@ -3,6 +3,7 @@ import { Gesture } from 'react-native-gesture-handler';
 import type { GestureType } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 
+import { useInterruptionBlocker } from '../../../app/providers/InterruptionProvider';
 import type { TimelineItem } from '../../../domain/timeline';
 import { minutesOf, timeFromMinutes, type LocalTime } from '../../../lib/date';
 import { haptic } from '../../../lib/haptics';
@@ -47,6 +48,8 @@ export function useTaskDrag({
 	blocks,
 }: UseTaskDragOptions): UseTaskDrag {
 	const [previewTime, setPreviewTime] = useState<LocalTime | null>(null);
+	// Nothing may cut in while a finger is mid-drag (specs/002 FR-10, AC-8.6).
+	useInterruptionBlocker('drag', previewTime !== null);
 	/** Last snap bucket, so haptics fire per step rather than per frame. */
 	const lastStep = useRef<number | null>(null);
 

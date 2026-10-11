@@ -22,6 +22,9 @@ module.exports = {
 			'@chipmobilesdk',
 			'@op-engineering',
 			'@dr.pogodin',
+			'react-native-google-mobile-ads',
+			'react-native-iap',
+			'react-native-nitro-modules',
 		].join('|') +
 		')/)',
 	],

@@ -8,6 +8,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { I18nProvider } from '@chipmobilesdk/rn-i18n';
 
 import { ErrorState } from '../components/ErrorState';
+import { RemoveAdsSheetHost } from '../features/monetization';
 import { Skeleton, SkeletonGroup } from '../components/Skeleton';
 import { i18n } from '../i18n';
 import { useT } from '../i18n/useT';
@@ -18,7 +19,10 @@ import { createTaskRepository } from '../services/db/taskRepository';
 import { applyDisplayMode } from '../theme/mode';
 import { appTheme } from '../theme/theme';
 import { RootStack } from './navigation/RootStack';
+import { BottomInsetProvider } from './providers/BottomInsetProvider';
 import { DatabaseProvider } from './providers/DatabaseProvider';
+import { InterruptionProvider } from './providers/InterruptionProvider';
+import { MonetizationProvider } from './providers/MonetizationProvider';
 import { ReminderProvider } from './providers/ReminderProvider';
 import { UndoProvider } from './providers/UndoProvider';
 
@@ -165,36 +169,51 @@ export default function App() {
 		<I18nProvider i18n={i18n}>
 			<GestureHandlerRootView style={rootStyle.fill}>
 				<SafeAreaProvider>
-					{boot.status === 'loading' ? (
-						<View style={styles.boot}>
-							<SkeletonGroup>
-								<Skeleton height={56} />
-								<Skeleton height={76} />
-								<Skeleton height={76} />
-								<Skeleton height={92} />
-							</SkeletonGroup>
-						</View>
-					) : null}
+					{/* Outside the boot branch: a wipe reboots everything below,
+              and neither a pending wait nor the banner inset may reset with it
+              (specs/002-ads-and-remove-ads plan D-1). */}
+					<InterruptionProvider>
+						<BottomInsetProvider>
+							{boot.status === 'loading' ? (
+								<View style={styles.boot}>
+									<SkeletonGroup>
+										<Skeleton height={56} />
+										<Skeleton height={76} />
+										<Skeleton height={76} />
+										<Skeleton height={92} />
+									</SkeletonGroup>
+								</View>
+							) : null}
 
-					{boot.status === 'failed' ? <BootFailed onRetry={reboot} /> : null}
+							{boot.status === 'failed' ? <BootFailed onRetry={reboot} /> : null}
 
-					{boot.status === 'ready' ? (
-						<DatabaseProvider gateway={boot.gateway}>
-							{/* Inside DatabaseProvider: it reads tasks and rules to rebuild
-                  the reminder schedule on launch and on every foreground
-                  return. */}
-							<ReminderProvider>
-								<BottomSheetModalProvider>
-									<NavigationContainer>
-										{/* Above the navigator on purpose — see UndoProvider. */}
-										<UndoProvider>
-											<RootStack />
-										</UndoProvider>
-									</NavigationContainer>
-								</BottomSheetModalProvider>
-							</ReminderProvider>
-						</DatabaseProvider>
-					) : null}
+							{boot.status === 'ready' ? (
+								<DatabaseProvider gateway={boot.gateway}>
+									{/* Inside DatabaseProvider: it reads tasks and rules to
+                      rebuild the reminder schedule on launch and on every
+                      foreground return. */}
+									<ReminderProvider>
+										{/* Needs the error log. Constructing the SDKs is
+                        synchronous and does no I/O; billing connects and ads
+                        initialize in effects, after the first frame (FR-21). */}
+										<MonetizationProvider>
+											<BottomSheetModalProvider>
+												<NavigationContainer>
+													{/* Above the navigator on purpose — see UndoProvider. */}
+													<UndoProvider>
+														<RootStack />
+														{/* Below the sheet provider, over any screen (specs/002
+                                plan D-4). */}
+														<RemoveAdsSheetHost />
+													</UndoProvider>
+												</NavigationContainer>
+											</BottomSheetModalProvider>
+										</MonetizationProvider>
+									</ReminderProvider>
+								</DatabaseProvider>
+							) : null}
+						</BottomInsetProvider>
+					</InterruptionProvider>
 				</SafeAreaProvider>
 			</GestureHandlerRootView>
 		</I18nProvider>

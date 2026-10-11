@@ -13,6 +13,12 @@ param(
     [ValidateSet("apk", "aab")]
     [string]$Format = "apk",
 
+    # Which ad units and payment mode the bundle carries
+    # (specs/002-ads-and-remove-ads plan D-2/D-3). Release builds default to
+    # "test", so a production build is always an explicit choice.
+    [ValidateSet("development", "test", "production")]
+    [string]$Environment,
+
     [ValidateNotNullOrEmpty()]
     [string]$OutputDirectory = ".artifacts\android",
 
@@ -325,11 +331,30 @@ foreach ($argument in $commonGradleArguments) {
     $assembleInvocationArguments.Add($argument)
 }
 
+if ([string]::IsNullOrWhiteSpace($Environment)) {
+    $Environment = if ($Variant -eq "debug") { "development" } else { "test" }
+}
+
 $taskSummary = if ($SkipClean) { $assembleTask } else { "clean, $assembleTask" }
-if (-not $PSCmdlet.ShouldProcess($resolvedProjectRoot, "Run Gradle tasks: $taskSummary")) {
+if (-not $PSCmdlet.ShouldProcess($resolvedProjectRoot, "Run Gradle tasks ($Environment): $taskSummary")) {
     return
 }
 
+# Refuse before spending a build on it: production units, app id and upload key
+# must all be real, and no other environment may carry a real ad unit (AC-7.4).
+Push-Location $resolvedProjectRoot
+try {
+    & node scripts/check-release-config.mjs --env $Environment
+    if ($LASTEXITCODE -ne 0) {
+        throw "Release configuration check failed for environment '$Environment'"
+    }
+}
+finally {
+    Pop-Location
+}
+
+$previousAppEnv = $env:APP_ENV
+$env:APP_ENV = $Environment
 $pushedLocation = $false
 try {
     Push-Location $androidDir
@@ -359,6 +384,7 @@ finally {
     if ($pushedLocation) {
         Pop-Location
     }
+    $env:APP_ENV = $previousAppEnv
 }
 
 if ($Format -eq "aab") {

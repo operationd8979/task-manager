@@ -72,6 +72,27 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+/**
+ * The Play upload key, read from outside the repository: ~/.gradle/gradle.properties
+ * (or -P on the command line) first, then the environment. Never committed
+ * (docs/standards.md Security; specs/002-ads-and-remove-ads plan D-14).
+ */
+def uploadSetting = { String name ->
+    def value = project.findProperty(name) ?: System.getenv(name)
+    return value ? value.toString() : null
+}
+def uploadStoreFile = uploadSetting('TM_UPLOAD_STORE_FILE')
+def hasUploadKey = uploadStoreFile != null
+
+// A production build signed with the debug key cannot be uploaded and must not
+// be produced by accident. Development and test builds may still fall back.
+if (System.getenv('APP_ENV') == 'production' && !hasUploadKey) {
+    throw new GradleException(
+        'APP_ENV=production needs the Play upload key. Set TM_UPLOAD_STORE_FILE, ' +
+        'TM_UPLOAD_STORE_PASSWORD, TM_UPLOAD_KEY_ALIAS and TM_UPLOAD_KEY_PASSWORD ' +
+        'in ~/.gradle/gradle.properties or the environment.')
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -92,15 +113,23 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (hasUploadKey) {
+            release {
+                storeFile file(uploadStoreFile)
+                storePassword uploadSetting('TM_UPLOAD_STORE_PASSWORD')
+                keyAlias uploadSetting('TM_UPLOAD_KEY_ALIAS')
+                keyPassword uploadSetting('TM_UPLOAD_KEY_PASSWORD')
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // The upload key when configured; the debug key only for local
+            // release-mode checks, which the guard above keeps out of production.
+            signingConfig hasUploadKey ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }

@@ -11,4 +11,11 @@
     suppresses real ones.
   -->
   <exclude domain="file" path="mmkv/chipmobilesdk.notification" />
+  <!--
+    The payment SDK's entitlement snapshot is rebuilt from the store account on
+    first sync, so restoring it would only risk a stale or foreign entitlement.
+    The interstitial counter is ours and is equally cheap to lose.
+  -->
+  <exclude domain="file" path="mmkv/chipmobilesdk.payment" />
+  <exclude domain="file" path="mmkv/taskmanager.monetization" />
 </full-backup-content>

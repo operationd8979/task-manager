@@ -5,6 +5,11 @@
 		"move": "Move",
 		"title": "Actions"
 	},
+	"ads": {
+		"label": "AD",
+		"remove": "REMOVE ADS",
+		"removeA11y": "Remove ads. Opens the page to buy ad removal"
+	},
 	"calendar": {
 		"backToToday": "BACK TO TODAY",
 		"busyFailed": "Couldn't count the busy days",
@@ -135,6 +140,36 @@
 		"offsetShort": "−{{minutes}}′",
 		"onTime": "on time"
 	},
+	"removeAds": {
+		"buy": "BUY",
+		"devBlockedBody": "Only a release build can create a real transaction. Nothing has been charged.",
+		"devBlockedLabel": "DEVELOPMENT BUILD",
+		"devBlockedTitle": "This build can't make purchases.",
+		"done": "DONE",
+		"errorBody": "Check your connection and try again. Your tasks and reminders are not affected.",
+		"errorTitle": "Couldn't reach the store",
+		"footnote": "Paid through Google Play.",
+		"loading": "Getting the price from the store…",
+		"nothingFoundBody": "The store account on this device has never bought ad removal. If you bought it with another account, sign in to that account in the store and try again.",
+		"nothingFoundLabel": "NO PURCHASE FOUND",
+		"pendingBody": "Ads turn off by themselves once the payment completes, even on a later launch. You don't need to buy again.",
+		"pendingLabel": "PAYMENT PENDING",
+		"pendingTitle": "The store hasn't confirmed your payment yet.",
+		"pitch": "Pay once, keep it forever. After a reinstall or on a new device, restore it with the same store account.",
+		"priceLabel": "PRICE",
+		"restore": "RESTORE PURCHASE",
+		"restoredBody": "Ads are off on this device.",
+		"restoredTitle": "Purchase restored",
+		"restoreFailedTitle": "Couldn't restore your purchase",
+		"retry": "TRY AGAIN",
+		"successBody": "Thank you. Ads are off — no restart needed.",
+		"successLabel": "PURCHASED",
+		"successNote": "On a new device or after a reinstall, the purchase comes back with the same store account.",
+		"successTitle": "Ads removed",
+		"title": "Remove ads",
+		"unavailableBody": "Ad removal isn't available in the store for your region yet. The app works as usual. If you bought it elsewhere, you can restore it.",
+		"unavailableTitle": "Not sold where you are"
+	},
 	"repeat": {
 		"byLastDay": "On the last day",
 		"byMonthDay": "By day of month",
@@ -205,12 +240,20 @@
 		"wholeSeries": "THE WHOLE SERIES"
 	},
 	"settings": {
+		"ads": "ADS",
+		"adsChecking": "Checking your purchase with the store…",
+		"adsOwned": "Ads removed",
+		"adsOwnedHint": "Thank you for supporting the app.",
+		"adsPending": "PAYMENT PENDING",
+		"adsUnavailableBody": "Buying or restoring ad removal needs Google Play services. Everything else works as usual.",
+		"adsUnavailableTitle": "This device can't make in-app purchases.",
 		"back": "Back",
 		"countdown": "COUNTDOWN",
 		"countdownBefore": "{{minutes}} min",
 		"countdownHint": "Applies to every task, including ones with no reminder. From this point the task row shows a countdown ticking every second. It changes nothing about notifications.",
 		"countdownOffset": "Start the countdown before",
 		"data": "DATA",
+		"dataAds": "Ads are provided by Google and use this device's advertising ID. Task names and notes are never sent.",
 		"dataOnDevice": "Your data is only on this device. Uninstalling the app loses it.",
 		"destroyAll": "DELETE ALL DATA",
 		"destroyBody": {
@@ -240,6 +283,9 @@
 		"notGranted": "⚠ Not granted",
 		"notificationPermission": "Permission to show notifications",
 		"reminders": "REMINDERS",
+		"removeAds": "Remove ads",
+		"removeAdsHint": "Pay once, keep it forever.",
+		"restore": "Restore purchase",
 		"saveFailed": "Couldn't save that choice",
 		"sunday": "Sunday"
 	},

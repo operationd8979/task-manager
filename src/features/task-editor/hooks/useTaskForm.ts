@@ -62,9 +62,11 @@ export interface UseTaskFormOptions {
 	/**
 	 * Reports the date the record landed on, not the record itself: saving may
 	 * produce a task or a recurring rule, and the screen only needs to know
-	 * whether to follow it to another day (design/ia §5 F-2).
+	 * whether to follow it to another day (design/ia §5 F-2). `created` is true
+	 * for a new task or a new series — the one thing the full-screen ad counts
+	 * (specs/002-ads-and-remove-ads FR-11).
 	 */
-	onSaved: (savedDate: LocalDate) => void;
+	onSaved: (savedDate: LocalDate, meta: { created: boolean }) => void;
 }
 
 export function useTaskForm({
@@ -247,7 +249,7 @@ export function useTaskForm({
 				setSave({ status: 'idle' });
 				// The day being viewed, NOT the series start date: the user is looking
 				// at one session and expects to still be looking at it afterwards.
-				onSaved(viewingDate);
+				onSaved(viewingDate, { created: false });
 				return;
 			}
 
@@ -270,7 +272,8 @@ export function useTaskForm({
 					reminderOffsetMinutes: draft.reminderOffsetMinutes,
 				});
 				setSave({ status: 'idle' });
-				onSaved(values.recurrence.startDate);
+				// One series counts once; its generated sessions never do (AC-8.3).
+				onSaved(values.recurrence.startDate, { created: true });
 				return;
 			}
 
@@ -279,7 +282,7 @@ export function useTaskForm({
 					? await repository.create(draft)
 					: await repository.update(task.id, draft);
 			setSave({ status: 'idle' });
-			onSaved(saved.taskDate);
+			onSaved(saved.taskDate, { created: task === undefined });
 		} catch (error) {
 			// Entered values are kept untouched — losing them is the thing that
 			// makes a save failure unforgivable (Delivery Baselines).

@@ -16,6 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StyleSheet } from 'react-native-unistyles';
 
 import { useDatabase } from '../../../app/providers/DatabaseProvider';
+import { useInterruptionBlocker } from '../../../app/providers/InterruptionProvider';
 import { useReminders } from '../../../app/providers/ReminderProvider';
 import { useUndo } from '../../../app/providers/UndoProvider';
 import { ErrorState } from '../../../components/ErrorState';
@@ -48,6 +49,7 @@ import {
 	type ApplyScope,
 	type RowAction,
 } from '../../task-editor';
+import { BannerSlot, useInterstitial } from '../../monetization';
 import { DatePickerSheet } from '../components/DatePickerSheet';
 import { DayBar } from '../components/DayBar';
 import { TaskRow } from '../components/TaskRow';
@@ -130,7 +132,19 @@ export function TimelineScreen() {
 	/** A series the user has asked to end, waiting on the warning. */
 	const [pendingDelete, setPendingDelete] = useState<RecurringRule | null>(null);
 
+	// Any sheet open over the timeline means the user is mid-task: neither the
+	// consent form nor a full-screen ad may cut in (specs/002 FR-10, AC-6.2).
+	useInterruptionBlocker(
+		'overlay',
+		overlay.kind !== 'none' || pendingScope !== null || pendingDelete !== null,
+	);
+
 	const { state, reload, setStatus } = useTimelineDay(date);
+	const interstitial = useInterstitial({
+		date,
+		state,
+		ready: state.status === 'ready' || state.status === 'empty',
+	});
 
 	/**
 	 * Which way the day last moved, so the new day enters from the side it came
@@ -663,7 +677,7 @@ export function TimelineScreen() {
 	);
 
 	const handleSaved = useCallback(
-		(savedDate: string) => {
+		(savedDate: string, meta: { created: boolean }) => {
 			closeOverlay();
 			// Reminders are derived, so every write only has to ask for a re-derive.
 			reminders.sync();
@@ -674,8 +688,13 @@ export function TimelineScreen() {
 			} else {
 				reload();
 			}
+			// Counted after the reload is asked for, so the ad can wait for the list
+			// that shows the new item (specs/002 AC-8.1).
+			if (meta.created) {
+				interstitial.noteNewItemSaved(savedDate);
+			}
 		},
-		[closeOverlay, date, reload, reminders, goTo],
+		[closeOverlay, date, reload, reminders, goTo, interstitial],
 	);
 
 	const openSettings = useCallback(
@@ -800,7 +819,8 @@ export function TimelineScreen() {
 			</GestureDetector>
 
 			{/* The bar is the swipe target as well as the button — see
-          useCreateSwipe for why the gesture stops at this edge. */}
+          useCreateSwipe for why the gesture stops at this edge. It covers the
+          button only: the banner slot below must never start a create swipe. */}
 			<GestureDetector gesture={createSwipe}>
 				<View style={styles.actionBar}>
 					<Pressable
@@ -811,11 +831,12 @@ export function TimelineScreen() {
 						style={styles.action}>
 						<Text style={styles.actionLabel}>{t('timeline.newTask')}</Text>
 					</Pressable>
-					{/* Android draws its back/gesture bar over the app, so the label has
-              to be lifted clear of it while the fill stays edge-to-edge. */}
-					<View style={{ height: insets.bottom }} />
 				</View>
 			</GestureDetector>
+			{/* Banner, then the inset Android draws its back/gesture bar over — the
+          slot owns that inset so the bar's fill can run on to the edge while
+          collapsed (specs/002 SCR-1, design D-1). */}
+			<BannerSlot bottomInset={insets.bottom} />
 
 			{overlay.kind === 'form' ? (
 				<TaskFormSheet

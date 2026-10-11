@@ -6,6 +6,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { useReminders } from '../../../app/providers/ReminderProvider';
 import { Chip, ChipRow } from '../../../components/Chip';
 import { ErrorState } from '../../../components/ErrorState';
+import { Notice } from '../../../components/Notice';
 import { Sheet } from '../../../components/Sheet';
 import { Text } from '../../../components/Text';
 import {
@@ -42,7 +43,7 @@ export interface TaskFormSheetProps {
 	/** The series being edited. Mutually exclusive with `task`. */
 	rule?: RecurringRule;
 	viewingDate: LocalDate;
-	onSaved: (savedDate: LocalDate) => void;
+	onSaved: (savedDate: LocalDate, meta: { created: boolean }) => void;
 	onClose: () => void;
 }
 
@@ -375,24 +376,18 @@ export function TaskFormSheet({
 						{/* A block that stays put, not a toast that disappears
                 (design/ux-ui-spec.md §4). */}
 						{mayBeLate ? (
-							<View style={styles.reminderWarning}>
-								<Text style={styles.reminderWarningText}>
-									{t('permission.inexactBody')}
-								</Text>
-								<Pressable
-									accessibilityRole="button"
-									accessibilityLabel={t('permission.grant')}
-									onPress={() => {
+							<Notice
+								tone="warning"
+								body={t('permission.inexactBody')}
+								action={{
+									label: t('permission.grant'),
+									onPress: () => {
 										reminders
 											.openSettings('exact-alarm')
 											.catch(() => undefined);
-									}}
-									style={styles.reminderWarningAction}>
-									<Text style={styles.reminderWarningLink}>
-										{t('permission.grant')}
-									</Text>
-								</Pressable>
-							</View>
+									},
+								}}
+							/>
 						) : null}
 
 						{/* FR-038: the app will not schedule a moment that has passed, and
@@ -572,25 +567,9 @@ const styles = StyleSheet.create(raw => {
 			// fails contrast is not a hint (Principle V).
 			color: theme.color.disabled,
 		},
-		reminderWarning: {
-			borderWidth: 1,
-			borderColor: theme.appColor.accentInk,
-			backgroundColor: theme.appColor.accentSoft,
-			padding: theme.spacing.sm,
-			gap: theme.spacing.xs,
-		},
 		reminderWarningText: {
 			...theme.typography.label,
 			color: theme.appColor.accentInk,
-		},
-		reminderWarningAction: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-		},
-		reminderWarningLink: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-			fontWeight: '800',
 		},
 		repeatRow: {
 			minHeight: TAP_TARGET_MIN,
