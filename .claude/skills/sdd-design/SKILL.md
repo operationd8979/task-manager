@@ -1,6 +1,6 @@
 ---
 name: sdd-design
-description: "Optional UI design step: draws the feature's screens and states on a Claude Design canvas using the project's design system, iterates on canvas comments and edits, and records a screen map for implementation. Skip it freely — /sdd-implement does not require it."
+description: "Optional UI design step after /sdd-spec (and /sdd-clarify), before /sdd-plan: draws the feature's screens and states on a Claude Design canvas using the project's design system, iterates on canvas comments and edits, and records a screen map the plan builds from. Skip it freely — /sdd-plan does not require it."
 argument-hint: "[feature id] [feedback | claude.ai canvas URL to import]"
 ---
 
@@ -10,12 +10,15 @@ argument-hint: "[feature id] [feedback | claude.ai canvas URL to import]"
 $ARGUMENTS
 ```
 
-Read `.claude/sdd/conventions.md`, resolve the feature, and read its `spec.md`, `plan.md` if
-present (screens and components it already implies), and the `## Design` section of
-`docs/standards.md` (targets, theming source, design system, required states).
+Read `.claude/sdd/conventions.md`, resolve the feature, and read its `spec.md` and the
+`## Design` section of `docs/standards.md` (targets, theming source, design system,
+required states). The design follows the spec, not the plan. If a `plan.md` already exists
+(design added late), read only its decisions, so you do not contradict one silently; the
+plan reconciles to the design afterwards.
 
-The feature has no user interface → say so and stop. Mode: no `design.md` → **Create** (or
-**Import** if the argument is a claude.ai canvas link); `design.md` exists → **Revise**.
+The feature has no user interface → say so, suggest `/sdd-plan`, and stop. Mode: no
+`design.md` → **Create** (or **Import** if the argument is a claude.ai canvas link);
+`design.md` exists → **Revise**.
 
 ## Design system — never hard-coded here
 
@@ -28,8 +31,9 @@ The feature has no user interface → say so and stop. Mode: no `design.md` → 
 
 ## Create
 
-1. **Screen inventory first.** Derive screens from the stories (and the plan if present).
-   Each `SCR-n` serves at least one US/AC; draw no screen nobody asked for.
+1. **Screen inventory first.** Derive screens from the stories and ACs. Look at the app's
+   existing screens only to stay consistent with them. Each `SCR-n` serves at least one
+   US/AC; draw no screen nobody asked for.
 2. **Canvas.** Call the Artifact tool with `action: "quickstart"` and `intent: "design"`.
    Create the canvas from the Design type it returns, titled `<NNN> <Feature name>`, and
    follow the type's instructions for the file format — they are authoritative. One canvas
@@ -42,12 +46,18 @@ The feature has no user interface → say so and stop. Mode: no `design.md` → 
      covers them. Draw separate variants only where tokens cannot.
    - Use real copy from the spec; unknown data becomes `[PLACEHOLDER]`, never lorem ipsum.
    - Don't render or screenshot to check your work unless the user asks.
-4. **Record** `design.md` from `template.md` (next to this file). Name each screen's
-   artboard files so implementation can fetch them.
+4. **Record** `design.md` from `template.md` (next to this file):
+   - Name each screen's artboard files so implementation can fetch them.
+   - Fill *For the plan* with what drawing revealed and the plan must turn into changes:
+     - existing components reused, and new shared ones;
+     - tokens the design system lacks;
+     - the data each screen shows;
+     - platform capabilities an interaction needs.
 5. **Conflicts** with the spec or standards: never edit the spec. Record them as `D-n` with a
    recommendation and surface them in the report — the user decides through `/sdd-spec`.
 6. **Report**: canvas link, screens × states drawn, stories with no screen, conflicts.
-   Invite comments or direct edits on the canvas, then a re-run of `/sdd-design`.
+   Invite comments or direct edits on the canvas, then a re-run of `/sdd-design`. Once the
+   design is settled, the next step is `/sdd-plan`.
 
 ## Import
 
@@ -70,5 +80,5 @@ guessing. Write `design.md` and report gaps in both directions.
 ## Without the Artifact tool
 
 The session is not signed in to claude.ai, or the tool is unavailable → write `design.md`
-with a text description per screen: layout regions, primary action, states. Say that no
-canvas was made.
+with a text description per screen: layout regions, primary action, states. Fill *For the
+plan* as in Create. Say that no canvas was made.

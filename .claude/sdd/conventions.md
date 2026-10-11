@@ -6,19 +6,24 @@ OS or project type. The only project-specific input is `docs/standards.md`.
 ## Flow
 
 ```
-/sdd-spec → /sdd-plan → /sdd-design (UI only, optional) → /sdd-implement
+/sdd-spec → /sdd-clarify (optional) → /sdd-design (UI only, optional) → /sdd-plan → /sdd-implement
 ```
 
-Every step can be re-run on an existing feature to refine it. Later steps detect what changed
-upstream and reconcile only that.
+- **What before how.** Clarify and design settle *what* the user gets; the plan decides
+  *how* to build it, so it reads the spec and, when present, the design.
+- **Optional means optional.** Skipping clarify or design never blocks the next step. Either
+  can also run later — after a plan exists, or between implementation slices. Downstream
+  docs then reconcile through their recorded revs (see *Revisions*).
+- Every step can be re-run on an existing feature to refine it. Later steps detect what
+  changed upstream and reconcile only that.
 
 ## Files
 
 ```
 specs/<NNN>-<slug>/
-  spec.md     what and why                 /sdd-spec      required
-  plan.md     how, slices, progress        /sdd-plan      required before implementing
-  design.md   UI design record             /sdd-design    optional
+  spec.md     what and why                 /sdd-spec, /sdd-clarify   required
+  design.md   UI design record             /sdd-design               optional
+  plan.md     how, slices, progress        /sdd-plan                 required before implementing
 docs/standards.md   project rules: principles, verification commands, design targets
 ```
 
@@ -39,27 +44,33 @@ docs/standards.md   project rules: principles, verification commands, design tar
 ## Identifiers
 
 `US-n` story · `AC-n.m` acceptance criterion of US-n · `FR-n` requirement · `D-n` decision ·
-`SL-n` plan slice · `SCR-n` screen.
+`SCR-n` screen · `SL-n` plan slice.
 
-IDs are stable: never renumber or reuse. Retire one as `~~FR-3~~ (r4: <reason>)`.
+- IDs are stable: never renumber or reuse. Retire one as `~~FR-3~~ (r4: <reason>)`.
+- `D-n` is numbered per doc. Citing another doc's decision, name the doc: `design D-2`,
+  `plan D-5`.
 
 ## Revisions
 
-- Frontmatter: spec `status`, `rev` · plan `rev`, `spec_rev`, `design_rev` · design `rev`,
-  `spec_rev`.
+- Frontmatter: spec `status`, `rev` · design `rev`, `spec_rev` · plan `rev`, `spec_rev`,
+  `design_rev` (`none` when there is no design).
 - An edit that changes meaning bumps the doc's `rev` and appends one line to its
   `## Changelog`: `- r3 (YYYY-MM-DD): <what changed, which IDs>`. Wording fixes do not.
+  One run bumps a doc at most once.
 - A doc is **stale** when a recorded `*_rev` is lower than the source doc's `rev`. Read the
   source's changelog entries since that rev, reconcile only the affected parts, then update
   the recorded rev. Never regenerate a whole doc to absorb a change.
+- A plan with `design_rev: none` becomes stale when a `design.md` appears.
 - Spec `status`: `draft` → `planned` (plan written) → `building` → `done` (verified).
-  A meaningful spec edit on a `done` feature reopens it as `planned`.
+  Clarify and design leave the status alone. A meaningful spec edit on a `done` feature
+  reopens it as `planned`.
 
 ## Asking
 
 Ask only when the answer changes scope, behaviour, data or security and no safe default
-exists — at most 3 questions per run, via AskUserQuestion, recommended option first. Decide
-everything else and record it (`Assumptions` in the spec, `D-n` in plan or design).
+exists — via AskUserQuestion, recommended option first. At most 3 questions per run; the
+exception is `/sdd-clarify`, whose job is asking (at most 5). Decide everything else and
+record it (`Assumptions` in the spec, `D-n` in design or plan).
 
 ## Trust
 

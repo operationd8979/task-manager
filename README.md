@@ -12,7 +12,7 @@ out means the boilerplate never carries a stale React Native version.
 |---|---|---|
 | Engineering standards | `docs/standards.md` | Binding rules every feature must satisfy, plus verification commands and design targets. The only project-specific part of the workflow. |
 | Agent routing | `AGENTS.md` | How an agent navigates this repo and loads context. Deliberately small — it is always in context. |
-| Spec-driven workflow | `.claude/skills/sdd-*`, `.claude/sdd/` | `/sdd-spec` → `/sdd-plan` → `/sdd-design` → `/sdd-implement`, plus `/sdd-design-build-system`. Generic — no language, OS or project type baked in. |
+| Spec-driven workflow | `.claude/skills/sdd-*`, `.claude/sdd/` | `/sdd-spec` → `/sdd-clarify` → `/sdd-design` → `/sdd-plan` → `/sdd-implement` (clarify and design optional), plus `/sdd-design-build-system`. Generic — no language, OS or project type baked in. |
 | Package knowledge | `.claude/skills/sdk-*/` | Skills shipped by installed SDK packages, synced on `npm install` and versioned with each package. Generated — never edited by hand. |
 
 Nothing is pinned to a dependency version. Agents derive the stack from `package.json`
@@ -70,8 +70,11 @@ theme changes.
 **6. Start the first feature.**
 
 ```
-/sdd-spec <what to build>  →  /sdd-plan  →  /sdd-design (optional)  →  /sdd-implement
+/sdd-spec <what to build>  →  /sdd-clarify (optional)  →  /sdd-design (optional)  →  /sdd-plan  →  /sdd-implement
 ```
+
+Clarify and design settle *what* the user gets before the plan decides *how* to build it.
+Skip either freely; each can also be run later, and the plan reconciles to it.
 
 ## Commands
 
@@ -86,8 +89,9 @@ cat .claude/skills/sdk-manifest.json     # which skills, which versions
 | Command | Writes | Re-run to |
 |---|---|---|
 | `/sdd-spec <description>` | `specs/NNN-slug/spec.md` — stories, acceptance criteria, requirements | refine scope with feedback |
+| `/sdd-clarify [focus]` | answers to up to 5 targeted questions, written into `spec.md` (optional) | resolve what is still outstanding |
+| `/sdd-design` | Claude Design canvas + `design.md` screen map and notes for the plan (UI only, optional) | apply canvas comments and edits |
 | `/sdd-plan` | `plan.md` — approach, changes, decisions, 2–7 verifiable slices | absorb spec/design changes |
-| `/sdd-design` | Claude Design canvas + `design.md` screen map (UI only, optional) | apply canvas comments and edits |
 | `/sdd-implement [SL-n \| fix]` | code; ticks slices; AC evidence in `plan.md` | continue, or fix and refine |
 | `/sdd-design-build-system [source]` | Claude Design system; its link in `docs/standards.md` | re-sync after theme changes |
 
@@ -99,7 +103,7 @@ therefore detected downstream and reconciled in place, not regenerated. Shared r
 
 The design step needs a Claude Code session signed in to claude.ai, because canvases are
 Claude Design artifacts. Without one, `/sdd-design` writes a text-only `design.md`. Skipping
-design never blocks implementation.
+clarify or design never blocks planning.
 
 ### Reusing the workflow in another repository
 

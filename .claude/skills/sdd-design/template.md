@@ -18,6 +18,16 @@ spec_rev: 1
 
 - US-1: SCR-1 → SCR-2 (<n> interactions)
 
+## For the plan
+
+<What drawing revealed that /sdd-plan must turn into changes. Delete a line that has
+nothing to say.>
+
+- Components: <existing ones reused (name) · new shared ones (name, used by SCR-n)>
+- Tokens missing: <role the design system has no token for, and where it is used>
+- Data per screen: <SCR-n shows field, field, …>
+- Platform needs: <interaction needing a capability: gesture, sheet, permission, …>
+
 ## Decisions & conflicts
 
 - D-1 <decision, or conflict with an ID> — <recommendation>

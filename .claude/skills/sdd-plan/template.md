@@ -10,6 +10,8 @@ design_rev: none
 <Facts derived from the repo that shape this feature: relevant stack, existing code and
 patterns to reuse (paths), constraints.>
 
+- **Design**: <design.md r<n> — SCR-1…SCR-n, canvas link | none>
+
 ## Approach
 
 <How it works, 3–10 lines.>
@@ -30,7 +32,7 @@ patterns to reuse (paths), constraints.>
 
 ## Slices
 
-- [ ] SL-1 <goal> — covers US-1, AC-1.1, AC-1.2 — verify: <test | command | manual step → expected>
+- [ ] SL-1 <goal> — covers US-1, AC-1.1, AC-1.2, SCR-1 — verify: <test | command | manual step → expected>
 - [ ] SL-2 <goal> — covers … — verify: …
 
 ## Verification
@@ -45,4 +47,4 @@ patterns to reuse (paths), constraints.>
 
 ## Changelog
 
-- r1 (<YYYY-MM-DD>): created from spec r1.
+- r1 (<YYYY-MM-DD>): created from spec r1, design r1 | no design.

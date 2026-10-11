@@ -16,8 +16,11 @@ document), `spec.md`, `design.md` if present, and `docs/standards.md`.
 ## Preflight
 
 1. No `plan.md` → stop and suggest `/sdd-plan`.
-2. Plan stale (`spec_rev` or `design_rev` behind) → reconcile the plan first, using the
-   `/sdd-plan` refine rules. Tell the user what moved in 1–3 lines. Ask only if scope changes.
+2. Plan stale (`spec_rev` or `design_rev` behind, or `design_rev: none` while a
+   `design.md` now exists) → reconcile the plan first, using the `/sdd-plan` refine rules.
+   Tell the user what moved in 1–3 lines. Ask only if scope changes.
+   Design stale against the spec (its `spec_rev` behind) → say so. The spec wins where they
+   disagree; suggest `/sdd-design` to catch the design up.
 3. Scope of this run:
    - `SL-n` → that slice.
    - A described change or fix → handle it inside the spec. If it changes behaviour, update
