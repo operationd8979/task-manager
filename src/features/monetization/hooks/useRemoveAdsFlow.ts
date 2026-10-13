@@ -65,7 +65,7 @@ export function useRemoveAdsFlow(mode: RemoveAdsMode): RemoveAdsFlow {
 	const monetization = useMonetization();
 	const purchasing = monetization?.purchasing ?? null;
 	const owned = monetization?.purchase === 'owned';
-	const markPending = monetization?.markPending;
+	const pending = monetization?.pending ?? false;
 	const [view, setView] = useState<RemoveAdsView>({ kind: 'loading' });
 	const [busy, setBusy] = useState(false);
 	const busyRef = useRef(false);
@@ -132,13 +132,12 @@ export function useRemoveAdsFlow(mode: RemoveAdsMode): RemoveAdsFlow {
 		}
 		const { product } = view;
 		setInFlight(true);
+		// A pending outcome needs no bookkeeping here: the payment SDK has already
+		// added it to the pending set, which is what later sessions read (plan D-20).
 		const outcome = await purchasing.buy();
 		setInFlight(false);
-		if (outcome === 'pending') {
-			markPending?.();
-		}
 		show(viewAfterPurchase(outcome, product));
-	}, [purchasing, view, setInFlight, markPending, show]);
+	}, [purchasing, view, setInFlight, show]);
 
 	const opened = useRef(false);
 	useEffect(() => {
@@ -152,12 +151,12 @@ export function useRemoveAdsFlow(mode: RemoveAdsMode): RemoveAdsFlow {
 			restore().catch(() => undefined);
 		} else if (owned) {
 			show({ kind: 'success' });
-		} else if (monetization?.pending) {
+		} else if (pending) {
 			show({ kind: 'pending' });
 		} else {
 			load().catch(() => undefined);
 		}
-	}, [purchasing, mode, owned, monetization?.pending, restore, load, show]);
+	}, [purchasing, mode, owned, pending, restore, load, show]);
 
 	// A payment that settles while the sheet is open removes ads in place (AC-5.3).
 	useEffect(() => {
@@ -165,6 +164,18 @@ export function useRemoveAdsFlow(mode: RemoveAdsMode): RemoveAdsFlow {
 			show({ kind: 'success' });
 		}
 	}, [owned, view.kind, show]);
+
+	// One that ends unpaid brings Buy back in place (AC-5.5). Only the transition
+	// counts, so a purchase that has just returned `pending` is never bounced back
+	// to Buy before the pending set reaches this render.
+	const wasPending = useRef(pending);
+	useEffect(() => {
+		const ended = wasPending.current && !pending;
+		wasPending.current = pending;
+		if (ended && !owned && view.kind === 'pending') {
+			load().catch(() => undefined);
+		}
+	}, [pending, owned, view.kind, load]);
 
 	return {
 		view,

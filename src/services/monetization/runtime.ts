@@ -35,6 +35,8 @@ export interface RuntimeDeps {
 	/** Test seams: the SDKs' own fakes. */
 	adsOptions?: Parameters<typeof AdsModule.createAds>[1];
 	storeProvider?: ReturnType<typeof PaymentModule.createStoreProvider>;
+	/** Shared between two runtimes, it simulates an app kill and restart. */
+	snapshotStore?: NonNullable<PaymentModule.EngineDeps['snapshotStore']>;
 }
 
 export function createMonetizationRuntime(deps: RuntimeDeps): MonetizationRuntime {
@@ -70,7 +72,10 @@ export function createMonetizationRuntime(deps: RuntimeDeps): MonetizationRuntim
 		const payment = deps.loadPayment();
 		runtime.payment = payment.createEngine(
 			buildPaymentConfig(deps.env, !deps.isDevBuild),
-			{ provider: deps.storeProvider ?? payment.createStoreProvider() },
+			{
+				provider: deps.storeProvider ?? payment.createStoreProvider(),
+				snapshotStore: deps.snapshotStore,
+			},
 		);
 	} catch {
 		failures.push('payment.config_unavailable');

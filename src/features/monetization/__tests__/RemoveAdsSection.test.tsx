@@ -24,14 +24,19 @@ function render(state: {
 	storeAvailable?: boolean;
 	purchase?: PurchaseStatus;
 	pending?: boolean;
+	privacyOptions?: boolean;
+	openPrivacyOptions?: jest.Mock;
 }) {
 	const openRemoveAds = jest.fn();
+	const openPrivacyOptions = jest.fn(async () => 'shown');
 	mockMonetization.current = {
 		supported: true,
 		storeAvailable: true,
 		purchase: 'not_owned',
 		pending: false,
+		privacyOptions: false,
 		openRemoveAds,
+		openPrivacyOptions,
 		...state,
 	};
 	let tree!: ReactTestRenderer.ReactTestRenderer;
@@ -52,7 +57,13 @@ function render(state: {
 		tree.root.find(
 			node => node.props.accessibilityLabel === label && typeof node.props.onPress === 'function',
 		);
-	return { tree, text, button, openRemoveAds };
+	const textNow = () =>
+		tree.root
+			.findAllByType(Text)
+			.map(node => node.props.children)
+			.flat()
+			.join(' | ');
+	return { tree, text, textNow, button, openRemoveAds, openPrivacyOptions };
 }
 
 describe('RemoveAdsSection', () => {
@@ -95,5 +106,40 @@ describe('RemoveAdsSection', () => {
 
 	it('renders nothing on iOS or without a payment engine (FR-15)', () => {
 		expect(render({ supported: false }).tree.toJSON()).toBeNull();
+	});
+});
+
+describe('RemoveAdsSection — Privacy options (SCR3-privacy-sl5, D-21)', () => {
+	const PRIVACY = 'Tùy chọn quyền riêng tư';
+	const FAILED = 'Chưa mở được biểu mẫu. Kiểm tra kết nối rồi chạm để thử lại.';
+
+	it('offers the entry, with what it does, where it is required (AC-6.4)', async () => {
+		const { text, button, openPrivacyOptions } = render({ privacyOptions: true });
+		expect(text).toContain(PRIVACY);
+		expect(text).toContain('Đổi lựa chọn đồng ý quảng cáo của bạn. Biểu mẫu do Google hiển thị.');
+
+		await ReactTestRenderer.act(async () => button(PRIVACY).props.onPress());
+
+		expect(openPrivacyOptions).toHaveBeenCalledTimes(1);
+	});
+
+	it('has no entry when it is not required, or for an owner (AC-6.5, AC-1.6)', () => {
+		expect(render({}).text).not.toContain(PRIVACY);
+		// The provider never sets it for an owner; the domain rule tests that.
+		expect(render({ purchase: 'owned' }).text).not.toContain(PRIVACY);
+	});
+
+	it('says so when the form cannot open, and a tap that works clears it', async () => {
+		const openPrivacyOptions = jest
+			.fn()
+			.mockResolvedValueOnce('failed')
+			.mockResolvedValueOnce('shown');
+		const { button, textNow } = render({ privacyOptions: true, openPrivacyOptions });
+
+		await ReactTestRenderer.act(async () => button(PRIVACY).props.onPress());
+		expect(textNow()).toContain(FAILED);
+
+		await ReactTestRenderer.act(async () => button(PRIVACY).props.onPress());
+		expect(textNow()).not.toContain(FAILED);
 	});
 });

@@ -1,19 +1,21 @@
 import {
 	effectivePurchaseStatus,
+	isPendingShown,
 	latchOwned,
 	toAdsEnablement,
 	toPurchaseStatus,
 	type AdsEnablement,
 	type EntitlementStatus,
+	type PendingPurchases,
 	type PurchaseStatus,
 } from '../../domain/monetization';
-import { ENTITLEMENT } from './catalog';
+import { ENTITLEMENT, PRODUCT } from './catalog';
 
 /**
  * The narrow slices of the two SDKs this module needs. The real engine and ads
  * instance satisfy them structurally; tests hand in a few lines of fake. The
  * two SDKs never learn about each other — this file is the only bridge
- * (FR-1, raw spec §2.3).
+ * (FR-1).
  */
 export interface EntitlementPort {
 	getEntitlement(key: string): { status: EntitlementStatus };
@@ -26,10 +28,32 @@ export interface EnablementPort {
 	setEnablement(next: AdsEnablement): unknown;
 }
 
+/** The payment SDK's pending set (rn-payment 0.2.0, plan D-20). */
+interface SdkPendingState {
+	status: 'known' | 'unknown';
+	purchases: readonly { productKey: string }[];
+}
+
+export interface PendingPort {
+	getPendingPurchases(): SdkPendingState;
+	subscribePendingPurchases(listener: (pending: SdkPendingState) => void): () => void;
+}
+
 export interface MonetizationSnapshot {
 	/** What screens show; latched to owned for the rest of the process (FR-3). */
 	purchase: PurchaseStatus;
 	adsEnablement: AdsEnablement;
+	/** A Remove-ads payment is in flight; Buy is not offered meanwhile (US-5). */
+	pending: boolean;
+}
+
+const NOTHING_KNOWN: PendingPurchases = { known: false, productKeys: [] };
+
+function toPendingPurchases(state: SdkPendingState): PendingPurchases {
+	return {
+		known: state.status === 'known',
+		productKeys: state.purchases.map(purchase => purchase.productKey),
+	};
 }
 
 export interface MonetizationWiring {
@@ -45,32 +69,41 @@ export interface MonetizationWiring {
  */
 export function createMonetizationWiring(options: {
 	entitlements: EntitlementPort | null;
+	/** The same engine as `entitlements`; absent in a test that does not need it. */
+	pending?: PendingPort | null;
 	ads: EnablementPort | null;
 	adsEnabledInBuild: boolean;
 }): MonetizationWiring {
 	const { entitlements, ads, adsEnabledInBuild } = options;
+	const pendingPort = options.pending ?? null;
 	const listeners = new Set<() => void>();
 	let ownedThisProcess = false;
+	let status: EntitlementStatus =
+		entitlements?.getEntitlement(ENTITLEMENT.noAds).status ?? 'unknown';
+	let pending: PendingPurchases = pendingPort
+		? toPendingPurchases(pendingPort.getPendingPurchases())
+		: NOTHING_KNOWN;
 
-	const compute = (status: EntitlementStatus): MonetizationSnapshot => {
+	const compute = (): MonetizationSnapshot => {
 		const reported = toPurchaseStatus(status);
 		ownedThisProcess = latchOwned(ownedThisProcess, reported);
+		const purchase = effectivePurchaseStatus(reported, ownedThisProcess);
 		return {
-			purchase: effectivePurchaseStatus(reported, ownedThisProcess),
+			purchase,
 			adsEnablement: toAdsEnablement(reported, ownedThisProcess, adsEnabledInBuild),
+			pending: isPendingShown(pending, PRODUCT.removeAds, purchase),
 		};
 	};
 
-	let snapshot = compute(
-		entitlements?.getEntitlement(ENTITLEMENT.noAds).status ?? 'unknown',
-	);
+	let snapshot = compute();
 	ads?.setEnablement(snapshot.adsEnablement);
 
-	const apply = (status: EntitlementStatus) => {
-		const next = compute(status);
+	const publish = () => {
+		const next = compute();
 		if (
 			snapshot.purchase === next.purchase &&
-			snapshot.adsEnablement === next.adsEnablement
+			snapshot.adsEnablement === next.adsEnablement &&
+			snapshot.pending === next.pending
 		) {
 			return;
 		}
@@ -81,9 +114,16 @@ export function createMonetizationWiring(options: {
 		listeners.forEach(listener => listener());
 	};
 
-	const unsubscribe = entitlements?.subscribeEntitlements(map =>
-		apply(map[ENTITLEMENT.noAds]?.status ?? 'unknown'),
-	);
+	const unsubscribeEntitlements = entitlements?.subscribeEntitlements(map => {
+		status = map[ENTITLEMENT.noAds]?.status ?? 'unknown';
+		publish();
+	});
+	// A payment ending unpaid changes no entitlement — `not_entitled` stays
+	// `not_entitled` — so only this subscription can bring Buy back (AC-5.5).
+	const unsubscribePending = pendingPort?.subscribePendingPurchases(next => {
+		pending = toPendingPurchases(next);
+		publish();
+	});
 
 	return {
 		getSnapshot: () => snapshot,
@@ -94,7 +134,8 @@ export function createMonetizationWiring(options: {
 			};
 		},
 		dispose() {
-			unsubscribe?.();
+			unsubscribeEntitlements?.();
+			unsubscribePending?.();
 			listeners.clear();
 		},
 	};

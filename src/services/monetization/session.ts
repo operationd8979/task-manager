@@ -1,4 +1,8 @@
 import {
+	toPrivacyOptionsOutcome,
+	type PrivacyOptionsOutcome,
+} from '../../domain/monetization';
+import {
 	createInterstitialController,
 	type InterstitialController,
 } from './interstitial';
@@ -49,6 +53,7 @@ export function getMonetizationSession(): MonetizationSession {
 		const runtime = getMonetizationRuntime();
 		const wiring = createMonetizationWiring({
 			entitlements: runtime.payment,
+			pending: runtime.payment,
 			ads: runtime.ads,
 			adsEnabledInBuild: runtime.env.adsEnabled,
 		});
@@ -81,11 +86,33 @@ export function startPayments(runtime: MonetizationRuntime): void {
 	});
 }
 
+/**
+ * Opens Google's privacy options form from Settings (AC-6.4, plan D-21). The
+ * consent interruption is held while it is up, so no full-screen ad can land on
+ * top of it (FR-10). The SDK applies the new choice to its own gate: a
+ * withdrawal stops requests and collapses the banner, a re-grant resumes them
+ * without a second initialization.
+ */
+export async function openPrivacyOptions(
+	ads: AdsInstance,
+	hooks: Pick<ConsentHooks, 'holdWhileShowing'>,
+): Promise<PrivacyOptionsOutcome> {
+	const release = hooks.holdWhileShowing();
+	try {
+		const result = await ads.consent.showPrivacyOptionsForm();
+		return toPrivacyOptionsOutcome(result.status);
+	} finally {
+		release();
+	}
+}
+
 export interface ConsentHooks {
 	/** Resolves when the user is not in the middle of anything (AC-6.2). */
 	waitUntilIdle(): Promise<void>;
 	/** Marks the consent form as on screen, for the other interrupters. */
 	holdWhileShowing(): () => void;
+	/** Ads are still wanted right now — false once the purchase turned out owned. */
+	stillWanted(): boolean;
 }
 
 /**
@@ -99,6 +126,15 @@ export function ensureAdsReady(ads: AdsInstance, hooks: ConsentHooks): Promise<v
 		const info = await ads.consent.requestInfoUpdate();
 		if (info.state === 'required') {
 			await hooks.waitUntilIdle();
+			// Ads were wanted when this started, on the last session's cached "not
+			// owned"; this session's sync may since have found the purchase — made on
+			// another device, say. An owner never sees the form (AC-6.5). Found on
+			// the emulator once the payment record actually persisted (rn-payment
+			// 0.2.1). The memo is cleared so a later "wanted" runs the flow again.
+			if (!hooks.stillWanted()) {
+				adsReady = null;
+				return;
+			}
 			const release = hooks.holdWhileShowing();
 			try {
 				await ads.consent.showFormIfRequired();

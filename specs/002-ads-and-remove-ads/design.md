@@ -95,7 +95,7 @@ Stories with no screen of their own:
   one place for every result (restored, nothing found, failed), instead of a second set of
   messages in Settings.
 - D-9 The new Settings section "QUẢNG CÁO" sits between NGÔN NGỮ and DỮ LIỆU, next to data
-  management as the raw spec suggests.
+  management.
 - Conflict, standards: `docs/standards.md` `## Design` still says "Design system: none
   yet", while this canvas uses the TaskManager design system. Recommendation: run
   `/sdd-design-build-system` with that link to record it.

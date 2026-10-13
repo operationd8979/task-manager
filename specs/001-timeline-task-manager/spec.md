@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Ứng dụng mobile React Native quản lý công việc theo timeline, offline-first, dựa trên artifacts/Task_Manager_Implementation_Playbook.md"
+**Input**: User description: "Ứng dụng mobile React Native quản lý công việc theo timeline, offline-first, dựa trên playbook sản phẩm ban đầu" (playbook đã gỡ khỏi repo ngày 2026-10-13; spec này thay thế nó)
 
 ## Clarifications
 
@@ -452,7 +452,7 @@ Những giả định sau được chọn làm mặc định hợp lý vì tài 
 - Cơ chế lưu trữ dữ liệu có cấu trúc trong vùng dữ liệu riêng của ứng dụng trên thiết bị.
 - Khả năng khôi phục lịch nhắc nhở sau khi thiết bị khởi động lại trên Android.
 - Cấu hình sao lưu ở cấp nền tảng để loại dữ liệu công việc khỏi sao lưu tự động.
-- Tài liệu nguồn: [artifacts/Task_Manager_Implementation_Playbook.md](../../artifacts/Task_Manager_Implementation_Playbook.md).
+- Tài liệu nguồn ban đầu (playbook sản phẩm) đã gỡ ngày 2026-10-13; spec này là nguồn chuẩn.
 
 ## Design artifacts
 

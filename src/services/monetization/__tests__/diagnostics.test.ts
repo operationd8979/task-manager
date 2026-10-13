@@ -43,6 +43,24 @@ describe('paymentEventCode (FR-13)', () => {
 	it('treats a cancelled purchase as normal, not as a failure (FR-16)', () => {
 		expect(paymentEventCode(paymentEvent({ type: 'purchase_cancelled' }))).toBeNull();
 	});
+
+	it('logs the SDK saying its store does not persist', () => {
+		expect(
+			paymentEventCode(
+				paymentEvent({ type: 'config_warning', detail: 'Local storage unavailable' }),
+			),
+		).toBe('payment.config_warning');
+	});
+
+	it('logs a pending payment that ended unpaid, never one that settled (plan D-20)', () => {
+		const resolved = (outcome: string) =>
+			paymentEventCode(
+				paymentEvent({ type: 'purchase_pending_resolved', productKey: 'remove_ads', outcome }),
+			);
+		expect(resolved('cancelled')).toBe('payment.pending_cancelled');
+		expect(resolved('expired')).toBe('payment.pending_expired');
+		expect(resolved('settled')).toBeNull();
+	});
 });
 
 describe('forwardDiagnostics', () => {

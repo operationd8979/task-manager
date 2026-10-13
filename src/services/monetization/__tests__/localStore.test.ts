@@ -10,7 +10,6 @@ function memory() {
 			set: (key: string, value: number) => {
 				values.set(key, value);
 			},
-			remove: (key: string) => values.delete(key),
 		},
 	};
 }
@@ -30,16 +29,6 @@ describe('createMonetizationLocalStore', () => {
 		expect(createMonetizationLocalStore(backend).getInterstitialCount()).toBe(0);
 		values.set('interstitial.count', 1.5);
 		expect(createMonetizationLocalStore(backend).getInterstitialCount()).toBe(0);
-	});
-
-	it('keeps and clears the pending marker (D-18)', () => {
-		const { backend } = memory();
-		const store = createMonetizationLocalStore(backend);
-		expect(store.getPendingSince()).toBeNull();
-		store.setPendingSince(1234);
-		expect(createMonetizationLocalStore(backend).getPendingSince()).toBe(1234);
-		store.setPendingSince(null);
-		expect(store.getPendingSince()).toBeNull();
 	});
 
 	it('falls back to memory where MMKV is not linked, and says so', () => {

@@ -7,6 +7,12 @@ import type { MonetizationRuntime } from './runtime';
 export const MONETIZATION_OPERATION = 'monetization';
 
 /**
+ * Google's privacy options form could not open or failed while open (FR-13).
+ * Consent results are not ad events, so the provider reports this one itself.
+ */
+export const PRIVACY_OPTIONS_FAILED_CODE = 'ads.privacy_options_failed';
+
+/**
  * Error-log code for an ad event, or null when the event is not a failure
  * (FR-13). Throttled, no-fill and failed are three different entries even
  * though the user sees the same collapsed banner — only one of them is worth
@@ -35,6 +41,15 @@ export function paymentEventCode(event: PaymentEvent): string | null {
 			return `payment.${event.code}`;
 		case 'environment_blocked':
 			return 'payment.environment_blocked';
+		case 'config_warning':
+			// The SDK's only one says its store does not persist — the condition that
+			// hid rn-payment's MMKV v4 defect (fixed in 0.2.1). Never ignorable: an
+			// owner would read "checking" after every cold start.
+			return 'payment.config_warning';
+		case 'purchase_pending_resolved':
+			// A pending payment that ended unpaid is the entry worth having when a
+			// user says "I paid but still see ads". Settling is not a failure.
+			return event.outcome === 'settled' ? null : `payment.pending_${event.outcome}`;
 		case 'internal_error':
 			return `payment.internal_error:${event.code}`;
 		default:
@@ -54,7 +69,7 @@ export function forwardDiagnostics(
 ): () => void {
 	runtime.startupFailures.forEach(code => report(code));
 	if (options.storePersistent === false) {
-		// The counter and the pending marker will not survive a restart.
+		// The interstitial counter will not survive a restart.
 		report('monetization.store_memory_only');
 	}
 	const forward = <E>(code: (event: E) => string | null) => (event: E) => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
@@ -6,7 +6,7 @@ import { useMonetization } from '../../../app/providers/MonetizationProvider';
 import { Chevron } from '../../../components/Chevron';
 import { Skeleton, SkeletonGroup } from '../../../components/Skeleton';
 import { Text } from '../../../components/Text';
-import { removeAdsSectionState } from '../../../domain/monetization';
+import { removeAdsSectionState, type PrivacyOptionsOutcome } from '../../../domain/monetization';
 import { useT } from '../../../i18n/useT';
 import { appTheme } from '../../../theme/theme';
 import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
@@ -96,9 +96,50 @@ export function RemoveAdsSection() {
 						<Text style={[styles.rowLabel, styles.rowText]}>{t('settings.restore')}</Text>
 						<Chevron direction="right" />
 					</Pressable>
+
+					{monetization.privacyOptions ? (
+						<PrivacyOptionsRow open={monetization.openPrivacyOptions} />
+					) : null}
 				</View>
 			)}
 		</>
+	);
+}
+
+/**
+ * "Privacy options" (SCR3-privacy-sl5): reopens Google's consent form so the
+ * user can change their choice (AC-6.4). The form is Google's; the SDK applies
+ * the new choice to later ad requests by itself. Only a failure is said here,
+ * under the row, and tapping again is the retry (plan D-21).
+ */
+function PrivacyOptionsRow({ open }: { readonly open: () => Promise<PrivacyOptionsOutcome> }) {
+	const t = useT();
+	const [failed, setFailed] = useState(false);
+	const onPress = useCallback(() => {
+		setFailed(false);
+		open()
+			.then(outcome => setFailed(outcome === 'failed'))
+			.catch(() => setFailed(true));
+	}, [open]);
+
+	return (
+		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel={t('settings.privacyOptions')}
+			accessibilityHint={t('settings.privacyOptionsHint')}
+			onPress={onPress}
+			style={[styles.row, styles.rowInline]}>
+			<View style={styles.rowText}>
+				<Text style={styles.rowLabel}>{t('settings.privacyOptions')}</Text>
+				<Text style={styles.hint}>{t('settings.privacyOptionsHint')}</Text>
+				{failed ? (
+					<Text style={styles.failed} accessibilityLiveRegion="polite">
+						{t('settings.privacyOptionsFailed')}
+					</Text>
+				) : null}
+			</View>
+			<Chevron direction="right" />
+		</Pressable>
 	);
 }
 
@@ -144,6 +185,10 @@ const styles = StyleSheet.create(raw => {
 		hint: {
 			...theme.typography.label,
 			color: theme.appColor.textMuted,
+		},
+		failed: {
+			...theme.typography.label,
+			color: theme.appColor.accentInk,
 		},
 		pendingTag: {
 			...theme.typography.caption,

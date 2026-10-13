@@ -42,7 +42,7 @@ describe('createMonetizationWiring', () => {
 	it('holds ads while the purchase is unknown and never enables them (AC-1.2, FR-1)', () => {
 		const { ads, wiring } = wire('unknown');
 		expect(ads.calls).toEqual(['undecided']);
-		expect(wiring.getSnapshot()).toEqual({ purchase: 'unknown', adsEnablement: 'undecided' });
+		expect(wiring.getSnapshot()).toEqual({ purchase: 'unknown', adsEnablement: 'undecided', pending: false });
 	});
 
 	it('disables ads for an owner from the first snapshot, offline included (AC-1.1, AC-1.7)', () => {
@@ -70,7 +70,7 @@ describe('createMonetizationWiring', () => {
 		const { entitlements, ads, wiring } = wire('entitled');
 		entitlements.push('not_entitled');
 		expect(ads.calls).toEqual(['disabled']);
-		expect(wiring.getSnapshot()).toEqual({ purchase: 'owned', adsEnablement: 'disabled' });
+		expect(wiring.getSnapshot()).toEqual({ purchase: 'owned', adsEnablement: 'disabled', pending: false });
 	});
 
 	it('brings ads back on the next cold start after a refund (AC-9.1)', () => {

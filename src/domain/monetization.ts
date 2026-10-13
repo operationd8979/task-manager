@@ -152,23 +152,65 @@ export function interstitialStep(input: {
 export type RestoreResult = 'restored' | 'nothingFound' | 'failed';
 
 /**
- * How long a local "payment pending" marker is believed without the store
- * confirming either way (plan D-18). The payment SDK cannot yet report a
- * pending purchase in a later session, nor say that one was declined.
+ * The payment SDK's pending set, translated by the services layer (plan D-20).
+ * `known: false` means never synced or stale — then an empty list is no answer.
  */
-export const PENDING_MARKER_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export interface PendingPurchases {
+	known: boolean;
+	productKeys: readonly string[];
+}
 
+/**
+ * A payment for `productKey` is in flight, so the app says so and offers no Buy
+ * (AC-5.2). It ends when the store settles it — the purchase turns owned
+ * (AC-5.3, AC-5.4) — or ends it unpaid, which empties the set at the next sync
+ * and brings Buy back (AC-5.5).
+ *
+ * An unknown set shows nothing here: the purchase status is unknown under the
+ * same staleness rule, and "checking" already withholds Buy.
+ */
 export function isPendingShown(
-	pendingSince: number | null,
-	now: number,
+	pending: PendingPurchases,
+	productKey: string,
 	purchase: PurchaseStatus,
 ): boolean {
-	return (
-		pendingSince !== null &&
-		purchase !== 'owned' &&
-		now - pendingSince >= 0 &&
-		now - pendingSince < PENDING_MARKER_TTL_MS
-	);
+	return pending.known && purchase !== 'owned' && pending.productKeys.includes(productKey);
+}
+
+/** Whether Google requires a "change my consent choice" entry (rn-ads 0.4.0). */
+export type PrivacyOptionsRequirement = 'required' | 'not_required' | 'unknown';
+
+/**
+ * Settings' "Privacy options" entry (SCR-3, AC-6.4): only where Google says one
+ * is required, and only for a purchase confirmed not owned. Owners see neither
+ * ads nor consent (AC-6.5, AC-1.6), and an unknown purchase has not run the
+ * consent flow, so its requirement is unknown anyway.
+ */
+export function isPrivacyOptionsShown(
+	requirement: PrivacyOptionsRequirement,
+	purchase: PurchaseStatus,
+): boolean {
+	return requirement === 'required' && purchase === 'not_owned';
+}
+
+/** What a tap on the entry led to, as far as the row cares (plan D-21). */
+export type PrivacyOptionsOutcome = 'shown' | 'failed' | 'ignored';
+
+/**
+ * Maps the ads SDK's privacy-options result. Only `failed` is worth telling the
+ * user: `shown` means Google's form did its job, and the rest — busy, not
+ * required, info update first, unavailable — mean the row should not have been
+ * there, and it goes away on its own as the consent state updates.
+ */
+export function toPrivacyOptionsOutcome(status: string): PrivacyOptionsOutcome {
+	switch (status) {
+		case 'shown':
+			return 'shown';
+		case 'failed':
+			return 'failed';
+		default:
+			return 'ignored';
+	}
 }
 
 /** What the Settings Remove-ads section shows (SCR-3). */

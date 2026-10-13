@@ -1,5 +1,5 @@
 ---
-rev: 3
+rev: 6
 spec_rev: 1
 design_rev: 1
 ---
@@ -10,10 +10,17 @@ design_rev: 1
 - **Stack**: React Native 0.86.2, React 19.2.3, TypeScript strict, Kotlin 2.1.20,
   min/compile/target SDK 24/36/36. Same Kotlin as both SDKs were verified on (RN 0.85.3), so
   the `react-native-google-mobile-ads` `<16.1.0` pin compiles here.
-- **SDKs** (not installed yet; skills read from the published tarballs):
-  - `@chipmobilesdk/rn-ads` 0.3.0: peer `react-native-google-mobile-ads >=16.0.3 <16.1.0`.
-  - `@chipmobilesdk/rn-payment` 0.1.0: peers `react-native-iap >=16.6.1 <17`,
+- **SDKs** (installed, exact pins):
+  - `@chipmobilesdk/rn-ads` 0.4.0: peer `react-native-google-mobile-ads >=16.0.3 <16.1.0`
+    (unchanged). 0.4.0 adds the privacy options form and its requirement status (SL-5).
+  - `@chipmobilesdk/rn-payment` 0.3.0: peers `react-native-iap >=16.6.1 <17`,
     `react-native-mmkv >=4` and `react-native-nitro-modules >=0.36.5` (both already present).
+    0.2.0 added the pending set (D-20) and fixed its Android adapter, which granted a
+    pending purchase on a device under `react-native-iap` 16.x. 0.2.1 makes its record
+    persist at all (MMKV v4, found on the emulator in r5). 0.3.0 is documentation only, so
+    the synced skill matches the code; no runtime change from 0.2.1.
+  - `@chipmobilesdk/rn-notification` 0.3.0 (owned by feature 001): the same MMKV v4 fix in
+    0.2.1, then a documentation-only 0.3.0.
   - Facts that shape the plan:
     - the payment status is `unknown` until the first sync, and again after a **7-day**
       staleness ceiling;
@@ -23,7 +30,10 @@ design_rev: 1
     - ads accept `enabled: 'undecided'`;
     - `AdsBanner` must stay mounted;
     - banners have a 60 s request floor, and rotation is exempt;
-    - **rn-ads 0.3.0 cannot show the privacy-options form** (D-11);
+    - rn-ads 0.4.0 shows the privacy options form, and `initialize()` refuses — initializing
+      nothing — while its consent flow does not permit requests (D-11, D-21);
+    - rn-payment 0.2.0 keeps pending purchases visible across sessions, `unknown` under the
+      same 7-day rule (D-20);
     - the payment Android adapter is **unverified on a device** (its own README).
 - **Composition root** [src/app/App.tsx](../../src/app/App.tsx):
   - nesting is DatabaseProvider → ReminderProvider → BottomSheetModalProvider →
@@ -106,8 +116,8 @@ and owned states. The build environment is chosen when the bundle is built. All 
   keeps two screens and puts everything else in sheets, and a sheet keeps depth ≤ 3.
 - D-5 The banner sits **below** the New-task bar, directly above the system inset. The
   create-swipe detector is narrowed to the button only. The alternative was the banner
-  between the list and the bar. Rejected because raw spec §4.4 asks for the bar to be lifted
-  above the banner, and an ad wedged between the list and the most-used button invites
+  between the list and the bar. Rejected because the product decision (2026-10-10) is to lift
+  the bar above the banner, and an ad wedged between the list and the most-used button invites
   accidental clicks. Design D-1 adopts it: a 44pt strip (label + link) sits between the bar
   and the banner, and the whole slot collapses together.
 - D-6 The banner and its link collapse in every placement state except `ready`, including
@@ -128,9 +138,11 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - Spec FR-2 ("keeps the last known status") is therefore true for 7 days only. Flagged for
     a spec wording fix.
 - D-11 The Privacy options entry waits for rn-ads 0.4.0, which will add the form and its
-  requirement status. Mini raw spec: `c:\cms\temp\rn-ads-v0.4-privacy-options-change.md`.
+  requirement status. (Its raw change note in the SDK repo was retired once 0.4.0 shipped;
+  the rn-ads 0.4.0 CHANGELOG and README `### Letting users change their choice` record it.)
   The alternative was reset-and-reshow, rejected because UMP documents reset as testing-only.
-  Your decision, 2026-10-11.
+  Your decision, 2026-10-11. Resolved in r4: rn-ads 0.4.0 shipped, and SL-5 is built on it
+  (D-21).
 - D-12 iOS:
   - `src/services/monetization` is required lazily behind `Platform.OS === 'android'`;
   - `react-native.config.js` removes `react-native-google-mobile-ads` and `react-native-iap`
@@ -166,27 +178,56 @@ and owned states. The build environment is chosen when the bundle is built. All 
   sheet's pending, development-blocked and nothing-found blocks would be the second and
   third copies of the pattern (standards II). Styling them locally was rejected because it
   breaks that rule.
-- D-18 A local "pending since" marker. It is set when a purchase returns `pending`, cleared
-  once owned, and expires after 7 days, so a declined payment eventually offers Buy again
-  (AC-5.2, AC-5.5). The alternative was waiting for the SDK, rejected because rn-payment
-  0.1.0 reports pending only within the session it happened in, with no signal when one is
-  declined.
-  - You chose the marker on 2026-10-11, together with an SDK item:
-    `c:\cms\temp\rn-payment-v0.2-pending-visibility-change.md`.
-  - Cost: a declined payment shows "pending" until the TTL passes.
+- ~~D-18~~ (r4: replaced by D-20 once rn-payment 0.2.0 shipped the pending set). A local
+  "pending since" marker with a 7-day TTL, chosen on 2026-10-11 because rn-payment 0.1.0
+  reported pending only in the session it happened in. Its cost — a declined payment
+  showing "pending" until the TTL passed — is what D-20 removes.
 - D-19 What the user is mid-way through lives in a generic `InterruptionProvider`
   (`src/lib/interruptions.ts`), mounted outside the boot branch. The plan had put a
   blockers registry inside the monetization provider. Rejected because the undo toast, the
   permission prompt and the drag have to report from components that render without that
   provider, and a wipe's reboot must not drop a wait in progress.
+- D-20 Pending comes from rn-payment 0.2.0's pending set (AC-5.2, AC-5.5). The wiring
+  subscribes to it next to the entitlement and publishes `MonetizationSnapshot.pending`:
+  true when the set is `known`, lists `remove_ads`, and the purchase is not owned. A
+  payment declined or expired drops off the set at the next sync, so Buy returns then
+  rather than after a TTL; the sheet also returns to Buy in place. An `unknown` set shows
+  no pending — the purchase is `unknown` under the same rule, and "checking" already
+  withholds Buy. Alternatives rejected:
+  - keeping the marker: a declined payment kept showing "pending" for up to 7 days,
+    against AC-5.5;
+  - reading the set in the provider: the wiring is the one place that translates SDK state
+    into the app's view, and it is process-scoped and tested against the SDK fakes.
+- D-21 Privacy options (SL-5) is a third row in `RemoveAdsSection`, after Restore, as in the
+  `SCR3-privacy-sl5` artboard. It shows when the ads SDK's consent snapshot reports
+  `privacyOptionsRequirement: 'required'` and the purchase is `not_owned`
+  (`isPrivacyOptionsShown`). The requirement is only known after the consent flow, which
+  only runs for not-owned users, so owners never see it (AC-6.5, AC-1.6). A tap calls
+  `openPrivacyOptions` in the session, which holds the `consent` interruption while
+  Google's form is up (FR-10). The SDK applies the choice to its own gate. Only `failed`
+  is surfaced: a line under the row, where tapping again retries, plus
+  `ads.privacy_options_failed` in the error log. The artboard has no failure state; this
+  inline line is a judgment call under standards IV (no silent failure).
+  Alternatives rejected:
+  - an `ErrorState` or a dialog: too heavy for a rare failure in a Settings row;
+  - ignoring the failure: standards IV.
+- D-22 `ensureAdsReady` re-checks that ads are still wanted (`stillWanted()`, enablement
+  `enabled`) after waiting for idle and before showing the consent form; if not, it shows
+  nothing and clears its once-per-process memo, so a later "wanted" runs the flow again.
+  Found on the emulator: with the payment record persisting (rn-payment 0.2.1), a cached
+  "not owned" starts the flow at launch, and this session's sync can then find the purchase
+  (bought on another device). Before the guard, Google's form appeared over an owner's
+  timeline, against AC-6.5. Rejected: delaying the flow until the first sync, which would
+  hold every free user's consent, and so their first ad, behind a network call.
 
 ## Changes
 
 **Dependencies & build**
 - `package.json`: add these, add `-Environment` variants of the `build:*` scripts, and add a
   `check:release` script:
-  - `@chipmobilesdk/rn-ads@0.3.0`, `react-native-google-mobile-ads@16.0.3`;
-  - `@chipmobilesdk/rn-payment@0.1.0`, `react-native-iap@16.7.3`.
+  - `@chipmobilesdk/rn-ads@0.4.0` (was 0.3.0 until r4), `react-native-google-mobile-ads@16.0.3`;
+  - `@chipmobilesdk/rn-payment@0.3.0` (0.1.0 until r4, 0.2.0 until r6, then 0.2.1; 0.3.0 is
+    docs only), `react-native-iap@16.7.3`.
 
   Then run `npm run sync:skills` (it yields `sdk-rn-ads` and `sdk-rn-payment`).
 - `app.json`: `react-native-google-mobile-ads.android_app_id`. Use Google's test app ID until
@@ -230,14 +271,18 @@ and owned states. The build environment is chosen when the bundle is built. All 
   start; consent then initialize, once per process.
 - `purchasing.ts`: the sheet's facade, mapping SDK results to domain outcomes (FR-16, FR-17).
 - `localStore.ts`: MMKV `taskmanager.monetization` (`createMMKV`), holding
-  `interstitial.count` and `purchase.pendingSince` (D-18). `persistent: false` is logged.
+  `interstitial.count`. `persistent: false` is logged.
+- `wiring.ts` also takes a `PendingPort` (the same engine) and publishes
+  `MonetizationSnapshot.pending` (D-20).
+- `runtime.ts` takes a `snapshotStore` test seam, so two runtimes can share the payment
+  record and simulate an app kill.
 - `interstitial.ts`: counter, preload (skipped while loading or ready), show.
 
 **Domain** (`src/domain/monetization.ts`, renderer-free)
 - `toPurchaseStatus`, `latchOwned`, `effectivePurchaseStatus`, `toAdsEnablement` (FR-1,
   FR-3, FR-19).
 - `toPurchaseOutcome` (FR-16), `RestoreResult` (FR-17).
-- `isPendingShown`, `PENDING_MARKER_TTL_MS` (D-18).
+- `PendingPurchases`, `isPendingShown(pending, productKey, purchase)` (D-20).
 - `removeAdsSectionState`: `hidden | unavailable | owned | pending | checking | buy`.
 - `INTERSTITIAL_EVERY`, `nextInterstitialCount`, `isInterstitialDue`,
   `shouldPreloadInterstitial`, `interstitialStep` (D-13).
@@ -254,8 +299,8 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - subscribes to the session and does not own the SDKs;
   - foreground → `handleForeground()` and `setAppActive`;
   - consent and initialize when ads first become wanted;
-  - pending marker, store availability, the sheet request, and diagnostics into the error
-    log.
+  - store availability, the sheet request, and diagnostics into the error log; `pending`
+    is read from the wiring snapshot (D-20).
 - `src/app/App.tsx`: Interruption and BottomInset providers outside the boot branch;
   Monetization inside ReminderProvider; `RemoveAdsSheetHost` under UndoProvider.
 - `src/app/providers/ReminderProvider.tsx`: holds `permission` while the system prompt is up.
@@ -320,7 +365,14 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - add the ads line to the data statement only while ads are active, i.e. free and
     resolved. It is hidden for owners, while checking, and on devices without store billing
     (FR-14, design D-7);
-  - reserve a slot for the Privacy options row (SL-5).
+  - the Privacy options row lives inside `RemoveAdsSection` (`PrivacyOptionsRow`), so
+    Settings itself needed no change for SL-5 (D-21).
+- SL-5 also adds: `isPrivacyOptionsShown`, `toPrivacyOptionsOutcome` and the
+  `PrivacyOptionsRequirement` / `PrivacyOptionsOutcome` types to the domain;
+  `openPrivacyOptions` to `session.ts`; `privacyOptions` / `openPrivacyOptions` to
+  `MonetizationProvider` (a `useSyncExternalStore` over `ads.consent`);
+  `PRIVACY_OPTIONS_FAILED_CODE` to `diagnostics.ts`; `settings.privacyOptions`, `…Hint`
+  and `…Failed` in the three locales (vi-VN from the design's *Copy* table).
 - `src/i18n/locales/{vi-VN,en-US,ja-JP}.json` and `keys.generated.ts`: `ads.*` and
   `removeAds.*` keys, via `npm run i18n:sync`. The vi-VN text is the design's *Copy* table;
   en-US and ja-JP are translated from it.
@@ -344,9 +396,9 @@ and owned states. The build environment is chosen when the bundle is built. All 
 - **Storage**:
   - MMKV `taskmanager.monetization`, created with `createMMKV` (react-native-mmkv v4):
     - `interstitial.count`: an integer ≥ 0. Missing means 0, and invalid values are reset
-      to 0;
-    - `purchase.pendingSince`: epoch ms, removed when owned or past
-      `PENDING_MARKER_TTL_MS` (7 days, D-18).
+      to 0.
+    - (`purchase.pendingSince` was removed in r4; pending lives in the payment SDK's record,
+      D-20. No migration: the app has not been released.)
   - It is not touched by `destroyAll`, and it is excluded from backup and device transfer.
   - The SDK-owned MMKV `chipmobilesdk.payment` gets the same exclusions.
 - **Keys**:
@@ -361,16 +413,22 @@ and owned states. The build environment is chosen when the bundle is built. All 
   'not_owned'; adsActive: boolean; Banner: AdsBanner | null; removeAdsRequest: { mode } |
   null; openRemoveAds(options?: { mode?: 'buy' | 'restore' }): void; closeRemoveAds(): void;
   supported: boolean; storeAvailable: boolean; canBuy: boolean; pending: boolean;
-  markPending(): void; purchasing: Purchasing | null; interstitial: InterstitialController }`.
+  purchasing: Purchasing | null; interstitial: InterstitialController;
+  privacyOptions: boolean; openPrivacyOptions(): Promise<'shown' | 'failed' | 'ignored'> }`.
   `mode` defaults to `'buy'` (D-16).
 - **`useInterruptionBlocker(reason, active)`**, with `reason`: `overlay | drag | undo |
   permission | consent | background`. A no-op outside its provider.
 - **`TaskFormSheet.onSaved`**: `(savedDate: LocalDate, meta: { created: boolean }) => void`.
 - **Error log codes** (operation `monetization`):
   - ads: `ads.throttled`, `ads.no_fill`, `ads.load_failed:<AdsErrorCode>`,
-    `ads.show_failed:<code>`, `ads.internal_error`, `ads.config_unavailable`;
+    `ads.show_failed:<code>`, `ads.internal_error`, `ads.config_unavailable`,
+    `ads.privacy_options_failed` (Google's privacy options form could not open, D-21);
+  - `payment.config_warning`: the payment SDK says its store does not persist (r5; the
+    condition that hid rn-payment's MMKV v4 defect);
   - payment: `payment.<code>`, `payment.environment_blocked`,
-    `payment.internal_error:<code>`, `payment.config_unavailable`;
+    `payment.internal_error:<code>`, `payment.config_unavailable`,
+    `payment.pending_cancelled` / `payment.pending_expired` (a pending payment that ended
+    unpaid, D-20);
   - `monetization.store_memory_only` when MMKV is unavailable.
 
 ## Standards
@@ -479,13 +537,31 @@ and owned states. The build environment is chosen when the bundle is built. All 
     - a series counts once;
     - the counter survives a restart and a wipe.
   - On device: three creates show the test interstitial after the third task appears.
-- [ ] SL-5 Privacy options entry. **Blocked on rn-ads 0.4.0** (D-11). Covers SCR-3 (the
-  `SCR3-privacy-sl5` row), AC-6.4, AC-6.5 (entry part) and AC-1.6 (no entry for owners).
+- [x] SL-7 Pending from the payment SDK (rn-payment 0.2.0, D-20). Replaces the D-18 marker.
+  Covers AC-5.2 and AC-5.5 fully (D-18 approximated AC-5.5), and re-checks AC-5.1, AC-5.3,
+  AC-5.4.
   Verify:
-  - Bump to `^0.4.0` and re-sync skills.
-  - A test with the fake engine: the entry shows only when the requirement is `required` and
-    the purchase is not owned; withdrawing consent blocks the next load.
-  - On device with `debugGeography: 'eea'`: the Settings entry reopens Google's form.
+  - `sdkIntegration.test` with the real engine on the fake store and a shared snapshot
+    store: pending after an app kill and an offline restart; declined → Buy at the next
+    sync; cleared while closed → owned at launch; cleared while running → owned in session.
+  - `useRemoveAdsFlow.test`: a decline while the sheet shows pending brings Buy back; a
+    just-returned pending is not bounced to Buy.
+  - `monetization.test` (`isPendingShown`), `wiring.test`, `diagnostics.test`
+    (`payment.pending_cancelled` / `_expired`).
+- [x] SL-5 Privacy options entry (D-11, D-21). Covers SCR-3 (the `SCR3-privacy-sl5` row),
+  AC-6.4, AC-6.5 (entry part) and AC-1.6 (no entry for owners).
+  Verify:
+  - Bumped to `0.4.0` (exact pin, D-15) and re-synced skills; the whole suite passed on
+    0.4.0 before any SL-5 code.
+  - 0.4.0 changes behaviour this app relies on, re-checked in `sdkIntegration.test`: a
+    declined first-time form initializes nothing; a withdrawal blocks the next load; a
+    re-grant resumes with one native initialization in the process.
+  - Fake-engine tests: the entry shows only when the requirement is `required` and the
+    purchase is not owned (`monetization.test`, `sdkIntegration.test`); the form is held as
+    the `consent` interruption; a failure is said under the row and clears on a retry that
+    works (`RemoveAdsSection.test`).
+  - On device with `debugGeography: 'eea'`: moved to SL-6 — no device was attached, and
+    the app has no debug-geography switch outside the temporary SL-2 harness.
 - [ ] SL-6 Release readiness (needs the Play Console and AdMob setup). Covers AC-7.3, FR-24,
   FR-21 (startup, size and the 5,000-task perf check), FR-20 (final sweep), and on a device
   AC-4.1, AC-4.5, AC-4.6, AC-7.1 and AC-2.8 (offline).
@@ -493,6 +569,17 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - A release-configured `-Environment test` AAB on a Play testing track; a licence tester
     buys without a charge, the payment adapter is confirmed against `react-native-iap`
     16.7.3, a slow-payment pending purchase settles, and uninstall/reinstall restores it.
+    rn-payment 0.2.0 already fixed one adapter defect found by checking 16.7.3's types (a
+    pending purchase was granted); a slow test card that **declines** must now also bring
+    Buy back after a sync (AC-5.5 on device).
+  - ~~From SL-5, with `debugGeography: 'eea'` on a debug build~~ — done r5 on the emulator
+    (see Evidence). "Withdrawing collapses the banner" is not reachable with Google's real
+    form: "Do not consent" records an answer, so UMP keeps `canRequestAds` true and the
+    choice travels as TCF (`IABTCF_PurposeConsents` `00000000000`). The collapse path stays
+    covered by the fake-engine tests.
+  - ~~Bump `@chipmobilesdk/rn-payment` and `@chipmobilesdk/rn-notification` to `0.2.1`~~ —
+    done r6: exact pins, skills re-synced, full checks green; the published files match the
+    code verified on the emulator byte for byte.
   - Airplane mode and a device without Play services both behave.
   - Time-to-timeline rises by ≤ 100 ms (median of 10 cold starts, before vs after), and the
     AAB size delta is recorded.
@@ -518,9 +605,11 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - AC-1.3 — `wiring.test` owner snapshot and latch ✓
   - AC-1.4 — device: the banner appears once, animated, after not-owned resolves ✓
   - AC-1.5 — `interstitial.test` "counts for an owner but never shows them one" ✓
-  - AC-1.6 — `RemoveAdsSection.test` owned state ✓ (the no-Privacy-options part waits on
-    SL-5)
-  - AC-1.7 — `wiring.test` owner from the cached snapshot ✓ (offline device check in SL-6)
+  - AC-1.6 — `RemoveAdsSection.test` owned state; `monetization.test` "hides it from owners"
+    (no Privacy options entry); device r5: owner Settings shows "Ads removed", no entry ✓
+  - AC-1.7 — `wiring.test` owner from the cached snapshot ✓. Device r5 with rn-payment
+    0.2.1: an owner restarted with the store unreachable sees "Ads removed" and no ads ✓
+    (0.2.0 never persisted the record; the app pins 0.2.1 since r6).
   - AC-2.1 — device screenshot (strip + banner under the New-task bar); `BannerSlot.test`
     opens when ready ✓
   - AC-2.2 — device: 10 day swipes, banner kept, 0 new `load_started`; `BannerSlot.test`
@@ -552,20 +641,37 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - AC-4.5 — pending SL-6 (`destroyAll` only deletes the local-db scope; the payment
     snapshot is MMKV `chipmobilesdk.payment`)
   - AC-4.6 — pending SL-6 (foreground sync on a real store)
-  - AC-5.1 — `useRemoveAdsFlow.test` pending recorded and shown ✓
-  - AC-5.2 — `useRemoveAdsFlow.test` opens in pending; `RemoveAdsSection.test` tag;
-    `monetization.test` `isPendingShown` ✓ (local marker, D-18)
-  - AC-5.3 — `useRemoveAdsFlow.test` "removes ads in place when the pending payment
-    settles" ✓
-  - AC-5.4 — `wiring.test` grant applies without restart; marker cleared once owned ✓
-  - AC-5.5 — `monetization.test` marker TTL ✓ (approximation, D-18)
+  - AC-5.1 — `useRemoveAdsFlow.test` "shows a pending payment as pending, before the
+    pending set catches up"; `sdkIntegration.test` session 1 snapshot `pending: true`;
+    device r5 (fake store): Buy → PAYMENT PENDING notice, no Buy ✓
+  - AC-5.2 — `sdkIntegration.test` "still shows pending after an app kill and an offline
+    restart"; `useRemoveAdsFlow.test` opens in pending; `RemoveAdsSection.test` tag ✓ (SL-7).
+    Device r5 with rn-payment 0.2.1: kill, store unreachable, Settings tagged PAYMENT
+    PENDING ✓ (pinned since r6).
+  - AC-5.3 — `sdkIntegration.test` "removes ads in the session when the payment clears
+    while running"; `useRemoveAdsFlow.test` settles in place ✓
+  - AC-5.4 — `sdkIntegration.test` "is owned at the next launch when the payment clears
+    while closed" ✓
+  - AC-5.5 — `sdkIntegration.test` "offers Buy again at the next sync once the payment is
+    declined"; `useRemoveAdsFlow.test` "offers Buy again in place" ✓ (SL-7). Device r5
+    (fake store declining 30 s later): after a foreground sync the open sheet went back to
+    BUY ✓; on a real Play test card in SL-6
   - AC-6.1 — device, EEA debug geography: form over the idle timeline, 0 requests before
     the answer ✓
   - AC-6.2 — device: form waited while the New-task sheet was open, then appeared ✓
   - AC-6.3 — device: declined → app works, allowed ad served ✓
-  - AC-6.4 — blocked on rn-ads 0.4.0 (SL-5)
+  - AC-6.4 — `sdkIntegration.test` "offers the entry in a consent region once the user has
+    answered", "withdrawing through the entry blocks the next load", "re-granting resumes
+    loads with one native initialization"; `RemoveAdsSection.test` entry opens the form ✓.
+    Device r5, EEA debug geography, Google's real form: the entry appears after consent and
+    reopens the form; "Do not consent" → `IABTCF_PurposeConsents` `00000000000`, re-grant →
+    `11111111111`; one native initialization across both; banner kept ✓
   - AC-6.5 — consent runs only once ads are wanted (`MonetizationProvider`), never for an
-    owner ✓ (entry part SL-5)
+    owner; `monetization.test` `isPrivacyOptionsShown` hides the entry outside consent
+    regions, while unknown, and for owners; `RemoveAdsSection.test` no entry;
+    `sdkIntegration.test` "skips the form when the purchase turns out owned while the flow
+    waits" (D-22). Device r5: owner — no form, no banner, no entry; cached-free-then-owned
+    race — form shown before D-22, not after ✓
   - AC-6.6 — `ensureAdsReady` leaves the gate closed on failure and retries next launch ✓
     (code path; no network-failure device run)
   - AC-7.1 — `useRemoveAdsFlow.test` dev-blocked state ✓ (Play-device check SL-6)
@@ -619,6 +725,34 @@ and owned states. The build environment is chosen when the bundle is built. All 
     feature's changes stashed.
   - Editing a module imported by `App.tsx` while the app runs can trigger Fast Refresh
     "handle is closed" or a blank reload. Dev only.
+- SL-7 (r4): rn-payment 0.2.0 replaced the D-18 marker with the SDK's pending set (D-20).
+  `purchase.pendingSince` was dropped with no migration, since the app is unreleased. The
+  sheet now also returns to Buy in place when a payment is declined while it is open,
+  which the marker could never observe.
+- SL-5 (r4): built on rn-ads 0.4.0 once it reached npm. The suite was green on 0.4.0 before
+  any SL-5 code, so its consent behaviour changes needed no app change: `ensureAdsReady`
+  already ran update → form → initialize, and a declined user now simply gets no native
+  initialization. The failure line under the row is not in the artboard (D-21). The
+  device check moved to SL-6.
+- Device session r5 (Pixel 3a API 36 emulator, debug build, Google's real UMP form and
+  test ads; payment via a temporary fake-store harness, since the image has no Play Store —
+  removed afterwards):
+  - **SDK defect found and fixed in the SDK repo**: rn-payment 0.2.0 and rn-notification
+    0.2.0 open MMKV with the v3 `new MMKV()`. In react-native-mmkv v4 (their peer range)
+    `MMKV` is a type only, so both silently fell back to memory: the app's `files/mmkv` had
+    no `chipmobilesdk.payment` or `chipmobilesdk.notification`. Owners read "checking"
+    after every cold start, and pending payments were forgotten after a kill. Both
+    packages are fixed as `0.2.1` (`createMMKV`, `remove`, a v4-shaped test double that
+    fails against the old code), published 2026-10-13 and pinned in r6. Verified here
+    first from local tarballs installed with `--no-save`: both instances appear, and AC-5.2
+    and AC-1.7 pass.
+  - D-22 came from the same session, once the record persisted.
+  - The payment SDK's `config_warning` (non-durable store) is now logged
+    (`payment.config_warning`); it had been dropped, which is why the defect stayed
+    invisible.
+  - Turning the emulator's network off breaks the debug bundle's Metro connection, so
+    "offline" was simulated at the store (connection refused), which is what the payment
+    SDK sees.
 - Choices worth a glance:
   - `maxAdContentRating: 'PG'` — confirm against the content-rating gate (FR-24).
   - In landscape the bottom chrome (bar + strip + banner) takes nearly half the screen; a
@@ -639,3 +773,16 @@ and owned states. The build environment is chosen when the bundle is built. All 
   (`session.ts`, `purchasing.ts`, `localStore.ts`, `BottomInsetProvider`). Device-only checks
   that need a Play Store device, a release build or a perf fixture moved to SL-6. Evidence and
   Notes filled in.
+- r4 (2026-10-12): rn-payment 0.1.0 → 0.2.0 and rn-ads 0.3.0 → 0.4.0. Retired D-18 (local
+  pending marker); added D-20 (pending from the SDK's pending set, through the wiring) and
+  D-21 (the Privacy options row, with an inline failure line). D-11 resolved. Added SL-7 and
+  completed SL-5, its device check moved to SL-6. Changes, Data & interfaces, error log
+  codes and the AC-1.6, AC-5.x, AC-6.4 and AC-6.5 evidence updated.
+- r5 (2026-10-12): device session on the emulator. Added D-22 (no consent form once the
+  purchase turns out owned mid-flow). SL-5's device check done; SL-6 gains the rn-payment /
+  rn-notification 0.2.1 bump (MMKV v4 defect found on device, fixed in the SDK repo).
+  `payment.config_warning` log code added. Evidence for AC-1.6, AC-1.7, AC-5.1, AC-5.2,
+  AC-5.5, AC-6.4 and AC-6.5 updated with device results.
+- r6 (2026-10-13): rn-payment and rn-notification bumped to the published 0.2.1 (MMKV v4
+  fix). AC-1.7 and AC-5.2 device evidence no longer conditional. D-11's pointer to the
+  retired SDK raw note now names the rn-ads CHANGELOG and README instead.

@@ -6,10 +6,11 @@ import {
 	shouldPreloadInterstitial,
 	type Interruption,
 	isPendingShown,
+	isPrivacyOptionsShown,
 	latchOwned,
-	PENDING_MARKER_TTL_MS,
 	removeAdsSectionState,
 	toAdsEnablement,
+	toPrivacyOptionsOutcome,
 	toPurchaseOutcome,
 	toPurchaseStatus,
 } from '../monetization';
@@ -90,23 +91,23 @@ describe('toPurchaseOutcome (FR-16)', () => {
 	});
 });
 
-describe('isPendingShown (D-18)', () => {
-	const since = 1_000_000;
-	it('shows a fresh marker for a purchase not yet owned (AC-5.2)', () => {
-		expect(isPendingShown(since, since + 60_000, 'not_owned')).toBe(true);
-		expect(isPendingShown(since, since + 60_000, 'unknown')).toBe(true);
+describe('isPendingShown (D-20)', () => {
+	const listed = { known: true, productKeys: ['remove_ads'] };
+	it('shows a listed payment for a purchase not yet owned (AC-5.2)', () => {
+		expect(isPendingShown(listed, 'remove_ads', 'not_owned')).toBe(true);
 	});
-	it('stops once owned (AC-5.3, AC-5.4)', () => {
-		expect(isPendingShown(since, since + 60_000, 'owned')).toBe(false);
+	it('stops once owned, even before the set catches up (AC-5.3, AC-5.4)', () => {
+		expect(isPendingShown(listed, 'remove_ads', 'owned')).toBe(false);
 	});
-	it('expires after the TTL so a declined payment offers Buy again (AC-5.5)', () => {
-		expect(isPendingShown(since, since + PENDING_MARKER_TTL_MS, 'not_owned')).toBe(false);
+	it('stops as soon as the set no longer lists it — a declined payment (AC-5.5)', () => {
+		expect(isPendingShown({ known: true, productKeys: [] }, 'remove_ads', 'not_owned')).toBe(false);
 	});
-	it('ignores a marker from the future (clock moved back)', () => {
-		expect(isPendingShown(since, since - 1, 'not_owned')).toBe(false);
+	it('says nothing from an unknown set, whatever it last listed', () => {
+		// Stale or never synced: "checking" withholds Buy instead.
+		expect(isPendingShown({ ...listed, known: false }, 'remove_ads', 'unknown')).toBe(false);
 	});
-	it('shows nothing without a marker', () => {
-		expect(isPendingShown(null, since, 'not_owned')).toBe(false);
+	it('only counts the product it is asked about', () => {
+		expect(isPendingShown({ known: true, productKeys: ['other'] }, 'remove_ads', 'not_owned')).toBe(false);
 	});
 });
 
@@ -171,5 +172,33 @@ describe('the per-process ownership latch (D-9)', () => {
 		expect(effectivePurchaseStatus('not_owned', latchOwned(false, 'not_owned'))).toBe(
 			'not_owned',
 		);
+	});
+});
+
+describe('isPrivacyOptionsShown (SCR-3, D-21)', () => {
+	it('shows the entry where Google requires it, for a purchase not owned (AC-6.4)', () => {
+		expect(isPrivacyOptionsShown('required', 'not_owned')).toBe(true);
+	});
+	it('hides it outside consent regions and while the requirement is unknown (AC-6.5)', () => {
+		expect(isPrivacyOptionsShown('not_required', 'not_owned')).toBe(false);
+		expect(isPrivacyOptionsShown('unknown', 'not_owned')).toBe(false);
+	});
+	it('hides it from owners and while the purchase is unknown (AC-6.5, AC-1.6)', () => {
+		expect(isPrivacyOptionsShown('required', 'owned')).toBe(false);
+		expect(isPrivacyOptionsShown('required', 'unknown')).toBe(false);
+	});
+});
+
+describe('toPrivacyOptionsOutcome (D-21)', () => {
+	it.each([
+		['shown', 'shown'],
+		['failed', 'failed'],
+		['busy', 'ignored'],
+		['not_required', 'ignored'],
+		['info_update_required', 'ignored'],
+		['unavailable', 'ignored'],
+		['something_new', 'ignored'],
+	])('maps %s to %s', (status, outcome) => {
+		expect(toPrivacyOptionsOutcome(status)).toBe(outcome);
 	});
 });

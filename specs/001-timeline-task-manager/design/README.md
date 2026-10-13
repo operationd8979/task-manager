@@ -25,8 +25,6 @@ tiết cơ chế ở [.specify/extensions/design/README.md](../../../.specify/ex
 - [spec.md](../spec.md) là nguồn nghiệp vụ chốt (cái gì / tại sao). Bộ này là nguồn giao
   diện (trông thế nào / thao tác ra sao). Khi hai bên mâu thuẫn, `spec.md` thắng về nghiệp
   vụ, bộ design thắng về hình thức và tương tác.
-- [design-validation-prompt.md](../design-validation-prompt.md) là prompt đã dùng để sinh ra
-  bộ artifact này. Giữ lại để truy nguyên, không cần chạy lại.
 - [.specify/memory/constitution.md](../../../.specify/memory/constitution.md) vẫn ràng buộc.
   Bộ design này được viết để tuân thủ, trừ **hai** chỗ lệch có chủ đích và có lý do — không
   dùng bottom tabs, và không có swipe action trên dòng. Cả hai phải xuất hiện trong

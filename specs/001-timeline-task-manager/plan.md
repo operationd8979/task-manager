@@ -57,7 +57,7 @@ bản là những gì thực sự nằm trong [package.json](../../package.json)
 | `react-native-worklets` | `^0.11.3` | Reanimated 4 tách plugin Babel sang gói này; **phải nằm cuối** mảng plugins | SC-006 |
 | `react-native-nitro-modules` | `^0.36.5` | Peer bắt buộc của `op-sqlite` ở dòng 17.x | — |
 | `@gorhom/bottom-sheet` | `^5.2.14` | 6/9 màn hình là bottom sheet, một trong số đó là loại chặn | Toàn bộ IA |
-| `@chipmobilesdk/rn-notification` | `0.2.0` | Nhắc nhở cục bộ: định danh ổn định, hòa giải bất biến, kênh/tông khai báo, quyền tách đôi, định tuyến chạm qua cold start | FR-033…044 |
+| `@chipmobilesdk/rn-notification` | `0.3.0` | Nhắc nhở cục bộ: định danh ổn định, hòa giải bất biến, kênh/tông khai báo, quyền tách đôi, định tuyến chạm qua cold start. 0.2.1 sửa việc mở MMKV v4 — trước đó bản ghi trạng thái chỉ sống trong bộ nhớ; 0.3.0 (2026-10-13) chỉ cập nhật tài liệu và skill | FR-033…044 |
 | `react-native-notify-kit` | `^10.5.0` | Engine thông báo mà SDK dùng phía sau (bản fork còn bảo trì của Notifee) | FR-033…044 |
 | `react-native-mmkv` | `^4.3.2` | Peer bắt buộc của SDK thông báo — bản ghi trạng thái có giới hạn | FR-033…044 |
 | `react-native-localize` | `^3.7.0` | Peer bắt buộc của SDK thông báo — múi giờ nền tảng cho việc neo lại giờ treo tường | FR-033…044 |

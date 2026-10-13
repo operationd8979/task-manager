@@ -12,8 +12,9 @@ permanent, one-time "Remove ads" purchase through the Play Store. Someone who ha
 sees an ad: not for a moment at launch, not offline, not after reinstalling. Free users keep
 every core flow (timeline, create/edit, reminders) working as before. Android only.
 
-Source: `raw-specs/ads-and-no-ads-purchase.md` (product decisions of 2026-10-10). Its §15–16
-(versions and compatibility to verify) are input to `/sdd-plan`.
+Source: the product decisions of 2026-10-10, recorded in this spec. The raw brief they came
+from was retired on 2026-10-13, once this spec, the design and the plan had absorbed it
+(its version and compatibility checks are in the plan's Context).
 
 ## User stories
 
@@ -325,7 +326,7 @@ As the app owner, I want ads to return for someone whose purchase was refunded.
 - The banner sits at the bottom, not the top, because the top holds the day bar. Its exact
   vertical order against the New-task bar is decided in `/sdd-design`, within FR-9 and
   AC-2.6/AC-2.7.
-- Unknown status has no timeout (FR-1), because the raw spec's goal of never treating a payer
+- Unknown status has no timeout (FR-1), because the product goal of never treating a payer
   as a non-payer outranks revenue. The cost: a device whose store never answers shows no ads.
 - A revocation takes effect at the next cold start, not mid-session (FR-3), so ads never
   flicker back in front of a user.

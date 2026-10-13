@@ -1,20 +1,19 @@
 /**
- * The few values monetization keeps itself, in MMKV — deliberately NOT the
- * SQLite settings table: "Delete all data" wipes that, and neither of these is
- * task data (specs/002-ads-and-remove-ads FR-5, plan D-8). Excluded from
- * backup and device transfer in the Android XML rules.
+ * The one value monetization keeps itself, in MMKV — deliberately NOT the
+ * SQLite settings table: "Delete all data" wipes that, and it is not task data
+ * (specs/002-ads-and-remove-ads FR-5, plan D-8). Excluded from backup and device
+ * transfer in the Android XML rules. Pending payments are the payment SDK's to
+ * remember (plan D-20).
  */
 const INSTANCE_ID = 'taskmanager.monetization';
 const KEY = {
 	interstitialCount: 'interstitial.count',
-	pendingSince: 'purchase.pendingSince',
 } as const;
 
-/** The three MMKV calls this store makes (react-native-mmkv v4 names). */
+/** The two MMKV calls this store makes (react-native-mmkv v4 names). */
 export interface NumberBackend {
 	getNumber(key: string): number | undefined;
 	set(key: string, value: number): void;
-	remove(key: string): unknown;
 }
 
 export interface MonetizationLocalStore {
@@ -22,9 +21,6 @@ export interface MonetizationLocalStore {
 	persistent: boolean;
 	getInterstitialCount(): number;
 	setInterstitialCount(count: number): void;
-	/** When a purchase went pending, epoch ms; null when none is believed open. */
-	getPendingSince(): number | null;
-	setPendingSince(at: number | null): void;
 }
 
 function memoryBackend(): NumberBackend {
@@ -34,7 +30,6 @@ function memoryBackend(): NumberBackend {
 		set: (key, value) => {
 			memory.set(key, value);
 		},
-		remove: key => memory.delete(key),
 	};
 }
 
@@ -68,17 +63,6 @@ export function createMonetizationLocalStore(
 		},
 		setInterstitialCount(count) {
 			backend.set(KEY.interstitialCount, count);
-		},
-		getPendingSince() {
-			const value = backend.getNumber(KEY.pendingSince);
-			return typeof value === 'number' && Number.isFinite(value) ? value : null;
-		},
-		setPendingSince(at) {
-			if (at === null) {
-				backend.remove(KEY.pendingSince);
-			} else {
-				backend.set(KEY.pendingSince, at);
-			}
 		},
 	};
 }

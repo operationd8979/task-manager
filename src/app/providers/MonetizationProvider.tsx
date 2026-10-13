@@ -9,10 +9,16 @@ import React, {
 } from 'react';
 import { AppState } from 'react-native';
 
-import { isPendingShown, type PurchaseStatus } from '../../domain/monetization';
+import {
+	isPrivacyOptionsShown,
+	type PrivacyOptionsOutcome,
+	type PrivacyOptionsRequirement,
+	type PurchaseStatus,
+} from '../../domain/monetization';
 import {
 	forwardDiagnostics,
 	MONETIZATION_OPERATION,
+	PRIVACY_OPTIONS_FAILED_CODE,
 } from '../../services/monetization/diagnostics';
 import type { InterstitialController } from '../../services/monetization/interstitial';
 import type { Purchasing } from '../../services/monetization/purchasing';
@@ -20,6 +26,7 @@ import type { MonetizationRuntime } from '../../services/monetization/runtime';
 import {
 	ensureAdsReady,
 	getMonetizationSession,
+	openPrivacyOptions as openPrivacyOptionsForm,
 	startPayments,
 } from '../../services/monetization/session';
 import { useDatabase } from './DatabaseProvider';
@@ -45,13 +52,23 @@ export interface MonetizationContextValue {
 	storeAvailable: boolean;
 	/** False in a build with selling switched off; Restore still works (FR-19). */
 	canBuy: boolean;
-	/** A payment is believed pending; Buy is not offered meanwhile (US-5). */
+	/**
+	 * A Remove-ads payment is in flight, in this or an earlier session; Buy is not
+	 * offered meanwhile (US-5). From the payment SDK's pending set (plan D-20).
+	 */
 	pending: boolean;
-	markPending(): void;
 	purchasing: Purchasing | null;
 	/** The full-screen ad after every third new item (US-8). */
 	interstitial: InterstitialController;
+	/** Settings shows its "Privacy options" entry (AC-6.4, AC-6.5; plan D-21). */
+	privacyOptions: boolean;
+	/** Opens Google's privacy options form. A failure is also logged (FR-13). */
+	openPrivacyOptions(): Promise<PrivacyOptionsOutcome>;
 }
+
+/** Stand-ins where there is no ads instance (iOS, a build without ads). */
+const SUBSCRIBE_NOTHING = (): (() => void) => () => undefined;
+const UNKNOWN_REQUIREMENT = (): PrivacyOptionsRequirement => 'unknown';
 
 const MonetizationContext = createContext<MonetizationContextValue | null>(null);
 
@@ -78,22 +95,6 @@ export function MonetizationProvider({ children }: { children: React.ReactNode }
 		() => payment?.subscribeStatus(status => setStoreAvailable(status.kind !== 'unavailable')),
 		[payment],
 	);
-
-	// The local pending marker (plan D-18): set on a pending purchase, cleared
-	// once owned or after its TTL, so a declined payment eventually offers Buy.
-	const [pendingSince, setPendingSince] = useState(() => store.getPendingSince());
-	const pending = isPendingShown(pendingSince, Date.now(), snapshot.purchase);
-	const markPending = useCallback(() => {
-		const now = Date.now();
-		store.setPendingSince(now);
-		setPendingSince(now);
-	}, [store]);
-	useEffect(() => {
-		if (pendingSince !== null && !pending) {
-			store.setPendingSince(null);
-			setPendingSince(null);
-		}
-	}, [pending, pendingSince, store]);
 
 	// Failures go to the local log (FR-13). The log lives on the database
 	// handle, which a wipe replaces, hence the dependency.
@@ -135,10 +136,11 @@ export function MonetizationProvider({ children }: { children: React.ReactNode }
 			// Without the tracker (never in the app) there is nothing to wait for.
 			waitUntilIdle: () => interruptions?.waitUntilIdle().promise ?? Promise.resolve(),
 			holdWhileShowing: () => interruptions?.acquire('consent') ?? (() => undefined),
+			stillWanted: () => wiring.getSnapshot().adsEnablement === 'enabled',
 		})
 			.then(() => interstitial.preloadIfNear())
 			.catch(() => undefined);
-	}, [adsActive, interruptions, runtime, interstitial]);
+	}, [adsActive, interruptions, runtime, interstitial, wiring]);
 
 	const [removeAdsRequest, setRemoveAdsRequest] =
 		useState<MonetizationContextValue['removeAdsRequest']>(null);
@@ -148,6 +150,33 @@ export function MonetizationProvider({ children }: { children: React.ReactNode }
 		[],
 	);
 	const closeRemoveAds = useCallback(() => setRemoveAdsRequest(null), []);
+
+	// Google's verdict on whether this user must be offered a way to change their
+	// consent choice. It is known once the consent flow above has run, which only
+	// happens for a purchase confirmed not owned (AC-6.4, AC-6.5).
+	const subscribeConsent = useMemo(() => {
+		const ads = runtime.ads;
+		return ads ? (listener: () => void) => ads.consent.subscribe(() => listener()) : SUBSCRIBE_NOTHING;
+	}, [runtime]);
+	const readRequirement = useMemo(() => {
+		const ads = runtime.ads;
+		return ads ? () => ads.consent.getState().privacyOptionsRequirement : UNKNOWN_REQUIREMENT;
+	}, [runtime]);
+	const requirement = useSyncExternalStore(subscribeConsent, readRequirement);
+	const privacyOptions = isPrivacyOptionsShown(requirement, snapshot.purchase);
+
+	const openPrivacyOptions = useCallback(async (): Promise<PrivacyOptionsOutcome> => {
+		if (runtime.ads === null) {
+			return 'ignored';
+		}
+		const outcome = await openPrivacyOptionsForm(runtime.ads, {
+			holdWhileShowing: () => interruptions?.acquire('consent') ?? (() => undefined),
+		});
+		if (outcome === 'failed') {
+			errorLog.report({ code: PRIVACY_OPTIONS_FAILED_CODE, operation: MONETIZATION_OPERATION });
+		}
+		return outcome;
+	}, [runtime, interruptions, errorLog]);
 
 	const value = useMemo<MonetizationContextValue>(
 		() => ({
@@ -160,10 +189,11 @@ export function MonetizationProvider({ children }: { children: React.ReactNode }
 			supported: payment !== null,
 			storeAvailable,
 			canBuy: runtime.env.sellingEnabled,
-			pending,
-			markPending,
+			pending: snapshot.pending,
 			purchasing,
 			interstitial,
+			privacyOptions,
+			openPrivacyOptions,
 		}),
 		[
 			interstitial,
@@ -176,9 +206,10 @@ export function MonetizationProvider({ children }: { children: React.ReactNode }
 			closeRemoveAds,
 			payment,
 			storeAvailable,
-			pending,
-			markPending,
+			snapshot.pending,
 			purchasing,
+			privacyOptions,
+			openPrivacyOptions,
 		],
 	);
 

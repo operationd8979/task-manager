@@ -37,13 +37,11 @@ function setup(options: {
 	purchase?: PurchaseStatus;
 	pending?: boolean;
 }) {
-	const markPending = jest.fn();
 	mockMonetization.current = {
 		purchasing: options.purchasing,
 		purchase: options.purchase ?? 'not_owned',
 		pending: options.pending ?? false,
 		canBuy: true,
-		markPending,
 	};
 	const flow: { current: RemoveAdsFlow | null } = { current: null };
 	function Probe() {
@@ -58,7 +56,7 @@ function setup(options: {
 		ReactTestRenderer.act(() => {
 			tree.update(<Probe />);
 		});
-	return { flow, markPending, rerender };
+	return { flow, rerender };
 }
 
 const settle = () => ReactTestRenderer.act(async () => {});
@@ -124,15 +122,16 @@ describe('useRemoveAdsFlow', () => {
 		expect(flow.current?.busy).toBe(false);
 	});
 
-	it('records a pending payment and shows it as pending (AC-5.1)', async () => {
-		const { flow, markPending } = setup({ purchasing: purchasingWith({ buy: 'pending' }) });
+	it('shows a pending payment as pending, before the pending set catches up (AC-5.1)', async () => {
+		// `pending` is still false here, as it can be for the render right after
+		// the purchase returns: the view must not bounce back to Buy.
+		const { flow } = setup({ purchasing: purchasingWith({ buy: 'pending' }) });
 		await settle();
 		await ReactTestRenderer.act(async () => flow.current?.buy());
-		expect(markPending).toHaveBeenCalledTimes(1);
 		expect(flow.current?.view.kind).toBe('pending');
 	});
 
-	it('opens straight into pending while a payment is still believed open (AC-5.2)', async () => {
+	it('opens straight into pending while a payment is listed as pending (AC-5.2)', async () => {
 		const purchasing = purchasingWith({});
 		const { flow } = setup({ purchasing, pending: true });
 		await settle();
@@ -147,6 +146,20 @@ describe('useRemoveAdsFlow', () => {
 		rerender();
 		await settle();
 		expect(flow.current?.view.kind).toBe('success');
+	});
+
+	it('offers Buy again in place when the pending payment is declined (AC-5.5)', async () => {
+		const purchasing = purchasingWith({});
+		const { flow, rerender } = setup({ purchasing, pending: true });
+		await settle();
+		expect(flow.current?.view.kind).toBe('pending');
+
+		mockMonetization.current = { ...mockMonetization.current, pending: false };
+		rerender();
+		await settle();
+
+		expect(flow.current?.view).toEqual({ kind: 'ready', product: PRODUCT, note: 'none' });
+		expect(purchasing.lookupProduct).toHaveBeenCalledTimes(1);
 	});
 
 	it('says purchases are disabled in a development build (AC-7.1)', async () => {
