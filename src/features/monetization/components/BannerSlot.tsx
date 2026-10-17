@@ -13,14 +13,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { StyleSheet } from 'react-native-unistyles';
 import type { PlacementState } from '@chipmobilesdk/rn-ads';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { useBottomInset } from '../../../app/providers/BottomInsetProvider';
 import { useMonetization } from '../../../app/providers/MonetizationProvider';
 import { Text } from '../../../components/Text';
 import { useT } from '../../../i18n/useT';
 import { PLACEMENT } from '../../../services/monetization/catalog';
-import { appTheme } from '../../../theme/theme';
-import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
 /** Long enough to read as a slide, short enough never to hold up a tap. */
 const SLOT_ANIMATION_MS = 220;
@@ -132,38 +131,28 @@ export function BannerSlot({ bottomInset }: BannerSlotProps) {
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		strip: {
-			minHeight: TAP_TARGET_MIN,
-			flexDirection: 'row',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			paddingLeft: theme.spacing.md,
-			borderTopWidth: 1,
-			borderTopColor: theme.color.border,
-			backgroundColor: theme.color.background,
-		},
-		label: {
-			...theme.typography.caption,
-			color: theme.appColor.textMuted,
-		},
-		link: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			paddingHorizontal: theme.spacing.md,
-		},
-		linkLabel: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-			fontWeight: '800',
-		},
-		insetOpen: {
-			backgroundColor: theme.color.background,
-		},
-		insetCollapsed: {
-			backgroundColor: theme.appColor.accentFill,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	strip: {
+		...layout.rowBetween,
+		...theme.border.top,
+		minHeight: theme.size.touchTarget,
+		paddingLeft: theme.spacing.md,
+		backgroundColor: theme.color.background,
+	},
+	label: theme.text.caption,
+	link: {
+		...theme.box.touchTarget,
+		paddingHorizontal: theme.spacing.md,
+	},
+	linkLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.fg,
+	},
+	insetOpen: {
+		backgroundColor: theme.color.background,
+	},
+	insetCollapsed: {
+		backgroundColor: theme.tone.accent.fill,
+	},
+}));

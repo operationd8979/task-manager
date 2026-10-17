@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useLocale } from '@chipmobilesdk/rn-i18n';
+import { applyThemeMode, layout, presets } from '@chipmobilesdk/rn-theme';
 
 import { useMonetization } from '../../../app/providers/MonetizationProvider';
 import { useReminders } from '../../../app/providers/ReminderProvider';
@@ -17,14 +18,11 @@ import { COUNTDOWN_OFFSETS } from '../../../domain/countdown';
 import type { DisplayMode } from '../../../domain/settings';
 import { useT } from '../../../i18n/useT';
 import type { Weekday } from '../../../lib/date';
-import { applyDisplayMode } from '../../../theme/mode';
-import { appTheme } from '../../../theme/theme';
+import { toThemeMode } from '../../../theme/mode';
 import {
 	BAR_HEIGHT,
 	DAY_ICON_SIZE,
-	GLYPH_ALIGN,
 	NAV_CHEVRON_SIZE,
-	TAP_TARGET_MIN,
 } from '../../../theme/tokens';
 import { RemoveAdsSection } from '../../monetization';
 import { PrivacyPolicyRow } from '../components/PrivacyPolicyRow';
@@ -38,6 +36,8 @@ export function SettingsScreen() {
 	const reminders = useReminders();
 	const monetization = useMonetization();
 	const [confirmDestroy, setConfirmDestroy] = useState(false);
+	// Skeleton rows take the height of the controls they stand in for.
+	const rowHeight = useUnistyles().theme.size.touchTarget;
 
 	return (
 		<ThemedSafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -55,9 +55,9 @@ export function SettingsScreen() {
 			{settings.state.status === 'loading' ? (
 				<SkeletonGroup>
 					<View style={styles.section}>
-						<Skeleton height={TAP_TARGET_MIN} />
-						<Skeleton height={TAP_TARGET_MIN} />
-						<Skeleton height={TAP_TARGET_MIN} />
+						<Skeleton height={rowHeight} />
+						<Skeleton height={rowHeight} />
+						<Skeleton height={rowHeight} />
 					</View>
 				</SkeletonGroup>
 			) : null}
@@ -141,7 +141,7 @@ export function SettingsScreen() {
 							onChange={next => {
 								// Applied immediately, before the write confirms — the theme is
 								// presentation, and waiting on storage would feel broken.
-								applyDisplayMode(next);
+								applyThemeMode(toThemeMode(next));
 								settings.update('displayMode', next).catch(() => undefined);
 							}}
 							options={[
@@ -310,75 +310,64 @@ function PermissionRow({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		screen: { flex: 1, backgroundColor: theme.color.background },
-		bar: {
-			minHeight: BAR_HEIGHT.day,
-			flexDirection: 'row',
-			alignItems: 'center',
-			borderBottomWidth: 2,
-			borderBottomColor: theme.color.onBackground,
-		},
-		// Same size as the day bar's controls: this header is the counterpart to
-		// that one, and a smaller arrow here reads as a different app.
-		back: {
-			width: DAY_ICON_SIZE,
-			height: DAY_ICON_SIZE,
-			alignItems: 'center',
-			justifyContent: 'center',
-		},
-		barTitle: {
-			...theme.typography.body,
-			...GLYPH_ALIGN,
-			color: theme.color.onBackground,
-			fontWeight: '800',
-		},
-		content: { padding: theme.spacing.md, gap: theme.spacing.md },
-		section: { padding: theme.spacing.md, gap: theme.spacing.sm },
-		sectionTitle: {
-			...theme.typography.caption,
-			color: theme.appColor.textMuted,
-		},
-		row: { gap: theme.spacing.xs },
-		rowLabel: { ...theme.typography.body, color: theme.color.onBackground },
-		hint: { ...theme.typography.label, color: theme.appColor.textMuted },
-		failed: { ...theme.typography.label, color: theme.appColor.accentInk },
-		linkAction: { minHeight: TAP_TARGET_MIN, justifyContent: 'center' },
-		link: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-			fontWeight: '800',
-		},
-		// Outlined, not filled: a filled accent button is for the primary action,
-		// never for the destructive one (design/wireframes.md W-06).
-		destroyButton: {
-			minHeight: BAR_HEIGHT.action,
-			justifyContent: 'center',
-			alignItems: 'center',
-			borderWidth: 2,
-			borderColor: theme.appColor.accentInk,
-			backgroundColor: 'transparent',
-			marginTop: theme.spacing.lg,
-		},
-		destroyLabel: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-			fontWeight: '800',
-		},
-		destroyConfirm: {
-			borderWidth: 2,
-			borderColor: theme.appColor.accentInk,
-			padding: theme.spacing.sm,
-			gap: theme.spacing.xs,
-			marginTop: theme.spacing.lg,
-		},
-		destroyTitle: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-			fontWeight: '800',
-		},
-		destroyAction: { minHeight: TAP_TARGET_MIN, justifyContent: 'center' },
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	screen: { ...layout.fill, backgroundColor: theme.color.background },
+	bar: {
+		...layout.rowCenter,
+		minHeight: BAR_HEIGHT.day,
+		borderBottomWidth: theme.borderWidth.thick,
+		borderBottomColor: theme.color.onBackground,
+	},
+	// Same size as the day bar's controls: this header is the counterpart to
+	// that one, and a smaller arrow here reads as a different app.
+	back: {
+		...layout.center,
+		width: DAY_ICON_SIZE,
+		height: DAY_ICON_SIZE,
+	},
+	barTitle: {
+		...theme.text.body,
+		...theme.font.heavy,
+		...presets.glyphAlign,
+	},
+	content: { padding: theme.spacing.md, gap: theme.spacing.md },
+	section: { padding: theme.spacing.md, gap: theme.spacing.sm },
+	sectionTitle: theme.text.caption,
+	row: { gap: theme.spacing.xs },
+	rowLabel: theme.text.body,
+	hint: theme.text.labelMuted,
+	failed: { ...theme.typography.label, color: theme.tone.accent.fg },
+	linkAction: theme.box.touchTarget,
+	link: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.fg,
+	},
+	// Outlined, not filled: a filled accent button is for the primary action,
+	// never for the destructive one (design/wireframes.md W-06).
+	destroyButton: {
+		...layout.center,
+		minHeight: BAR_HEIGHT.action,
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.tone.accent.fg,
+		backgroundColor: 'transparent',
+		marginTop: theme.spacing.lg,
+	},
+	destroyLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.fg,
+	},
+	destroyConfirm: {
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.tone.accent.fg,
+		padding: theme.spacing.sm,
+		gap: theme.spacing.xs,
+		marginTop: theme.spacing.lg,
+	},
+	destroyTitle: {
+		...theme.text.body,
+		...theme.font.heavy,
+	},
+	destroyAction: theme.box.touchTarget,
+}));

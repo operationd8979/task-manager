@@ -1,9 +1,8 @@
 import React from 'react';
 import { Keyboard, Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
-import { appTheme } from '../theme/theme';
-import { TAP_TARGET_MIN } from '../theme/tokens';
 import { Text } from './Text';
 
 export interface SegmentedOption<T extends string> {
@@ -93,59 +92,55 @@ function SegmentedItem<T extends string>({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw); return ({
-		container: {
-			flexDirection: 'row',
-			borderWidth: 2,
-			borderColor: theme.color.border,
-			borderRadius: theme.radius.sm,
-		},
-		gridContainer: {
-			flexDirection: 'row',
-			flexWrap: 'wrap',
-			borderWidth: 2,
-			borderColor: theme.color.border,
-			borderRadius: theme.radius.sm,
-		},
-		item: {
-			minHeight: TAP_TARGET_MIN,
-			paddingVertical: theme.spacing.xs,
-			paddingHorizontal: theme.spacing.sm,
-			justifyContent: 'center',
-			alignItems: 'center',
-			variants: {
-				selected: {
-					true: { backgroundColor: theme.appColor.accentFill },
-					false: { backgroundColor: 'transparent' },
-				},
-				width: {
-					// Exactly two per line, so the wrap lands where it is meant to
-					// rather than wherever the longest label happens to push it.
-					half: { flexGrow: 0, flexShrink: 1, flexBasis: '50%' },
-					share: { flex: 1 },
-				},
+const styles = StyleSheet.create(theme => ({
+	container: {
+		...layout.row,
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.color.outline,
+		borderRadius: theme.radius.sm,
+	},
+	gridContainer: {
+		...layout.wrap,
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.color.outline,
+		borderRadius: theme.radius.sm,
+	},
+	item: {
+		...theme.box.touchTarget,
+		...layout.center,
+		paddingVertical: theme.spacing.xs,
+		paddingHorizontal: theme.spacing.sm,
+		variants: {
+			selected: {
+				true: { backgroundColor: theme.tone.accent.fill },
+				false: { backgroundColor: 'transparent' },
+			},
+			width: {
+				// Exactly two per line, so the wrap lands where it is meant to
+				// rather than wherever the longest label happens to push it.
+				half: { flexGrow: 0, flexShrink: 1, flexBasis: '50%' },
+				share: layout.fill,
 			},
 		},
-		label: {
-			...theme.typography.label,
-			textAlign: 'center',
-			variants: {
-				selected: {
-					true: { color: theme.appColor.onAccent, fontWeight: '800' },
-					false: { color: theme.color.onBackground, fontWeight: '400' },
-				},
+	},
+	label: {
+		...theme.typography.label,
+		textAlign: 'center',
+		variants: {
+			selected: {
+				true: { color: theme.tone.accent.onFill, ...theme.font.heavy },
+				false: { color: theme.color.onBackground, ...theme.font.regular },
 			},
 		},
-		hint: {
-			...theme.typography.caption,
-			textAlign: 'center',
-			variants: {
-				selected: {
-					true: { color: theme.appColor.onAccent },
-					false: { color: theme.appColor.textMuted },
-				},
+	},
+	hint: {
+		...theme.typography.caption,
+		textAlign: 'center',
+		variants: {
+			selected: {
+				true: { color: theme.tone.accent.onFill },
+				false: { color: theme.color.onSurfaceVariant },
 			},
 		},
-	});
-});
+	},
+}));

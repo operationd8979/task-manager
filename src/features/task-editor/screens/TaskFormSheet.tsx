@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Pressable, Switch, TextInput, View } from 'react-native';
 import type { BottomSheetScrollViewMethods } from '@gorhom/bottom-sheet';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { useReminders } from '../../../app/providers/ReminderProvider';
 import { Chip, ChipRow } from '../../../components/Chip';
@@ -21,8 +22,7 @@ import type { AppI18nKey, Translate } from '../../../i18n';
 import { useT } from '../../../i18n/useT';
 import { minutesOf, timeFromMinutes, type LocalDate } from '../../../lib/date';
 import { repeatPatternLabel } from '../../../lib/format';
-import { appTheme } from '../../../theme/theme';
-import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
+import { BAR_HEIGHT } from '../../../theme/tokens';
 import { DateTimeField } from '../components/DateTimeField';
 import { Field } from '../components/Field';
 import {
@@ -503,170 +503,136 @@ function saveLabel(t: Translate, saving: boolean, editing: boolean): string {
 	return editing ? t('form.saveEdit') : t('form.save');
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		fields: {
-			gap: theme.spacing.md,
-			paddingBottom: theme.spacing.lg,
-		},
-		row: {
-			flexDirection: 'row',
-			// Wraps rather than clipping when the OS text size is turned up.
-			flexWrap: 'wrap',
-			gap: theme.spacing.sm,
-		},
-		cell: {
-			flexGrow: 1,
-			flexBasis: 96,
-		},
-		input: {
-			minHeight: TAP_TARGET_MIN,
-			borderWidth: 1,
-			borderColor: theme.color.border,
-			backgroundColor: theme.color.surface,
-			color: theme.color.onSurface,
-			paddingHorizontal: theme.spacing.sm,
-			...theme.typography.body,
-		},
-		textarea: {
-			minHeight: 72,
-			borderWidth: 1,
-			borderColor: theme.color.border,
-			backgroundColor: theme.color.surface,
-			color: theme.color.onSurface,
-			padding: theme.spacing.sm,
-			textAlignVertical: 'top',
-			...theme.typography.label,
-		},
-		emptyEnd: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			paddingHorizontal: theme.spacing.sm,
-			borderWidth: 1,
-			borderStyle: 'dashed',
-			borderColor: theme.color.border,
-		},
-		emptyEndLabel: {
-			...theme.typography.body,
-			color: theme.appColor.textMuted,
-		},
-		switchRow: {
-			flexDirection: 'row',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			minHeight: TAP_TARGET_MIN,
-		},
-		switchLabel: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-		},
-		reminderHint: {
-			...theme.typography.label,
-			// The muted grey, re-derived for these surfaces at 4.77:1 — a hint that
-			// fails contrast is not a hint (Principle V).
-			color: theme.color.disabled,
-		},
-		reminderWarningText: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-		},
-		repeatRow: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			borderWidth: 1,
-			borderColor: theme.color.border,
-			paddingHorizontal: theme.spacing.sm,
-		},
-		repeatValue: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-		},
-		/**
-		 * A value the user can read but not change.
-		 *
-		 * Dashed rather than solid, and on the muted ink: legible enough to answer
-		 * "which series am I editing", and plainly not an input — otherwise people
-		 * tap it, nothing opens, and they conclude the screen is broken.
-		 */
-		readOnly: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			paddingHorizontal: theme.spacing.sm,
-			borderWidth: 1,
-			borderStyle: 'dashed',
-			borderColor: theme.color.border,
-			backgroundColor: theme.color.surface,
-		},
-		readOnlyValue: {
-			...theme.typography.body,
-			color: theme.appColor.textMuted,
-		},
-		appliesAll: {
-			...theme.typography.label,
-			color: theme.color.disabled,
-		},
-		unsaved: {
-			borderWidth: 2,
-			borderColor: theme.appColor.accentInk,
-			padding: theme.spacing.sm,
-			gap: theme.spacing.sm,
-			marginBottom: theme.spacing.md,
-		},
-		unsavedTitle: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-			fontWeight: '800',
-		},
-		unsavedPrimary: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			alignItems: 'center',
-			paddingHorizontal: theme.spacing.sm,
-			backgroundColor: theme.appColor.accentFill,
-		},
-		unsavedPrimaryLabel: {
-			...theme.typography.body,
-			color: theme.appColor.onAccent,
-			fontWeight: '800',
-		},
-		unsavedSecondary: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			alignItems: 'center',
-			paddingHorizontal: theme.spacing.sm,
-			borderWidth: 2,
-			borderColor: theme.color.onBackground,
-		},
-		unsavedSecondaryLabel: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-			fontWeight: '800',
-		},
-		unsavedDanger: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			alignItems: 'center',
-			paddingHorizontal: theme.spacing.sm,
-			borderWidth: 2,
-			borderColor: theme.appColor.accentInk,
-		},
-		unsavedDangerLabel: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-			fontWeight: '800',
-		},
-		primary: {
-			minHeight: BAR_HEIGHT.action,
-			justifyContent: 'center',
-			alignItems: 'center',
-			paddingHorizontal: theme.spacing.md,
-			backgroundColor: theme.appColor.accentFill,
-		},
-		primaryLabel: {
-			...theme.typography.body,
-			color: theme.appColor.onAccent,
-			fontWeight: '800',
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	fields: {
+		gap: theme.spacing.md,
+		paddingBottom: theme.spacing.lg,
+	},
+	row: {
+		// Wraps rather than clipping when the OS text size is turned up.
+		...layout.wrap,
+		gap: theme.spacing.sm,
+	},
+	cell: {
+		flexGrow: 1,
+		flexBasis: 96,
+	},
+	input: {
+		...theme.typography.body,
+		minHeight: theme.size.touchTarget,
+		borderWidth: theme.borderWidth.thin,
+		borderColor: theme.color.outline,
+		backgroundColor: theme.color.surfaceContainerHigh,
+		color: theme.color.onSurface,
+		paddingHorizontal: theme.spacing.sm,
+	},
+	textarea: {
+		...theme.typography.label,
+		minHeight: 72,
+		borderWidth: theme.borderWidth.thin,
+		borderColor: theme.color.outline,
+		backgroundColor: theme.color.surfaceContainerHigh,
+		color: theme.color.onSurface,
+		padding: theme.spacing.sm,
+		textAlignVertical: 'top',
+	},
+	emptyEnd: {
+		...theme.box.touchTarget,
+		paddingHorizontal: theme.spacing.sm,
+		borderWidth: theme.borderWidth.thin,
+		borderStyle: 'dashed',
+		borderColor: theme.color.outline,
+	},
+	emptyEndLabel: theme.text.bodyMuted,
+	switchRow: {
+		...layout.rowBetween,
+		minHeight: theme.size.touchTarget,
+	},
+	switchLabel: theme.text.body,
+	reminderHint: theme.text.labelMuted,
+	reminderWarningText: {
+		...theme.typography.label,
+		color: theme.tone.accent.fg,
+	},
+	repeatRow: {
+		...theme.box.touchTarget,
+		borderWidth: theme.borderWidth.thin,
+		borderColor: theme.color.outline,
+		paddingHorizontal: theme.spacing.sm,
+	},
+	repeatValue: theme.text.body,
+	/**
+	 * A value the user can read but not change.
+	 *
+	 * Dashed rather than solid, on the divider colour and the muted ink:
+	 * legible enough to answer "which series am I editing", and plainly not an
+	 * input — otherwise people tap it, nothing opens, and they conclude the
+	 * screen is broken.
+	 */
+	readOnly: {
+		...theme.box.touchTarget,
+		paddingHorizontal: theme.spacing.sm,
+		borderWidth: theme.borderWidth.thin,
+		borderStyle: 'dashed',
+		borderColor: theme.color.outlineVariant,
+		backgroundColor: theme.color.surfaceContainerHigh,
+	},
+	readOnlyValue: theme.text.bodyMuted,
+	appliesAll: theme.text.labelMuted,
+	unsaved: {
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.tone.accent.fg,
+		padding: theme.spacing.sm,
+		gap: theme.spacing.sm,
+		marginBottom: theme.spacing.md,
+	},
+	unsavedTitle: {
+		...theme.text.body,
+		...theme.font.heavy,
+	},
+	unsavedPrimary: {
+		...theme.box.touchTarget,
+		alignItems: 'center',
+		paddingHorizontal: theme.spacing.sm,
+		backgroundColor: theme.tone.accent.fill,
+	},
+	unsavedPrimaryLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.onFill,
+	},
+	unsavedSecondary: {
+		...theme.box.touchTarget,
+		alignItems: 'center',
+		paddingHorizontal: theme.spacing.sm,
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.color.onBackground,
+	},
+	unsavedSecondaryLabel: {
+		...theme.text.body,
+		...theme.font.heavy,
+	},
+	unsavedDanger: {
+		...theme.box.touchTarget,
+		alignItems: 'center',
+		paddingHorizontal: theme.spacing.sm,
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.tone.accent.fg,
+	},
+	unsavedDangerLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.fg,
+	},
+	primary: {
+		...layout.center,
+		minHeight: BAR_HEIGHT.action,
+		paddingHorizontal: theme.spacing.md,
+		backgroundColor: theme.tone.accent.fill,
+	},
+	primaryLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.onFill,
+	},
+}));

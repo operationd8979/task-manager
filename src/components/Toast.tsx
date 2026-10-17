@@ -6,9 +6,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
-import { appTheme } from '../theme/theme';
-import { BAR_HEIGHT, TAP_TARGET_MIN } from '../theme/tokens';
+import { BAR_HEIGHT } from '../theme/tokens';
 import { Text } from './Text';
 
 export interface ToastProps {
@@ -63,39 +63,32 @@ export function Toast({ message, actionLabel, onAction, extraBottom }: ToastProp
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		container: {
-			backgroundColor: theme.color.surface,
-		},
-		rule: {
-			height: 2,
-			backgroundColor: theme.appColor.accentFill,
-		},
-		row: {
-			flexDirection: 'row',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			paddingLeft: theme.spacing.md,
-			gap: theme.spacing.sm,
-		},
-		message: {
-			...theme.typography.label,
-			color: theme.color.onSurface,
-			flexShrink: 1,
-		},
-		action: {
-			// A 44pt target, not small text — the undo affordance replaced a
-			// confirmation dialog and has to be as easy to hit.
-			minHeight: TAP_TARGET_MIN,
-			paddingHorizontal: theme.spacing.md,
-			justifyContent: 'center',
-		},
-		actionLabel: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-			fontWeight: '800',
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	container: {
+		backgroundColor: theme.color.surfaceContainerHigh,
+	},
+	rule: {
+		height: theme.borderWidth.thick,
+		backgroundColor: theme.tone.accent.fill,
+	},
+	row: {
+		...layout.rowBetween,
+		paddingLeft: theme.spacing.md,
+		gap: theme.spacing.sm,
+	},
+	message: {
+		...theme.text.label,
+		flexShrink: 1,
+	},
+	action: {
+		// A 44pt target, not small text — the undo affordance replaced a
+		// confirmation dialog and has to be as easy to hit.
+		...theme.box.touchTarget,
+		paddingHorizontal: theme.spacing.md,
+	},
+	actionLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.fg,
+	},
+}));

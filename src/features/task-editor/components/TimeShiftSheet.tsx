@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { Chip, ChipRow } from '../../../components/Chip';
 import { Sheet } from '../../../components/Sheet';
@@ -8,7 +9,6 @@ import { Text } from '../../../components/Text';
 import type { Task } from '../../../domain/task';
 import { useT } from '../../../i18n/useT';
 import type { LocalDate, LocalTime } from '../../../lib/date';
-import { appTheme } from '../../../theme/theme';
 import { BAR_HEIGHT } from '../../../theme/tokens';
 import { DateTimeField } from './DateTimeField';
 import { Field } from './Field';
@@ -101,24 +101,17 @@ export function TimeShiftSheet({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		hint: {
-			...theme.typography.caption,
-			color: theme.appColor.textMuted,
-		},
-		primary: {
-			minHeight: BAR_HEIGHT.action,
-			justifyContent: 'center',
-			alignItems: 'center',
-			paddingHorizontal: theme.spacing.md,
-			backgroundColor: theme.appColor.accentFill,
-		},
-		primaryLabel: {
-			...theme.typography.body,
-			color: theme.appColor.onAccent,
-			fontWeight: '800',
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	hint: theme.text.caption,
+	primary: {
+		...layout.center,
+		minHeight: BAR_HEIGHT.action,
+		paddingHorizontal: theme.spacing.md,
+		backgroundColor: theme.tone.accent.fill,
+	},
+	primaryLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.onFill,
+	},
+}));

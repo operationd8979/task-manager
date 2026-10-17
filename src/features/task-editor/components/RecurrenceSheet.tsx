@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { Chip, ChipRow } from '../../../components/Chip';
 import { Segmented } from '../../../components/Segmented';
@@ -20,8 +21,7 @@ import {
 import type { AppI18nKey } from '../../../i18n';
 import { useT } from '../../../i18n/useT';
 import { monthList, repeatPatternLabel, weekdayShort } from '../../../lib/format';
-import { appTheme } from '../../../theme/theme';
-import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
+import { BAR_HEIGHT } from '../../../theme/tokens';
 import { DateTimeField } from './DateTimeField';
 import { Field } from './Field';
 
@@ -355,45 +355,35 @@ function sameDays(a: readonly Weekday[], b: readonly Weekday[]): boolean {
 	return a.length === b.length && b.every(day => a.includes(day));
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		preview: {
-			borderWidth: 1,
-			borderStyle: 'dashed',
-			borderColor: theme.appColor.accentInk,
-			padding: theme.spacing.sm,
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-		},
-		previewText: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-		},
-		warning: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-			backgroundColor: theme.appColor.accentSoft,
-			paddingHorizontal: theme.spacing.xs,
-			paddingVertical: 2,
-		},
-		hint: {
-			...theme.typography.label,
-			// The muted grey re-derived for these surfaces at 4.77:1 — a hint that
-			// fails contrast is not a hint (Principle V).
-			color: theme.color.disabled,
-		},
-		primary: {
-			minHeight: BAR_HEIGHT.action,
-			justifyContent: 'center',
-			alignItems: 'center',
-			paddingHorizontal: theme.spacing.md,
-			backgroundColor: theme.appColor.accentFill,
-		},
-		primaryLabel: {
-			...theme.typography.body,
-			color: theme.appColor.onAccent,
-			fontWeight: '800',
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	preview: {
+		...theme.box.touchTarget,
+		borderWidth: theme.borderWidth.thin,
+		borderStyle: 'dashed',
+		borderColor: theme.tone.accent.fg,
+		padding: theme.spacing.sm,
+	},
+	previewText: {
+		...theme.typography.label,
+		color: theme.tone.accent.fg,
+	},
+	warning: {
+		...theme.typography.label,
+		color: theme.tone.accent.onContainer,
+		backgroundColor: theme.tone.accent.container,
+		paddingHorizontal: theme.spacing.xs,
+		paddingVertical: theme.spacing.xxs,
+	},
+	hint: theme.text.labelMuted,
+	primary: {
+		...layout.center,
+		minHeight: BAR_HEIGHT.action,
+		paddingHorizontal: theme.spacing.md,
+		backgroundColor: theme.tone.accent.fill,
+	},
+	primaryLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.onFill,
+	},
+}));

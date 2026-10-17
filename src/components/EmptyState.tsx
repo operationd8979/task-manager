@@ -2,8 +2,6 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
-import { appTheme } from '../theme/theme';
-import { TAP_TARGET_MIN } from '../theme/tokens';
 import { Text } from './Text';
 
 export interface EmptyStateProps {
@@ -40,29 +38,20 @@ export function EmptyState({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw); return ({
-		container: {
-			paddingHorizontal: theme.spacing.md,
-			paddingVertical: theme.spacing.xl,
-			gap: theme.spacing.sm,
-		},
-		title: {
-			...theme.typography.title,
-			color: theme.color.onBackground,
-		},
-		body: {
-			...theme.typography.label,
-			color: theme.appColor.textMuted,
-		},
-		action: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			marginTop: theme.spacing.sm,
-		},
-		actionLabel: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-		},
-	});
-});
+const styles = StyleSheet.create(theme => ({
+	container: {
+		paddingHorizontal: theme.spacing.md,
+		paddingVertical: theme.spacing.xl,
+		gap: theme.spacing.sm,
+	},
+	title: theme.text.title,
+	body: theme.text.labelMuted,
+	action: {
+		...theme.box.touchTarget,
+		marginTop: theme.spacing.sm,
+	},
+	actionLabel: {
+		...theme.typography.body,
+		color: theme.tone.accent.fg,
+	},
+}));

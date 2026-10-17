@@ -6,8 +6,6 @@ import { Sheet } from '../../../components/Sheet';
 import { Text } from '../../../components/Text';
 import type { Translate } from '../../../i18n';
 import { useT } from '../../../i18n/useT';
-import { appTheme } from '../../../theme/theme';
-import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
 export type RowAction = 'move' | 'edit' | 'skip' | 'delete';
 
@@ -102,26 +100,15 @@ export function RowActionsSheet({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		subject: {
-			...theme.typography.label,
-			color: theme.appColor.textMuted,
-		},
-		row: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			borderBottomWidth: 1,
-			borderBottomColor: theme.color.border,
-		},
-		label: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-		},
-		destructive: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	subject: theme.text.labelMuted,
+	row: {
+		...theme.box.touchTarget,
+		...theme.border.bottom,
+	},
+	label: theme.text.body,
+	destructive: {
+		...theme.typography.body,
+		color: theme.tone.accent.fg,
+	},
+}));

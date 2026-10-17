@@ -8,8 +8,6 @@ import { Text } from '../../../components/Text';
 import { countOccurrences, type RecurringRule } from '../../../domain/recurrence';
 import { useT } from '../../../i18n/useT';
 import { addDays, type LocalDate } from '../../../lib/date';
-import { appTheme } from '../../../theme/theme';
-import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
 /** The counting window for an unbounded series (FR-026c, decisions.md D-05). */
 const WINDOW_DAYS = 365;
@@ -128,40 +126,26 @@ export function ScopeSheet({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		subject: {
-			...theme.typography.label,
-			color: theme.appColor.textMuted,
-		},
-		choice: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			borderWidth: 2,
-			borderColor: theme.color.onBackground,
-			padding: theme.spacing.sm,
-			gap: theme.spacing.xs,
-		},
-		choiceLabel: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-			fontWeight: '800',
-		},
-		effect: {
-			...theme.typography.caption,
-			color: theme.appColor.accentInk,
-			backgroundColor: theme.appColor.accentSoft,
-			paddingHorizontal: theme.spacing.xs,
-			paddingVertical: 2,
-		},
-		cancel: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-		},
-		cancelLabel: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	subject: theme.text.labelMuted,
+	choice: {
+		...theme.box.touchTarget,
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.color.onBackground,
+		padding: theme.spacing.sm,
+		gap: theme.spacing.xs,
+	},
+	choiceLabel: {
+		...theme.text.body,
+		...theme.font.heavy,
+	},
+	effect: {
+		...theme.typography.caption,
+		color: theme.tone.accent.onContainer,
+		backgroundColor: theme.tone.accent.container,
+		paddingHorizontal: theme.spacing.xs,
+		paddingVertical: theme.spacing.xxs,
+	},
+	cancel: theme.box.touchTarget,
+	cancelLabel: theme.text.body,
+}));

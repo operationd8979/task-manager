@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { Chevron } from '../../../components/Chevron';
 import { Sheet } from '../../../components/Sheet';
@@ -16,12 +17,7 @@ import {
 	type Weekday,
 } from '../../../lib/date';
 import { monthStandalone, weekdayShort } from '../../../lib/format';
-import { appTheme } from '../../../theme/theme';
-import {
-	BAR_HEIGHT,
-	SHEET_CHEVRON_SIZE,
-	TAP_TARGET_MIN,
-} from '../../../theme/tokens';
+import { BAR_HEIGHT, SHEET_CHEVRON_SIZE } from '../../../theme/tokens';
 import { useBusyDays } from '../hooks/useBusyDays';
 
 const WEEK_LENGTH = 7;
@@ -182,89 +178,75 @@ function shiftMonth(anchor: LocalDate, delta: number): LocalDate {
 	return toLocalDate(new Date(d.getFullYear(), d.getMonth() + delta, 1));
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		header: {
-			flexDirection: 'row',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-		},
-		monthArrow: {
-			width: TAP_TARGET_MIN,
-			height: TAP_TARGET_MIN,
-			alignItems: 'center',
-			justifyContent: 'center',
-		},
-		monthLabel: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-			fontWeight: '800',
-		},
-		footerAction: {
-			minHeight: BAR_HEIGHT.action,
-			justifyContent: 'center',
-			alignItems: 'center',
-			paddingHorizontal: theme.spacing.md,
-			backgroundColor: theme.appColor.accentFill,
-		},
-		footerLabel: {
-			...theme.typography.body,
-			color: theme.appColor.onAccent,
-			fontWeight: '800',
-		},
-		busyFailed: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-		},
-		weekHeader: {
-			flexDirection: 'row',
-		},
-		weekHeaderCell: {
-			...theme.typography.caption,
-			color: theme.appColor.textMuted,
-			flex: 1,
-			textAlign: 'center',
-		},
-		grid: {
-			flexDirection: 'row',
-			flexWrap: 'wrap',
-		},
-		cell: {
-			width: `${100 / WEEK_LENGTH}%`,
-			minHeight: TAP_TARGET_MIN,
-			alignItems: 'center',
-			justifyContent: 'center',
-			borderWidth: 2,
-			variants: {
-				isSelected: {
-					true: { borderColor: theme.color.onBackground },
-					false: { borderColor: 'transparent' },
-				},
+/** The busy-day mark under a date. */
+const DOT_SIZE = 4;
+
+const styles = StyleSheet.create(theme => ({
+	header: layout.rowBetween,
+	monthArrow: {
+		...layout.center,
+		width: theme.size.touchTarget,
+		height: theme.size.touchTarget,
+	},
+	monthLabel: {
+		...theme.text.body,
+		...theme.font.heavy,
+	},
+	footerAction: {
+		...layout.center,
+		minHeight: BAR_HEIGHT.action,
+		paddingHorizontal: theme.spacing.md,
+		backgroundColor: theme.tone.accent.fill,
+	},
+	footerLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.onFill,
+	},
+	busyFailed: {
+		...theme.typography.label,
+		color: theme.tone.accent.fg,
+	},
+	weekHeader: layout.row,
+	weekHeaderCell: {
+		...theme.text.caption,
+		...layout.fill,
+		textAlign: 'center',
+	},
+	grid: layout.wrap,
+	cell: {
+		...layout.center,
+		width: `${100 / WEEK_LENGTH}%`,
+		minHeight: theme.size.touchTarget,
+		borderWidth: theme.borderWidth.thick,
+		variants: {
+			isSelected: {
+				true: { borderColor: theme.color.onBackground },
+				false: { borderColor: 'transparent' },
 			},
 		},
-		cellLabel: {
-			...theme.typography.label,
-			variants: {
-				inMonth: {
-					true: { color: theme.color.onBackground, opacity: 1 },
-					false: { color: theme.appColor.textMuted, opacity: 0.4 },
-				},
+	},
+	cellLabel: {
+		...theme.typography.label,
+		variants: {
+			inMonth: {
+				true: { color: theme.color.onBackground, opacity: 1 },
+				false: { color: theme.color.onSurfaceVariant, opacity: 0.4 },
 			},
 		},
-		dot: {
-			width: 4,
-			height: 4,
-			marginTop: 2,
-			variants: {
-				isBusy: {
-					true: { backgroundColor: theme.color.primary },
-					false: { backgroundColor: 'transparent' },
-				},
-				isCounting: {
-					true: { backgroundColor: theme.appColor.skeletonFrom },
-				},
+	},
+	dot: {
+		width: DOT_SIZE,
+		height: DOT_SIZE,
+		marginTop: theme.spacing.xxs,
+		variants: {
+			isBusy: {
+				true: { backgroundColor: theme.color.primary },
+				false: { backgroundColor: 'transparent' },
+			},
+			isCounting: {
+				true: { backgroundColor: theme.appColor.skeleton },
 			},
 		},
-	};
-});
+	},
+}));

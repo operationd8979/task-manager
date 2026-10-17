@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { GestureDetector, type GestureType } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout, presets } from '@chipmobilesdk/rn-theme';
 
 import { Text } from '../../../components/Text';
 import {
@@ -19,8 +20,7 @@ import {
 	repeatPatternLabel,
 	timeRangeLabel,
 } from '../../../lib/format';
-import { appTheme } from '../../../theme/theme';
-import { GLYPH_ALIGN, ROW_MIN_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
+import { ROW_MIN_HEIGHT } from '../../../theme/tokens';
 import { useTaskDrag } from '../hooks/useTaskDrag';
 
 /** Placeholders until the icon set is chosen (decisions.md D-06). */
@@ -280,215 +280,203 @@ export function TaskRow({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		row: {
-			minHeight: ROW_MIN_HEIGHT.oneLabel,
-			flexDirection: 'row',
-			alignItems: 'center',
-			borderBottomWidth: 1,
-			borderBottomColor: theme.color.border,
-			variants: {
-				state: {
-					// A completed row recedes, but stays fully legible.
-					done: { backgroundColor: theme.color.surface, opacity: 0.72 },
-					// A skipped one recedes further: it is the only row on the day that
-					// is not going to happen.
-					skipped: { backgroundColor: theme.color.surface, opacity: 0.6 },
-					overdue: { backgroundColor: theme.color.background, opacity: 1 },
-					normal: { backgroundColor: theme.color.background, opacity: 1 },
+const styles = StyleSheet.create(theme => ({
+	row: {
+		...layout.rowCenter,
+		...theme.border.bottom,
+		minHeight: ROW_MIN_HEIGHT.oneLabel,
+		variants: {
+			state: {
+				// A completed row recedes, but stays fully legible.
+				done: {
+					backgroundColor: theme.color.surfaceContainerHigh,
+					opacity: 0.72,
 				},
-				dragging: {
-					// Wins over `state`: the row being dragged has to stand out from the
-					// rest of the list while the finger is down.
-					true: { backgroundColor: theme.color.surface, opacity: 1 },
-					false: {},
+				// A skipped one recedes further: it is the only row on the day that
+				// is not going to happen.
+				skipped: {
+					backgroundColor: theme.color.surfaceContainerHigh,
+					opacity: 0.6,
+				},
+				overdue: { backgroundColor: theme.color.background, opacity: 1 },
+				normal: { backgroundColor: theme.color.background, opacity: 1 },
+			},
+			dragging: {
+				// Wins over `state`: the row being dragged has to stand out from the
+				// rest of the list while the finger is down.
+				true: { backgroundColor: theme.color.surfaceContainerHigh, opacity: 1 },
+				false: {},
+			},
+		},
+	},
+	/**
+	 * The status stripe down the leading edge.
+	 *
+	 * Full-bleed and only 4pt wide, so a scan down the day answers "what needs
+	 * me" before any word is read. It duplicates a label that is always present
+	 * rather than replacing one.
+	 */
+	accent: {
+		alignSelf: 'stretch',
+		width: 4,
+		variants: {
+			state: {
+				overdue: { backgroundColor: theme.tone.accent.fill },
+				done: { backgroundColor: theme.color.success },
+				skipped: { backgroundColor: theme.color.outline },
+				normal: { backgroundColor: 'transparent' },
+			},
+		},
+	},
+	checkTarget: {
+		...layout.center,
+		width: theme.size.touchTarget,
+		height: theme.size.touchTarget,
+	},
+	checkBox: {
+		...layout.center,
+		width: theme.size.touchTarget / 2,
+		height: theme.size.touchTarget / 2,
+		borderWidth: theme.borderWidth.thick,
+		variants: {
+			state: {
+				done: {
+					backgroundColor: theme.color.success,
+					borderColor: theme.color.success,
+				},
+				skipped: {
+					backgroundColor: 'transparent',
+					borderColor: theme.color.outline,
+				},
+				overdue: {
+					backgroundColor: 'transparent',
+					borderColor: theme.tone.accent.fg,
+				},
+				normal: {
+					backgroundColor: 'transparent',
+					borderColor: theme.color.onBackground,
 				},
 			},
 		},
-		/**
-		 * The status stripe down the leading edge.
-		 *
-		 * Full-bleed and only 4pt wide, so a scan down the day answers "what needs
-		 * me" before any word is read. It duplicates a label that is always present
-		 * rather than replacing one.
-		 */
-		accent: {
-			alignSelf: 'stretch',
-			width: 4,
-			variants: {
-				state: {
-					overdue: { backgroundColor: theme.color.error },
-					done: { backgroundColor: theme.color.success },
-					skipped: { backgroundColor: theme.color.disabled },
-					normal: { backgroundColor: 'transparent' },
+	},
+	checkGlyph: {
+		...theme.typography.caption,
+		...theme.font.heavy,
+		color: theme.color.onSuccess,
+	},
+	restoreGlyph: {
+		...theme.text.caption,
+		...theme.font.heavy,
+		...presets.glyphAlign,
+	},
+	body: {
+		...layout.fill,
+		paddingVertical: theme.spacing.sm,
+		paddingLeft: theme.spacing.xs,
+		paddingRight: theme.spacing.xs,
+		gap: theme.spacing.xxs,
+	},
+	clockRow: {
+		...layout.wrap,
+		alignItems: 'center',
+		gap: theme.spacing.xs,
+	},
+	clock: {
+		...theme.appType.clock,
+		variants: {
+			state: {
+				overdue: { color: theme.tone.accent.fg },
+				done: { color: theme.color.success },
+				skipped: { color: theme.color.onSurfaceVariant },
+				normal: { color: theme.color.onSurfaceVariant },
+			},
+		},
+	},
+	/**
+	 * Tabular numerals are not optional here: this value changes every second,
+	 * and proportional digits make the whole row jitter as they do.
+	 */
+	countdown: {
+		...theme.appType.clock,
+		color: theme.tone.accent.onContainer,
+		backgroundColor: theme.tone.accent.container,
+		paddingHorizontal: theme.spacing.xs,
+	},
+	title: {
+		...theme.typography.body,
+		variants: {
+			state: {
+				done: {
+					color: theme.color.onBackground,
+					textDecorationLine: 'line-through',
+				},
+				skipped: {
+					color: theme.color.onSurfaceVariant,
+					textDecorationLine: 'line-through',
+				},
+				overdue: {
+					color: theme.color.onBackground,
+					textDecorationLine: 'none',
+				},
+				normal: {
+					color: theme.color.onBackground,
+					textDecorationLine: 'none',
 				},
 			},
 		},
-		checkTarget: {
-			width: TAP_TARGET_MIN,
-			height: TAP_TARGET_MIN,
-			alignItems: 'center',
-			justifyContent: 'center',
-		},
-		checkBox: {
-			width: 22,
-			height: 22,
-			borderWidth: 2,
-			alignItems: 'center',
-			justifyContent: 'center',
-			variants: {
-				state: {
-					done: {
-						backgroundColor: theme.color.success,
-						borderColor: theme.color.success,
-					},
-					skipped: {
-						backgroundColor: 'transparent',
-						borderColor: theme.color.disabled,
-					},
-					overdue: {
-						backgroundColor: 'transparent',
-						borderColor: theme.color.error,
-					},
-					normal: {
-						backgroundColor: 'transparent',
-						borderColor: theme.color.onBackground,
-					},
+	},
+	note: theme.text.labelMuted,
+	dropPreview: {
+		...theme.typography.caption,
+		...theme.font.heavy,
+		color: theme.tone.accent.fg,
+	},
+	labels: {
+		...layout.wrap,
+		gap: theme.spacing.sm,
+		marginTop: theme.spacing.xxs,
+	},
+	label: {
+		...theme.typography.caption,
+		variants: {
+			state: {
+				overdue: {
+					color: theme.tone.accent.onContainer,
+					backgroundColor: theme.tone.accent.container,
+					paddingHorizontal: theme.spacing.xs,
+				},
+				done: {
+					color: theme.color.success,
+					backgroundColor: 'transparent',
+					paddingHorizontal: theme.spacing.none,
+				},
+				skipped: {
+					color: theme.color.onSurfaceVariant,
+					backgroundColor: 'transparent',
+					paddingHorizontal: theme.spacing.none,
+				},
+				normal: {
+					color: theme.color.onSurfaceVariant,
+					backgroundColor: 'transparent',
+					paddingHorizontal: theme.spacing.none,
 				},
 			},
 		},
-		checkGlyph: {
-			...theme.typography.caption,
-			color: theme.appColor.onAccent,
-			fontWeight: '800',
-		},
-		restoreGlyph: {
-			...theme.typography.caption,
-			...GLYPH_ALIGN,
-			color: theme.color.disabled,
-			fontWeight: '800',
-		},
-		body: {
-			flex: 1,
-			paddingVertical: theme.spacing.sm,
-			paddingLeft: theme.spacing.xs,
-			paddingRight: theme.spacing.xs,
-			gap: 2,
-		},
-		clockRow: {
-			flexDirection: 'row',
-			alignItems: 'center',
-			flexWrap: 'wrap',
-			gap: theme.spacing.xs,
-		},
-		clock: {
-			...theme.appType.clock,
-			variants: {
-				state: {
-					overdue: { color: theme.color.error },
-					done: { color: theme.color.success },
-					skipped: { color: theme.color.disabled },
-					normal: { color: theme.appColor.textMuted },
-				},
-			},
-		},
-		/**
-		 * Tabular numerals are not optional here: this value changes every second,
-		 * and proportional digits make the whole row jitter as they do.
-		 */
-		countdown: {
-			...theme.appType.clock,
-			color: theme.appColor.accentInk,
-			backgroundColor: theme.appColor.accentSoft,
-			paddingHorizontal: theme.spacing.xs,
-		},
-		title: {
-			...theme.typography.body,
-			variants: {
-				state: {
-					done: {
-						color: theme.color.onBackground,
-						textDecorationLine: 'line-through',
-					},
-					skipped: {
-						color: theme.color.disabled,
-						textDecorationLine: 'line-through',
-					},
-					overdue: {
-						color: theme.color.onBackground,
-						textDecorationLine: 'none',
-					},
-					normal: {
-						color: theme.color.onBackground,
-						textDecorationLine: 'none',
-					},
-				},
-			},
-		},
-		note: {
-			...theme.typography.label,
-			color: theme.appColor.textMuted,
-		},
-		dropPreview: {
-			...theme.typography.caption,
-			color: theme.appColor.accentInk,
-			fontWeight: '800',
-		},
-		labels: {
-			flexDirection: 'row',
-			flexWrap: 'wrap',
-			gap: theme.spacing.sm,
-			marginTop: 2,
-		},
-		label: {
-			...theme.typography.caption,
-			variants: {
-				state: {
-					overdue: {
-						color: theme.color.error,
-						backgroundColor: theme.appColor.accentSoft,
-						paddingHorizontal: theme.spacing.xs,
-					},
-					done: {
-						color: theme.color.success,
-						backgroundColor: 'transparent',
-						paddingHorizontal: 0,
-					},
-					skipped: {
-						color: theme.color.disabled,
-						backgroundColor: 'transparent',
-						paddingHorizontal: 0,
-					},
-					normal: {
-						color: theme.appColor.textMuted,
-						backgroundColor: 'transparent',
-						paddingHorizontal: 0,
-					},
-				},
-			},
-		},
-		handle: {
-			width: TAP_TARGET_MIN,
-			height: TAP_TARGET_MIN,
-			alignItems: 'center',
-			justifyContent: 'center',
-		},
-		handleGlyph: {
-			...theme.typography.title,
-			...GLYPH_ALIGN,
-			color: theme.appColor.textMuted,
-		},
-		more: {
-			width: TAP_TARGET_MIN,
-			height: TAP_TARGET_MIN,
-			alignItems: 'center',
-			justifyContent: 'center',
-		},
-		moreGlyph: {
-			...theme.typography.title,
-			color: theme.color.onBackground,
-		},
-	};
-});
+	},
+	handle: {
+		...layout.center,
+		width: theme.size.touchTarget,
+		height: theme.size.touchTarget,
+	},
+	handleGlyph: {
+		...theme.typography.title,
+		...presets.glyphAlign,
+		color: theme.color.onSurfaceVariant,
+	},
+	more: {
+		...layout.center,
+		width: theme.size.touchTarget,
+		height: theme.size.touchTarget,
+	},
+	moreGlyph: theme.text.title,
+}));

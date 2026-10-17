@@ -1,19 +1,14 @@
-import { UnistylesRuntime } from 'react-native-unistyles';
+import type { ThemeMode } from '@chipmobilesdk/rn-theme';
 
 import type { DisplayMode } from '../domain/settings';
 
 /**
- * Applies the stored preference at runtime (FR-052c).
+ * The stored preference in the theme package's vocabulary (FR-052c).
  *
- * Order matters: adaptive themes must be switched off BEFORE setting a theme,
- * otherwise the OS colour scheme overrides the manual choice on its next change.
+ * The stored value stays `auto` — renaming it would need a settings migration
+ * for no user benefit. Hand the result to `applyThemeMode`, which switches
+ * adaptive themes off before setting a manual one.
  */
-export function applyDisplayMode(mode: DisplayMode): void {
-	if (mode === 'auto') {
-		UnistylesRuntime.setAdaptiveThemes(true);
-		return;
-	}
-
-	UnistylesRuntime.setAdaptiveThemes(false);
-	UnistylesRuntime.setTheme(mode);
+export function toThemeMode(mode: DisplayMode): ThemeMode {
+	return mode === 'auto' ? 'system' : mode;
 }

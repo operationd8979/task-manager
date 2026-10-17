@@ -11,10 +11,10 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { layout, presets } from '@chipmobilesdk/rn-theme';
 
 import { useT } from '../i18n/useT';
-import { appTheme } from '../theme/theme';
-import { BAR_HEIGHT, GLYPH_ALIGN, TAP_TARGET_MIN } from '../theme/tokens';
+import { BAR_HEIGHT } from '../theme/tokens';
 import { Text } from './Text';
 
 /** Minimum gap to the screen edge, so the timeline stays visible behind. */
@@ -42,58 +42,50 @@ export interface SheetProps {
 /** Placeholder until the icon set is chosen (decisions.md D-06). */
 const CLOSE_GLYPH = '×';
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		background: {
-			backgroundColor: theme.color.background,
-			borderRadius: theme.radius.md,
-		},
-		header: {
-			minHeight: BAR_HEIGHT.sheetHeader,
-			flexDirection: 'row',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			paddingLeft: theme.spacing.md,
-			borderBottomWidth: 2,
-			borderBottomColor: theme.color.onBackground,
-			// The handle sits above the sheet's own background, and the body scrolls
-			// right up to it, so it has to be opaque in its own right.
-			backgroundColor: theme.color.background,
-			borderTopLeftRadius: theme.radius.md,
-			borderTopRightRadius: theme.radius.md,
-		},
-		title: {
-			...theme.appType.sheetTitle,
-			...GLYPH_ALIGN,
-			color: theme.color.onBackground,
-			// Takes the row so the close button is pushed to the far edge of the SAME
-			// line rather than being wrapped onto the next one.
-			flex: 1,
-		},
-		close: {
-			width: TAP_TARGET_MIN,
-			height: TAP_TARGET_MIN,
-			alignItems: 'center',
-			justifyContent: 'center',
-		},
-		closeGlyph: {
-			...theme.typography.title,
-			...GLYPH_ALIGN,
-			color: theme.color.onBackground,
-		},
-		body: {
-			padding: theme.spacing.md,
-			gap: theme.spacing.md,
-		},
-		footer: {
-			minHeight: BAR_HEIGHT.action,
-			backgroundColor: theme.color.background,
-			borderTopWidth: 1,
-			borderTopColor: theme.color.border,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	background: {
+		backgroundColor: theme.color.background,
+		borderRadius: theme.radius.md,
+	},
+	header: {
+		...layout.rowBetween,
+		minHeight: BAR_HEIGHT.sheetHeader,
+		paddingLeft: theme.spacing.md,
+		borderBottomWidth: theme.borderWidth.thick,
+		borderBottomColor: theme.color.onBackground,
+		// The handle sits above the sheet's own background, and the body scrolls
+		// right up to it, so it has to be opaque in its own right.
+		backgroundColor: theme.color.background,
+		borderTopLeftRadius: theme.radius.md,
+		borderTopRightRadius: theme.radius.md,
+	},
+	title: {
+		...theme.appType.sheetTitle,
+		...presets.glyphAlign,
+		color: theme.color.onBackground,
+		// Takes the row so the close button is pushed to the far edge of the SAME
+		// line rather than being wrapped onto the next one.
+		...layout.fill,
+	},
+	close: {
+		width: theme.size.touchTarget,
+		height: theme.size.touchTarget,
+		...layout.center,
+	},
+	closeGlyph: {
+		...theme.text.title,
+		...presets.glyphAlign,
+	},
+	body: {
+		padding: theme.spacing.md,
+		gap: theme.spacing.md,
+	},
+	footer: {
+		...theme.border.top,
+		minHeight: BAR_HEIGHT.action,
+		backgroundColor: theme.color.background,
+	},
+}));
 
 export function Sheet({
 	title,
@@ -164,8 +156,8 @@ export function Sheet({
 	}, [onClose]);
 
 	const insets = useSafeAreaInsets();
-	const { theme: rawTheme } = useUnistyles();
-	const scrim = appTheme(rawTheme).appColor.scrim;
+	const { theme } = useUnistyles();
+	const scrim = theme.color.scrim;
 
 	const renderBackdrop = useCallback(
 		(props: BottomSheetBackdropProps) => (

@@ -3,6 +3,11 @@
 Phiên bản gói đối chiếu: `@chipmobilesdk/rn-theme@0.2.1`, `react-native-unistyles@3.3.0`
 (đã có trong `node_modules`, xem mục "Việc phải làm trước khi code" ở cuối).
 
+> **Superseded (2026-10-17, specs/003-rn-theme-v1-migration):** từ `rn-theme@1.0.0`, mọi màu
+> sinh từ ba màu thương hiệu bằng palette 1.0 — không còn màu ghim tay. Các bảng màu (§2, §3)
+> và mã thiết lập (§5) dưới đây chỉ còn giá trị lịch sử; nguồn hiện hành là `src/theme/config.ts`
+> và design system ghi trong `docs/standards.md`. Thang chữ, khoảng cách, bo góc 0 vẫn đúng.
+
 ## 1. Đầu vào thương hiệu
 
 Ba màu là **toàn bộ** đầu vào màu. Mọi token khác suy ra bằng thuật toán, không khai báo tay

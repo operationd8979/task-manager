@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { Sheet } from '../../../components/Sheet';
 import { Skeleton } from '../../../components/Skeleton';
@@ -8,8 +9,6 @@ import { Text } from '../../../components/Text';
 import { countOccurrences, type RecurringRule } from '../../../domain/recurrence';
 import { useT } from '../../../i18n/useT';
 import { addDays, compareDate, type LocalDate } from '../../../lib/date';
-import { appTheme } from '../../../theme/theme';
-import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
 /** The counting window for an unbounded series (FR-026c, decisions.md D-05). */
 const WINDOW_DAYS = 365;
@@ -130,47 +129,33 @@ export function DeleteSeriesSheet({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		subject: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-			fontWeight: '800',
-		},
-		effect: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-			backgroundColor: theme.appColor.accentSoft,
-			paddingHorizontal: theme.spacing.xs,
-			paddingVertical: 2,
-		},
-		keeps: {
-			...theme.typography.label,
-			color: theme.appColor.textMuted,
-		},
-		// Outlined, never filled: this is the irreversible half of the sheet, so
-		// it must not also be the easiest thing to hit.
-		danger: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			alignItems: 'center',
-			borderWidth: 2,
-			borderColor: theme.appColor.accentInk,
-			paddingHorizontal: theme.spacing.sm,
-		},
-		dangerLabel: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-			fontWeight: '800',
-		},
-		cancel: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-		},
-		cancelLabel: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	subject: {
+		...theme.text.body,
+		...theme.font.heavy,
+	},
+	effect: {
+		...theme.typography.label,
+		color: theme.tone.accent.onContainer,
+		backgroundColor: theme.tone.accent.container,
+		paddingHorizontal: theme.spacing.xs,
+		paddingVertical: theme.spacing.xxs,
+	},
+	keeps: theme.text.labelMuted,
+	// Outlined, never filled: this is the irreversible half of the sheet, so
+	// it must not also be the easiest thing to hit.
+	danger: {
+		...theme.box.touchTarget,
+		...layout.center,
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.tone.accent.fg,
+		paddingHorizontal: theme.spacing.sm,
+	},
+	dangerLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.fg,
+	},
+	cancel: theme.box.touchTarget,
+	cancelLabel: theme.text.body,
+}));

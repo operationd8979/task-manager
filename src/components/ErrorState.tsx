@@ -1,9 +1,8 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
-import { appTheme } from '../theme/theme';
-import { TAP_TARGET_MIN } from '../theme/tokens';
 import { Text } from './Text';
 
 export interface ErrorStateProps {
@@ -52,42 +51,37 @@ export function ErrorState({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw); return ({
-		container: {
-			backgroundColor: theme.appColor.accentSoft,
-			padding: theme.spacing.md,
-			gap: theme.spacing.xs,
-		},
-		rule: {
-			height: 2,
-			backgroundColor: theme.appColor.accentInk,
-			marginBottom: theme.spacing.sm,
-		},
-		title: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-		},
-		body: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-		},
-		actions: {
-			flexDirection: 'row',
-			gap: theme.spacing.md,
-			marginTop: theme.spacing.sm,
-		},
-		action: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-		},
-		actionLabel: {
-			...theme.typography.body,
-			color: theme.appColor.accentInk,
-		},
-		secondaryLabel: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-		},
-	});
-});
+const styles = StyleSheet.create(theme => ({
+	container: {
+		backgroundColor: theme.tone.accent.container,
+		padding: theme.spacing.md,
+		gap: theme.spacing.xs,
+	},
+	rule: {
+		height: theme.borderWidth.thick,
+		backgroundColor: theme.tone.accent.onContainer,
+		marginBottom: theme.spacing.sm,
+	},
+	title: {
+		...theme.typography.body,
+		color: theme.tone.accent.onContainer,
+	},
+	body: {
+		...theme.typography.label,
+		color: theme.tone.accent.onContainer,
+	},
+	actions: {
+		...layout.row,
+		gap: theme.spacing.md,
+		marginTop: theme.spacing.sm,
+	},
+	action: theme.box.touchTarget,
+	actionLabel: {
+		...theme.typography.body,
+		color: theme.tone.accent.onContainer,
+	},
+	secondaryLabel: {
+		...theme.typography.label,
+		color: theme.tone.accent.onContainer,
+	},
+}));

@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet as RNStyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
 import { I18nProvider } from '@chipmobilesdk/rn-i18n';
+import { applyThemeMode, layout } from '@chipmobilesdk/rn-theme';
 
 import { ErrorState } from '../components/ErrorState';
 import { RemoveAdsSheetHost } from '../features/monetization';
@@ -16,9 +16,9 @@ import { DataError } from '../services/db/errors';
 import { openGateway, type DatabaseGateway } from '../services/db/gateway';
 import { createSettingsRepository } from '../services/db/settingsRepository';
 import { createTaskRepository } from '../services/db/taskRepository';
-import { applyDisplayMode } from '../theme/mode';
-import { appTheme } from '../theme/theme';
+import { toThemeMode } from '../theme/mode';
 import { RootStack } from './navigation/RootStack';
+import { ThemedNavigationContainer } from './navigation/ThemedNavigationContainer';
 import { BottomInsetProvider } from './providers/BottomInsetProvider';
 import { DatabaseProvider } from './providers/DatabaseProvider';
 import { InterruptionProvider } from './providers/InterruptionProvider';
@@ -111,7 +111,7 @@ export default function App() {
 				const settings = await createSettingsRepository(
 					gateway.handle,
 				).getAll();
-				applyDisplayMode(settings.displayMode);
+				applyThemeMode(toThemeMode(settings.displayMode));
 
 				// Anything still soft-deleted belongs to an undo window that never
 				// closed because the app was killed. FR-011a's edge case says that
@@ -198,7 +198,7 @@ export default function App() {
                         initialize in effects, after the first frame (FR-21). */}
 										<MonetizationProvider>
 											<BottomSheetModalProvider>
-												<NavigationContainer>
+												<ThemedNavigationContainer>
 													{/* Above the navigator on purpose — see UndoProvider. */}
 													<UndoProvider>
 														<RootStack />
@@ -206,7 +206,7 @@ export default function App() {
                                 plan D-4). */}
 														<RemoveAdsSheetHost />
 													</UndoProvider>
-												</NavigationContainer>
+												</ThemedNavigationContainer>
 											</BottomSheetModalProvider>
 										</MonetizationProvider>
 									</ReminderProvider>
@@ -239,14 +239,11 @@ function BootFailed({ onRetry }: { onRetry: () => void }) {
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		boot: {
-			flex: 1,
-			backgroundColor: theme.color.background,
-			padding: theme.spacing.md,
-			gap: theme.spacing.sm,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	boot: {
+		...layout.fill,
+		backgroundColor: theme.color.background,
+		padding: theme.spacing.md,
+		gap: theme.spacing.sm,
+	},
+}));

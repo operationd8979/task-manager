@@ -14,8 +14,6 @@ import {
 	type LocalDate,
 	type LocalTime,
 } from '../../../lib/date';
-import { appTheme } from '../../../theme/theme';
-import { TAP_TARGET_MIN } from '../../../theme/tokens';
 
 interface BaseProps {
 	accessibilityLabel: string;
@@ -95,20 +93,13 @@ export function DateTimeField(props: DateTimeFieldProps) {
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		trigger: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			paddingHorizontal: theme.spacing.sm,
-			borderWidth: 1,
-			borderColor: theme.color.border,
-			backgroundColor: theme.color.surface,
-		},
-		value: {
-			...theme.typography.body,
-			color: theme.color.onSurface,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	trigger: {
+		...theme.box.touchTarget,
+		paddingHorizontal: theme.spacing.sm,
+		borderWidth: theme.borderWidth.thin,
+		borderColor: theme.color.outline,
+		backgroundColor: theme.color.surfaceContainerHigh,
+	},
+	value: theme.text.body,
+}));

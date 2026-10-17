@@ -1,9 +1,8 @@
 import React from 'react';
 import { Keyboard, Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
-import { appTheme } from '../theme/theme';
-import { TAP_TARGET_MIN } from '../theme/tokens';
 import { Text } from './Text';
 
 export interface ChipProps {
@@ -56,47 +55,42 @@ export function ChipRow({ children }: { children: React.ReactNode }) {
 	return <View style={styles.row}>{children}</View>;
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw); return ({
-		row: {
-			flexDirection: 'row',
-			flexWrap: 'wrap',
-			gap: theme.spacing.sm,
-		},
-		chip: {
-			// 44pt even when the label is short — the tap target is the point.
-			minHeight: TAP_TARGET_MIN,
-			minWidth: TAP_TARGET_MIN,
-			// A wrapping row must never buy a line by squeezing a chip narrower than
-			// its own label. RN already defaults to 0; it is written out because the
-			// failure it prevents is silent — the label just loses its last word.
-			flexShrink: 0,
-			paddingHorizontal: theme.spacing.md,
-			justifyContent: 'center',
-			alignItems: 'center',
-			borderWidth: 2,
-			borderRadius: theme.radius.sm,
-			variants: {
-				selected: {
-					true: {
-						backgroundColor: theme.appColor.accentFill,
-						borderColor: theme.appColor.accentFill,
-					},
-					false: {
-						backgroundColor: 'transparent',
-						borderColor: theme.color.border,
-					},
+const styles = StyleSheet.create(theme => ({
+	row: {
+		...layout.wrap,
+		gap: theme.spacing.sm,
+	},
+	chip: {
+		// 44pt even when the label is short — the tap target is the point.
+		...theme.box.touchTarget,
+		// A wrapping row must never buy a line by squeezing a chip narrower than
+		// its own label. RN already defaults to 0; it is written out because the
+		// failure it prevents is silent — the label just loses its last word.
+		flexShrink: 0,
+		paddingHorizontal: theme.spacing.md,
+		alignItems: 'center',
+		borderWidth: theme.borderWidth.thick,
+		borderRadius: theme.radius.sm,
+		variants: {
+			selected: {
+				true: {
+					backgroundColor: theme.tone.accent.fill,
+					borderColor: theme.tone.accent.fill,
+				},
+				false: {
+					backgroundColor: 'transparent',
+					borderColor: theme.color.outline,
 				},
 			},
 		},
-		label: {
-			...theme.typography.label,
-			variants: {
-				selected: {
-					true: { color: theme.appColor.onAccent, fontWeight: '800' },
-					false: { color: theme.color.onBackground, fontWeight: '400' },
-				},
+	},
+	label: {
+		...theme.typography.label,
+		variants: {
+			selected: {
+				true: { color: theme.tone.accent.onFill, ...theme.font.heavy },
+				false: { color: theme.color.onBackground, ...theme.font.regular },
 			},
 		},
-	});
-});
+	},
+}));

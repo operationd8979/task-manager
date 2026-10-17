@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import type { RemoveAdsMode } from '../../../app/providers/MonetizationProvider';
 import { EmptyState } from '../../../components/EmptyState';
@@ -10,8 +11,7 @@ import { Sheet } from '../../../components/Sheet';
 import { Skeleton, SkeletonGroup } from '../../../components/Skeleton';
 import { Text } from '../../../components/Text';
 import { useT } from '../../../i18n/useT';
-import { appTheme } from '../../../theme/theme';
-import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
+import { BAR_HEIGHT } from '../../../theme/tokens';
 import {
 	useRemoveAdsFlow,
 	type RemoveAdsFlow,
@@ -215,99 +215,79 @@ function RestoreLink({ flow }: { flow: RemoveAdsFlow }) {
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	const primaryBox = {
-		minHeight: BAR_HEIGHT.action,
-		alignItems: 'center',
-		justifyContent: 'center',
+/** The shape both states of the purchase button share. */
+const PRIMARY_BOX = { ...layout.center, minHeight: BAR_HEIGHT.action };
+
+const styles = StyleSheet.create(theme => ({
+	stack: {
+		gap: theme.spacing.md,
+	},
+	product: {
+		gap: theme.spacing.xs,
+	},
+	title: theme.text.title,
+	body: theme.text.body,
+	muted: theme.text.labelMuted,
+	centered: {
+		textAlign: 'center',
+	},
+	caption: theme.text.caption,
+	priceRow: {
+		...layout.rowBetween,
+		...theme.border.top,
+		paddingTop: theme.spacing.smPlus,
+	},
+	primary: {
+		...PRIMARY_BOX,
 		paddingHorizontal: theme.spacing.md,
-	} as const;
-	return {
-		stack: {
-			gap: theme.spacing.md,
-		},
-		product: {
-			gap: theme.spacing.xs,
-		},
-		title: {
-			...theme.typography.title,
-			color: theme.color.onBackground,
-		},
-		body: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-		},
-		muted: {
-			...theme.typography.label,
-			color: theme.appColor.textMuted,
-		},
-		centered: {
-			textAlign: 'center',
-		},
-		caption: {
-			...theme.typography.caption,
-			color: theme.appColor.textMuted,
-		},
-		priceRow: {
-			flexDirection: 'row',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			borderTopWidth: 1,
-			borderTopColor: theme.color.border,
-			paddingTop: theme.appSpacing.gap12,
-		},
-		primary: {
-			...primaryBox,
-			backgroundColor: theme.appColor.accentFill,
-		},
-		primaryLabel: {
-			...theme.typography.body,
-			fontWeight: '800',
-			color: theme.appColor.onAccent,
-		},
-		primaryBlocked: {
-			...primaryBox,
-			borderWidth: 1,
-			borderColor: theme.color.disabled,
-			backgroundColor: theme.color.surface,
-		},
-		primaryBlockedLabel: {
-			...theme.typography.body,
-			fontWeight: '800',
-			color: theme.color.onSurface,
-		},
-		link: {
-			alignSelf: 'center',
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-			paddingHorizontal: theme.spacing.md,
-		},
-		linkLabel: {
-			...theme.typography.body,
-			fontWeight: '800',
-			color: theme.appColor.accentInk,
-		},
-		successTag: {
-			flexDirection: 'row',
-			alignItems: 'center',
-			gap: theme.spacing.sm,
-		},
-		successMark: {
-			width: TAP_TARGET_MIN / 2,
-			height: TAP_TARGET_MIN / 2,
-			alignItems: 'center',
-			justifyContent: 'center',
-			backgroundColor: theme.color.success,
-		},
-		successGlyph: {
-			...theme.typography.caption,
-			fontWeight: '800',
-			color: theme.appColor.onAccent,
-		},
-		successLabel: {
-			...theme.typography.caption,
-			color: theme.color.success,
-		},
-	};
-});
+		backgroundColor: theme.tone.accent.fill,
+	},
+	primaryLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.onFill,
+	},
+	// Inactive, so the contrast-exempt disabled state colour is the right one
+	// for its outline; the label stays readable (Principle V).
+	primaryBlocked: {
+		...PRIMARY_BOX,
+		paddingHorizontal: theme.spacing.md,
+		borderWidth: theme.borderWidth.thin,
+		borderColor: theme.color.disabled,
+		backgroundColor: theme.color.surfaceContainerHigh,
+	},
+	primaryBlockedLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.color.onSurface,
+	},
+	link: {
+		...theme.box.touchTarget,
+		...layout.selfCenter,
+		paddingHorizontal: theme.spacing.md,
+	},
+	linkLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.fg,
+	},
+	successTag: {
+		...layout.rowCenter,
+		gap: theme.spacing.sm,
+	},
+	successMark: {
+		...layout.center,
+		width: theme.size.touchTarget / 2,
+		height: theme.size.touchTarget / 2,
+		backgroundColor: theme.color.success,
+	},
+	successGlyph: {
+		...theme.typography.caption,
+		...theme.font.heavy,
+		color: theme.color.onSuccess,
+	},
+	successLabel: {
+		...theme.typography.caption,
+		color: theme.color.success,
+	},
+}));
