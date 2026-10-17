@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark variants of values/theme_colors.xml; see that file. -->
+<resources>
+    <!-- theme.tone.accent.fg -->
+    <color name="app_accent">#FFB4A6</color>
+    <!-- theme.color.surfaceContainerHigh -->
+    <color name="app_dialog_surface">#2F2827</color>
+</resources>

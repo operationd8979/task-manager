@@ -1,16 +1,15 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout, presets } from '@chipmobilesdk/rn-theme';
 
 import { Chevron } from '../../../components/Chevron';
 import { Text } from '../../../components/Text';
 import { useT } from '../../../i18n/useT';
 import { today, type LocalDate } from '../../../lib/date';
-import { appTheme } from '../../../theme/theme';
 import {
 	BAR_HEIGHT,
 	DAY_ICON_SIZE,
-	GLYPH_ALIGN,
 	NAV_CHEVRON_SIZE,
 } from '../../../theme/tokens';
 
@@ -100,57 +99,49 @@ export function DayBar({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		bar: {
-			minHeight: BAR_HEIGHT.day,
-			flexDirection: 'row',
-			alignItems: 'center',
-			borderBottomWidth: 2,
-			borderBottomColor: theme.color.onBackground,
-			backgroundColor: theme.color.background,
-		},
-		arrow: {
-			width: DAY_ICON_SIZE,
-			minHeight: DAY_ICON_SIZE,
-			alignItems: 'center',
-			justifyContent: 'center',
-		},
-		settingsGlyph: {
-			...theme.typography.title,
-			...GLYPH_ALIGN,
-			color: theme.color.onBackground,
-		},
-		title: {
-			flex: 1,
-			minHeight: DAY_ICON_SIZE,
-			justifyContent: 'center',
-			paddingHorizontal: theme.spacing.xs,
-		},
-		titleText: {
-			...theme.typography.body,
-			...GLYPH_ALIGN,
-			color: theme.color.onBackground,
-			fontWeight: '800',
-		},
-		todayTag: {
-			...theme.typography.caption,
-			...GLYPH_ALIGN,
-			color: theme.appColor.textMuted,
-		},
-		// Outlined rather than filled: it is a shortcut back to a default, not the
-		// screen's primary action.
-		todayButton: {
-			minHeight: DAY_ICON_SIZE - 12,
-			justifyContent: 'center',
-			paddingHorizontal: theme.spacing.sm,
-			borderWidth: 2,
-			borderColor: theme.appColor.accentInk,
-		},
-		todayLabel: {
-			...theme.typography.caption,
-			color: theme.appColor.accentInk,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	bar: {
+		...layout.rowCenter,
+		minHeight: BAR_HEIGHT.day,
+		borderBottomWidth: theme.borderWidth.thick,
+		borderBottomColor: theme.color.onBackground,
+		backgroundColor: theme.color.background,
+	},
+	arrow: {
+		...layout.center,
+		width: DAY_ICON_SIZE,
+		minHeight: DAY_ICON_SIZE,
+	},
+	settingsGlyph: {
+		...theme.text.title,
+		...presets.glyphAlign,
+	},
+	title: {
+		...layout.fill,
+		minHeight: DAY_ICON_SIZE,
+		justifyContent: 'center',
+		paddingHorizontal: theme.spacing.xs,
+	},
+	titleText: {
+		...theme.text.body,
+		...theme.font.heavy,
+		...presets.glyphAlign,
+	},
+	todayTag: {
+		...theme.text.caption,
+		...presets.glyphAlign,
+	},
+	// Outlined rather than filled: it is a shortcut back to a default, not the
+	// screen's primary action.
+	todayButton: {
+		minHeight: DAY_ICON_SIZE - theme.spacing.smPlus,
+		justifyContent: 'center',
+		paddingHorizontal: theme.spacing.sm,
+		borderWidth: theme.borderWidth.thick,
+		borderColor: theme.tone.accent.fg,
+	},
+	todayLabel: {
+		...theme.typography.caption,
+		color: theme.tone.accent.fg,
+	},
+}));

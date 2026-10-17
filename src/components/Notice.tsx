@@ -1,9 +1,8 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { byTone } from '@chipmobilesdk/rn-theme';
 
-import { appTheme } from '../theme/theme';
-import { TAP_TARGET_MIN } from '../theme/tokens';
 import { Text } from './Text';
 
 export interface NoticeProps {
@@ -20,23 +19,35 @@ export interface NoticeProps {
 }
 
 /**
+ * The theme tone each notice tone is drawn in. "warning" names the caller's
+ * intent; the colour is the app's accent (specs/003 plan D-4).
+ */
+const THEME_TONE = { warning: 'accent', neutral: 'neutral' } as const;
+
+/**
  * A block that stays put, not a toast that disappears (design/ux-ui-spec.md
  * §4). Every state it shows carries words, never colour alone (Principle V).
  */
 export function Notice({ tone, label, title, body, action }: NoticeProps) {
-	styles.useVariants({ tone });
+	styles.useVariants({ tone: THEME_TONE[tone] });
 	return (
 		<View style={styles.container} accessibilityRole="summary">
-			{label ? <Text style={styles.label}>{label}</Text> : null}
-			{title ? <Text style={styles.title}>{title}</Text> : null}
-			<Text style={styles.body}>{body}</Text>
+			{label ? (
+				<Text style={[styles.label, styles.toneText]}>{label}</Text>
+			) : null}
+			{title ? (
+				<Text style={[styles.title, styles.toneText]}>{title}</Text>
+			) : null}
+			<Text style={[styles.body, styles.toneText]}>{body}</Text>
 			{action ? (
 				<Pressable
 					accessibilityRole="button"
 					accessibilityLabel={action.label}
 					onPress={action.onPress}
 					style={styles.action}>
-					<Text style={styles.actionLabel}>{action.label}</Text>
+					<Text style={[styles.actionLabel, styles.toneText]}>
+						{action.label}
+					</Text>
 				</Pressable>
 			) : null}
 		</View>
@@ -44,71 +55,35 @@ export function Notice({ tone, label, title, body, action }: NoticeProps) {
 }
 
 /*
- * Each text style spells out its own `variants`. Spreading one shared variants
- * object hid them from the Unistyles Babel plugin, which reads a style's theme
- * and variant dependencies statically: the text kept its first colour and went
- * dark-on-dark in dark mode (found on a device).
+ * One tone-colour style for every text, combined by array. `variants` is
+ * written literally with `byTone` called right under it: the Unistyles Babel
+ * plugin reads theme and variant dependencies statically, and a variants
+ * object built elsewhere or spread in kept its first colour on a theme change
+ * (dark-on-dark in dark mode, found on a device).
  */
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		container: {
-			borderWidth: 1,
-			padding: theme.spacing.sm,
-			gap: theme.spacing.xs,
-			variants: {
-				tone: {
-					warning: {
-						borderColor: theme.appColor.accentInk,
-						backgroundColor: theme.appColor.accentSoft,
-					},
-					neutral: {
-						borderColor: theme.color.onBackground,
-						backgroundColor: theme.color.background,
-					},
-				},
-			},
+const styles = StyleSheet.create(theme => ({
+	container: {
+		borderWidth: theme.borderWidth.thin,
+		padding: theme.spacing.sm,
+		gap: theme.spacing.xs,
+		variants: {
+			tone: byTone(theme, t => ({
+				borderColor: t.border,
+				backgroundColor: t.container,
+			})),
 		},
-		label: {
-			...theme.typography.caption,
-			variants: {
-				tone: {
-					warning: { color: theme.appColor.accentInk },
-					neutral: { color: theme.color.onBackground },
-				},
-			},
+	},
+	toneText: {
+		variants: {
+			tone: byTone(theme, t => ({ color: t.onContainer })),
 		},
-		title: {
-			...theme.typography.body,
-			variants: {
-				tone: {
-					warning: { color: theme.appColor.accentInk },
-					neutral: { color: theme.color.onBackground },
-				},
-			},
-		},
-		body: {
-			...theme.typography.label,
-			variants: {
-				tone: {
-					warning: { color: theme.appColor.accentInk },
-					neutral: { color: theme.color.onBackground },
-				},
-			},
-		},
-		action: {
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-		},
-		actionLabel: {
-			...theme.typography.body,
-			fontWeight: '800',
-			variants: {
-				tone: {
-					warning: { color: theme.appColor.accentInk },
-					neutral: { color: theme.color.onBackground },
-				},
-			},
-		},
-	};
-});
+	},
+	label: theme.typography.caption,
+	title: theme.typography.body,
+	body: theme.typography.label,
+	action: theme.box.touchTarget,
+	actionLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+	},
+}));

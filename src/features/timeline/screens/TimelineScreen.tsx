@@ -14,6 +14,7 @@ import Animated, {
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { useDatabase } from '../../../app/providers/DatabaseProvider';
 import { useInterruptionBlocker } from '../../../app/providers/InterruptionProvider';
@@ -35,7 +36,6 @@ import { dayLabel } from '../../../lib/format';
 import { createRecurrenceRepository } from '../../../services/db/recurrenceRepository';
 import { createSettingsRepository } from '../../../services/db/settingsRepository';
 import { createTaskRepository } from '../../../services/db/taskRepository';
-import { appTheme } from '../../../theme/theme';
 import {
 	BAR_HEIGHT,
 	LIST_BOTTOM_PADDING,
@@ -910,41 +910,34 @@ export function TimelineScreen() {
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		screen: {
-			flex: 1,
-			backgroundColor: theme.color.background,
-		},
-		body: {
-			flex: 1,
-		},
-		skeletonList: {
-			padding: theme.spacing.md,
-			gap: theme.spacing.sm,
-		},
-		slow: {
-			...theme.typography.label,
-			color: theme.appColor.textMuted,
-			paddingHorizontal: theme.spacing.md,
-		},
-		listContent: {
-			paddingBottom: LIST_BOTTOM_PADDING,
-		},
-		actionBar: {
-			backgroundColor: theme.appColor.accentFill,
-		},
-		action: {
-			minHeight: BAR_HEIGHT.action,
-			justifyContent: 'center',
-			alignItems: 'center',
-			paddingHorizontal: theme.spacing.md,
-		},
-		actionLabel: {
-			...theme.typography.body,
-			color: theme.appColor.onAccent,
-			fontWeight: '800',
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	screen: {
+		...layout.fill,
+		backgroundColor: theme.color.background,
+	},
+	body: layout.fill,
+	skeletonList: {
+		padding: theme.spacing.md,
+		gap: theme.spacing.sm,
+	},
+	slow: {
+		...theme.text.labelMuted,
+		paddingHorizontal: theme.spacing.md,
+	},
+	listContent: {
+		paddingBottom: LIST_BOTTOM_PADDING,
+	},
+	actionBar: {
+		backgroundColor: theme.tone.accent.fill,
+	},
+	action: {
+		...layout.center,
+		minHeight: BAR_HEIGHT.action,
+		paddingHorizontal: theme.spacing.md,
+	},
+	actionLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.onFill,
+	},
+}));

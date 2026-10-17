@@ -1,8 +1,8 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
-import { appTheme } from '../theme/theme';
 import { BAR_HEIGHT } from '../theme/tokens';
 import { Chevron } from './Chevron';
 import { Text } from './Text';
@@ -57,37 +57,23 @@ export function ActionRow({
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		row: {
-			minHeight: BAR_HEIGHT.action,
-			flexDirection: 'row',
-			alignItems: 'center',
-			gap: theme.appSpacing.gap12,
-			paddingVertical: theme.spacing.sm,
-			borderBottomWidth: 1,
-			borderBottomColor: theme.color.border,
-		},
-		first: {
-			borderTopWidth: 1,
-			borderTopColor: theme.color.border,
-		},
-		text: {
-			flex: 1,
-			gap: theme.spacing.xs,
-		},
-		label: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-		},
-		hint: {
-			...theme.typography.label,
-			color: theme.appColor.textMuted,
-		},
-		failure: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	row: {
+		...layout.rowCenter,
+		...theme.border.bottom,
+		gap: theme.spacing.smPlus,
+		minHeight: BAR_HEIGHT.action,
+		paddingVertical: theme.spacing.sm,
+	},
+	first: theme.border.top,
+	text: {
+		...layout.fill,
+		gap: theme.spacing.xs,
+	},
+	label: theme.text.body,
+	hint: theme.text.labelMuted,
+	failure: {
+		...theme.typography.label,
+		color: theme.tone.accent.fg,
+	},
+}));

@@ -1,5 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { BackHandler, Pressable, View } from 'react-native';
+import React, {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	type ComponentRef,
+} from 'react';
+import { BackHandler, Pressable, View, type LayoutChangeEvent } from 'react-native';
 import {
 	BottomSheetBackdrop,
 	BottomSheetFooter,
@@ -11,14 +19,32 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { layout, presets } from '@chipmobilesdk/rn-theme';
 
+import { useRevealFocusedField } from '../hooks/useRevealFocusedField';
 import { useT } from '../i18n/useT';
-import { appTheme } from '../theme/theme';
-import { BAR_HEIGHT, GLYPH_ALIGN, TAP_TARGET_MIN } from '../theme/tokens';
+import { BAR_HEIGHT } from '../theme/tokens';
 import { Text } from './Text';
 
 /** Minimum gap to the screen edge, so the timeline stays visible behind. */
 const TOP_GAP = 24;
+
+/** What a text field inside a sheet can ask of the sheet around it. */
+export interface SheetField {
+	/** Scroll the focused field into sight above the keyboard, if it is not. */
+	reveal: (animated: boolean) => void;
+}
+
+const SheetFieldContext = createContext<SheetField | null>(null);
+
+/** For the text field component; throws outside a Sheet, where it cannot work. */
+export function useSheetField(): SheetField {
+	const field = useContext(SheetFieldContext);
+	if (field === null) {
+		throw new Error('useSheetField must be used inside a Sheet');
+	}
+	return field;
+}
 
 export interface SheetProps {
 	title: string;
@@ -42,58 +68,50 @@ export interface SheetProps {
 /** Placeholder until the icon set is chosen (decisions.md D-06). */
 const CLOSE_GLYPH = '×';
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		background: {
-			backgroundColor: theme.color.background,
-			borderRadius: theme.radius.md,
-		},
-		header: {
-			minHeight: BAR_HEIGHT.sheetHeader,
-			flexDirection: 'row',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			paddingLeft: theme.spacing.md,
-			borderBottomWidth: 2,
-			borderBottomColor: theme.color.onBackground,
-			// The handle sits above the sheet's own background, and the body scrolls
-			// right up to it, so it has to be opaque in its own right.
-			backgroundColor: theme.color.background,
-			borderTopLeftRadius: theme.radius.md,
-			borderTopRightRadius: theme.radius.md,
-		},
-		title: {
-			...theme.appType.sheetTitle,
-			...GLYPH_ALIGN,
-			color: theme.color.onBackground,
-			// Takes the row so the close button is pushed to the far edge of the SAME
-			// line rather than being wrapped onto the next one.
-			flex: 1,
-		},
-		close: {
-			width: TAP_TARGET_MIN,
-			height: TAP_TARGET_MIN,
-			alignItems: 'center',
-			justifyContent: 'center',
-		},
-		closeGlyph: {
-			...theme.typography.title,
-			...GLYPH_ALIGN,
-			color: theme.color.onBackground,
-		},
-		body: {
-			padding: theme.spacing.md,
-			gap: theme.spacing.md,
-		},
-		footer: {
-			minHeight: BAR_HEIGHT.action,
-			backgroundColor: theme.color.background,
-			borderTopWidth: 1,
-			borderTopColor: theme.color.border,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	background: {
+		backgroundColor: theme.color.background,
+		borderRadius: theme.radius.md,
+	},
+	header: {
+		...layout.rowBetween,
+		minHeight: BAR_HEIGHT.sheetHeader,
+		paddingLeft: theme.spacing.md,
+		borderBottomWidth: theme.borderWidth.thick,
+		borderBottomColor: theme.color.onBackground,
+		// The handle sits above the sheet's own background, and the body scrolls
+		// right up to it, so it has to be opaque in its own right.
+		backgroundColor: theme.color.background,
+		borderTopLeftRadius: theme.radius.md,
+		borderTopRightRadius: theme.radius.md,
+	},
+	title: {
+		...theme.appType.sheetTitle,
+		...presets.glyphAlign,
+		color: theme.color.onBackground,
+		// Takes the row so the close button is pushed to the far edge of the SAME
+		// line rather than being wrapped onto the next one.
+		...layout.fill,
+	},
+	close: {
+		width: theme.size.touchTarget,
+		height: theme.size.touchTarget,
+		...layout.center,
+	},
+	closeGlyph: {
+		...theme.text.title,
+		...presets.glyphAlign,
+	},
+	body: {
+		padding: theme.spacing.md,
+		gap: theme.spacing.md,
+	},
+	footer: {
+		...theme.border.top,
+		minHeight: BAR_HEIGHT.action,
+		backgroundColor: theme.color.background,
+	},
+}));
 
 export function Sheet({
 	title,
@@ -164,8 +182,39 @@ export function Sheet({
 	}, [onClose]);
 
 	const insets = useSafeAreaInsets();
-	const { theme: rawTheme } = useUnistyles();
-	const scrim = appTheme(rawTheme).appColor.scrim;
+	const { theme } = useUnistyles();
+	const scrim = theme.color.scrim;
+
+	const scroll = useRef<BottomSheetScrollViewMethods | null>(null);
+	const content = useRef<ComponentRef<typeof View> | null>(null);
+	const footerHeight = useRef(0);
+	const field = useRevealFocusedField({
+		scroll,
+		content,
+		coveredBottom: footerHeight,
+		margin: theme.spacing.md,
+	});
+	const fieldApi = useMemo<SheetField>(
+		() => ({ reveal: field.reveal }),
+		[field.reveal],
+	);
+
+	/** The sheet needs the scroll view too, so the caller's ref is fed from here. */
+	const attachScroll = useCallback(
+		(node: BottomSheetScrollViewMethods | null) => {
+			scroll.current = node;
+			if (typeof scrollRef === 'function') {
+				scrollRef(node);
+			} else if (scrollRef) {
+				scrollRef.current = node;
+			}
+		},
+		[scrollRef],
+	);
+
+	const measureFooter = useCallback((event: LayoutChangeEvent) => {
+		footerHeight.current = event.nativeEvent.layout.height;
+	}, []);
 
 	const renderBackdrop = useCallback(
 		(props: BottomSheetBackdropProps) => (
@@ -191,10 +240,12 @@ export function Sheet({
 			// it out of the way when the keyboard opens, and padding would sit there
 			// as dead space above the keyboard.
 			<BottomSheetFooter {...props} bottomInset={insets.bottom}>
-				<View style={styles.footer}>{footer}</View>
+				<View style={styles.footer} onLayout={measureFooter}>
+					{footer}
+				</View>
 			</BottomSheetFooter>
 		);
-	}, [footer, insets.bottom]);
+	}, [footer, insets.bottom, measureFooter]);
 
 	/**
 	 * `enableFooterMarginAdjustment` reserves the footer's own height; this adds
@@ -253,6 +304,18 @@ export function Sheet({
 			 * app closing their work. `push` stacks them instead.
 			 */
 			stackBehavior="push"
+			/**
+			 * The keyboard is handled by the sheet itself — it lifts, shrinks its
+			 * scroll area to end at the keyboard, and parks the footer on top of
+			 * it — but only for fields that are `BottomSheetTextInput`s (see
+			 * SheetTextInput). `android_keyboardInputMode` stays at its default
+			 * ("the sheet does the maths") because the app is edge-to-edge on every
+			 * Android version (gradle.properties), so the window itself never
+			 * resizes; letting both resize would lift the sheet twice.
+			 *
+			 * `restore` puts the sheet back where it was once the keyboard goes.
+			 */
+			keyboardBlurBehavior="restore"
 			backdropComponent={renderBackdrop}
 			footerComponent={renderFooter}
 			backgroundStyle={styles.background}
@@ -267,15 +330,21 @@ export function Sheet({
         stops at the cap, and scrolls the remainder. It also coordinates with
         the pan-down-to-close gesture, which a bare ScrollView fights.
       */}
-			<BottomSheetScrollView
-				ref={scrollRef}
-				enableFooterMarginAdjustment={Boolean(footer)}
-				// Chips and toggles stay tappable while the keyboard is up, instead of
-				// spending the first tap on dismissing it.
-				keyboardShouldPersistTaps="handled"
-				contentContainerStyle={contentStyle}>
-				<View style={styles.body}>{children}</View>
-			</BottomSheetScrollView>
+			<SheetFieldContext.Provider value={fieldApi}>
+				<BottomSheetScrollView
+					ref={attachScroll}
+					enableFooterMarginAdjustment={Boolean(footer)}
+					// Chips and toggles stay tappable while the keyboard is up, instead
+					// of spending the first tap on dismissing it.
+					keyboardShouldPersistTaps="handled"
+					contentContainerStyle={contentStyle}
+					onScroll={field.onScroll}
+					onLayout={field.onViewportLayout}>
+					<View ref={content} style={styles.body}>
+						{children}
+					</View>
+				</BottomSheetScrollView>
+			</SheetFieldContext.Provider>
 		</BottomSheetModal>
 	);
 }

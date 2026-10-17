@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { Chip, ChipRow } from '../../../components/Chip';
 import { Segmented } from '../../../components/Segmented';
@@ -20,8 +21,8 @@ import {
 import type { AppI18nKey } from '../../../i18n';
 import { useT } from '../../../i18n/useT';
 import { monthList, repeatPatternLabel, weekdayShort } from '../../../lib/format';
-import { appTheme } from '../../../theme/theme';
-import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
+import { BAR_HEIGHT } from '../../../theme/tokens';
+import { ChoiceList } from './ChoiceList';
 import { DateTimeField } from './DateTimeField';
 import { Field } from './Field';
 
@@ -188,12 +189,11 @@ export function RecurrenceSheet({
 					<Text style={styles.primaryLabel}>{t('common.done')}</Text>
 				</Pressable>
 			}>
-			{/* Two columns: four of these labels in one row wrap to three lines
-          each before the OS text size is turned up at all. */}
-			<Segmented<RepeatMode>
+			{/* A list, not a segmented grid: four labels need a sentence each to
+          be told apart, and a sentence does not fit in a segment. */}
+			<ChoiceList<RepeatMode>
 				accessibilityLabel={t('repeat.title')}
 				value={mode}
-				columns={2}
 				onChange={next => {
 					// Turning the repeat back on after clearing every chip lands on
 					// daily again rather than on the empty-selection error.
@@ -205,11 +205,27 @@ export function RecurrenceSheet({
 					}
 					setMode(next);
 				}}
-				options={[
-					{ value: 'none', label: t('repeat.none') },
-					{ value: 'weekly', label: t('repeat.byWeekday') },
-					{ value: 'monthlyByDay', label: t('repeat.byMonthDay') },
-					{ value: 'monthlyLastDay', label: t('repeat.byLastDay') },
+				choices={[
+					{
+						value: 'none',
+						label: t('repeat.none'),
+						description: t('repeat.noneDescription'),
+					},
+					{
+						value: 'weekly',
+						label: t('repeat.byWeekday'),
+						description: t('repeat.byWeekdayDescription'),
+					},
+					{
+						value: 'monthlyByDay',
+						label: t('repeat.byMonthDay'),
+						description: t('repeat.byMonthDayDescription'),
+					},
+					{
+						value: 'monthlyLastDay',
+						label: t('repeat.byLastDay'),
+						description: t('repeat.byLastDayDescription'),
+					},
 				]}
 			/>
 
@@ -355,45 +371,35 @@ function sameDays(a: readonly Weekday[], b: readonly Weekday[]): boolean {
 	return a.length === b.length && b.every(day => a.includes(day));
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		preview: {
-			borderWidth: 1,
-			borderStyle: 'dashed',
-			borderColor: theme.appColor.accentInk,
-			padding: theme.spacing.sm,
-			minHeight: TAP_TARGET_MIN,
-			justifyContent: 'center',
-		},
-		previewText: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-		},
-		warning: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-			backgroundColor: theme.appColor.accentSoft,
-			paddingHorizontal: theme.spacing.xs,
-			paddingVertical: 2,
-		},
-		hint: {
-			...theme.typography.label,
-			// The muted grey re-derived for these surfaces at 4.77:1 — a hint that
-			// fails contrast is not a hint (Principle V).
-			color: theme.color.disabled,
-		},
-		primary: {
-			minHeight: BAR_HEIGHT.action,
-			justifyContent: 'center',
-			alignItems: 'center',
-			paddingHorizontal: theme.spacing.md,
-			backgroundColor: theme.appColor.accentFill,
-		},
-		primaryLabel: {
-			...theme.typography.body,
-			color: theme.appColor.onAccent,
-			fontWeight: '800',
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	preview: {
+		...theme.box.touchTarget,
+		borderWidth: theme.borderWidth.thin,
+		borderStyle: 'dashed',
+		borderColor: theme.tone.accent.fg,
+		padding: theme.spacing.sm,
+	},
+	previewText: {
+		...theme.typography.label,
+		color: theme.tone.accent.fg,
+	},
+	warning: {
+		...theme.typography.label,
+		color: theme.tone.accent.onContainer,
+		backgroundColor: theme.tone.accent.container,
+		paddingHorizontal: theme.spacing.xs,
+		paddingVertical: theme.spacing.xxs,
+	},
+	hint: theme.text.labelMuted,
+	primary: {
+		...layout.center,
+		minHeight: BAR_HEIGHT.action,
+		paddingHorizontal: theme.spacing.md,
+		backgroundColor: theme.tone.accent.fill,
+	},
+	primaryLabel: {
+		...theme.typography.body,
+		...theme.font.heavy,
+		color: theme.tone.accent.onFill,
+	},
+}));

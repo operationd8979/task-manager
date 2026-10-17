@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet as RNStyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
 import { I18nProvider } from '@chipmobilesdk/rn-i18n';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { ErrorState } from '../components/ErrorState';
 import { RemoveAdsSheetHost } from '../features/monetization';
@@ -17,8 +17,9 @@ import { openGateway, type DatabaseGateway } from '../services/db/gateway';
 import { createSettingsRepository } from '../services/db/settingsRepository';
 import { createTaskRepository } from '../services/db/taskRepository';
 import { applyDisplayMode } from '../theme/mode';
-import { appTheme } from '../theme/theme';
 import { RootStack } from './navigation/RootStack';
+import { ThemedNavigationContainer } from './navigation/ThemedNavigationContainer';
+import { ThemedStatusBar } from './ThemedStatusBar';
 import { BottomInsetProvider } from './providers/BottomInsetProvider';
 import { DatabaseProvider } from './providers/DatabaseProvider';
 import { InterruptionProvider } from './providers/InterruptionProvider';
@@ -169,6 +170,9 @@ export default function App() {
 		<I18nProvider i18n={i18n}>
 			<GestureHandlerRootView style={rootStyle.fill}>
 				<SafeAreaProvider>
+					{/* Above the boot branch: the loading and failure screens have a
+              status bar too. */}
+					<ThemedStatusBar />
 					{/* Outside the boot branch: a wipe reboots everything below,
               and neither a pending wait nor the banner inset may reset with it
               (specs/002-ads-and-remove-ads plan D-1). */}
@@ -198,7 +202,7 @@ export default function App() {
                         initialize in effects, after the first frame (FR-21). */}
 										<MonetizationProvider>
 											<BottomSheetModalProvider>
-												<NavigationContainer>
+												<ThemedNavigationContainer>
 													{/* Above the navigator on purpose — see UndoProvider. */}
 													<UndoProvider>
 														<RootStack />
@@ -206,7 +210,7 @@ export default function App() {
                                 plan D-4). */}
 														<RemoveAdsSheetHost />
 													</UndoProvider>
-												</NavigationContainer>
+												</ThemedNavigationContainer>
 											</BottomSheetModalProvider>
 										</MonetizationProvider>
 									</ReminderProvider>
@@ -239,14 +243,11 @@ function BootFailed({ onRetry }: { onRetry: () => void }) {
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		boot: {
-			flex: 1,
-			backgroundColor: theme.color.background,
-			padding: theme.spacing.md,
-			gap: theme.spacing.sm,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	boot: {
+		...layout.fill,
+		backgroundColor: theme.color.background,
+		padding: theme.spacing.md,
+		gap: theme.spacing.sm,
+	},
+}));

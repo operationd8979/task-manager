@@ -129,8 +129,8 @@ Confirm the exact script names in `package.json` once the app exists.
 ## Design
 
 - **Targets**: phone artboards 390×844 (iOS and Android) · light and dark
-- **Theming source**: `@chipmobilesdk/rn-theme@0.2.2` (agent skill `sdk-rn-theme`); app config in `src/theme/`
-- **Design system**: https://claude.ai/artifact/3qkoos68veiV382pdKnXUK — built from `@chipmobilesdk/rn-theme@0.2.2` + `src/theme/`@93da356 on 2026-10-11
+- **Theming source**: `@chipmobilesdk/rn-theme@1.0.0` (agent skill `sdk-rn-theme`); app config in `src/theme/config.ts`
+- **Design system**: https://claude.ai/artifact/3qkoos68veiV382pdKnXUK — built from `@chipmobilesdk/rn-theme@1.0.0` + `src/theme/`@2fb20c3 on 2026-10-17
 - **Every screen design shows**:
   - light and dark;
   - for async content: skeleton loading, empty, error with retry, and success confirmation;

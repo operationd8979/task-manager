@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The app theme's colours for what Android draws itself — the date and time
+  picker dialogs above all. Light here, dark in values-night/.
+
+  Android resolves these before any JavaScript runs, so they cannot be read
+  from the token set: they are COPIES of what the theme package generates from
+  src/theme/brand.ts. src/theme/__tests__/nativeColors.test.ts fails the moment
+  a copy and its source disagree, and names the token to copy from.
+
+  Which variant applies follows the app's Hiển thị setting, not the system's:
+  src/theme/mode.ts sets the activity's night mode to match.
+-->
+<resources>
+    <!-- theme.tone.accent.fg -->
+    <color name="app_accent">#BB1800</color>
+    <!-- theme.color.surfaceContainerHigh -->
+    <color name="app_dialog_surface">#F3E5E3</color>
+</resources>

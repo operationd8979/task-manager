@@ -11,35 +11,24 @@
  * Unistyles compiles styles through a Babel plugin and a native runtime, so
  * under Jest `StyleSheet.create` has to be given a theme itself.
  *
- * The theme is assembled from the app's REAL token modules rather than from
- * invented values: a test that passes against made-up tokens would not notice
- * a missing one, which is precisely the failure mode worth catching.
+ * The theme is the app's REAL light theme, built by the theme package from the
+ * same config the app configures Unistyles with: a test that passes against
+ * made-up tokens would not notice a missing one, which is precisely the
+ * failure mode worth catching.
+ *
+ * Built lazily, on the first stylesheet: the theme package may itself import
+ * this module, and requiring it while this factory is still running would
+ * re-enter the mock.
  */
 jest.mock('react-native-unistyles', () => {
-	const {
-		APP_COLOR_LIGHT,
-		APP_SPACING,
-		APP_TYPE,
-		BASE_COLOR_LIGHT,
-		TYPE_OVERRIDE,
-		ZERO_RADIUS,
-	} = require('./src/theme/tokens');
-
-	const theme = {
-		color: {
-			...BASE_COLOR_LIGHT,
-			primary: '#EC3013',
-			onPrimary: '#000000',
-			error: APP_COLOR_LIGHT.accentInk,
-		},
-		typography: TYPE_OVERRIDE,
-		spacing: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 },
-		radius: ZERO_RADIUS,
-		shadow: {},
-		zIndex: { base: 0, raised: 10, modal: 100, overlay: 200, toast: 300 },
-		appColor: APP_COLOR_LIGHT,
-		appSpacing: APP_SPACING,
-		appType: APP_TYPE,
+	let theme;
+	const getTheme = () => {
+		if (!theme) {
+			const { buildThemes } = require('@chipmobilesdk/rn-theme');
+			const { themeConfig } = require('./src/theme/config');
+			theme = buildThemes(themeConfig).light;
+		}
+		return theme;
 	};
 
 	return {
@@ -47,13 +36,14 @@ jest.mock('react-native-unistyles', () => {
 			setTheme: () => undefined,
 			setAdaptiveThemes: () => undefined,
 		},
-		useUnistyles: () => ({ theme }),
+		useUnistyles: () => ({ theme: getTheme(), rt: { themeName: 'light' } }),
 		// The theme never changes under Jest, so the wrapped component is enough.
 		withUnistyles: Component => Component,
 		StyleSheet: {
 			configure: () => undefined,
 			create: sheet => {
-				const built = typeof sheet === 'function' ? sheet(theme, {}) : sheet;
+				const built =
+					typeof sheet === 'function' ? sheet(getTheme(), {}) : sheet;
 				// Components call styles.useVariants(...) before reading any style.
 				return { ...built, useVariants: () => undefined };
 			},

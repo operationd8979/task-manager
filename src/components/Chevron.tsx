@@ -2,7 +2,6 @@ import React from 'react';
 import { View } from 'react-native';
 import { useUnistyles } from 'react-native-unistyles';
 
-import { appTheme } from '../theme/theme';
 
 export interface ChevronProps {
 	direction: 'left' | 'right';
@@ -30,8 +29,7 @@ export interface ChevronProps {
  * of the square, so without it the arrow drifts toward the leading edge.
  */
 export function Chevron({ direction, size = 18, muted = false }: ChevronProps) {
-	const { theme: raw } = useUnistyles();
-	const theme = appTheme(raw);
+	const { theme } = useUnistyles();
 	const stroke = Math.max(2, Math.round(size / 7));
 	const recentre = size * 0.35;
 
@@ -44,7 +42,7 @@ export function Chevron({ direction, size = 18, muted = false }: ChevronProps) {
 				height: size,
 				borderLeftWidth: stroke,
 				borderBottomWidth: stroke,
-				borderColor: muted ? theme.appColor.textMuted : theme.color.onBackground,
+				borderColor: muted ? theme.color.onSurfaceVariant : theme.color.onBackground,
 				transform: [
 					{ translateX: direction === 'left' ? recentre : -recentre },
 					{ rotate: direction === 'left' ? '45deg' : '-135deg' },

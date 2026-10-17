@@ -1,9 +1,37 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <!--
+          The app's accent for anything Android draws with the theme default,
+          instead of AppCompat's teal.
+        -->
+        <item name="colorAccent">@color/app_accent</item>
+        <!--
+          The date/time picker (@react-native-community/datetimepicker) opens
+          the platform dialogs with no theme of their own, so they resolve these
+          two attributes from this theme.
+        -->
+        <item name="android:datePickerDialogTheme">@style/AppPickerDialog</item>
+        <item name="android:timePickerDialogTheme">@style/AppPickerDialog</item>
+    </style>
+
+    <!--
+      DayNight, so it follows the activity's night mode — which follows the
+      app's Hiển thị setting (src/theme/mode.ts). The accent marks the header,
+      the selected day or hour and the buttons; the dialog sits on the same
+      raised surface as the app's inputs; and its corners are square like every
+      other corner in the app.
+    -->
+    <style name="AppPickerDialog" parent="Theme.AppCompat.DayNight.Dialog">
+        <item name="colorAccent">@color/app_accent</item>
+        <item name="android:colorAccent">@color/app_accent</item>
+        <item name="colorBackgroundFloating">@color/app_dialog_surface</item>
+        <item name="android:colorBackgroundFloating">@color/app_dialog_surface</item>
+        <item name="dialogCornerRadius">0dp</item>
+        <item name="android:dialogCornerRadius" tools:targetApi="p">0dp</item>
     </style>
 
 </resources>

@@ -3,7 +3,6 @@ import { View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Text } from '../../../components/Text';
-import { appTheme } from '../../../theme/theme';
 
 export interface FieldProps {
 	label: string;
@@ -36,32 +35,24 @@ export function Field({ label, error, children }: FieldProps) {
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		field: {
-			gap: theme.spacing.xs,
-			paddingLeft: theme.spacing.sm,
-			variants: {
-				invalid: {
-					true: {
-						borderLeftWidth: 3,
-						borderLeftColor: theme.appColor.accentInk,
-					},
-					false: {
-						borderLeftWidth: 3,
-						borderLeftColor: 'transparent',
-					},
-				},
+/** The invalid marker: a bar down the field's leading edge. */
+const MARKER_WIDTH = 3;
+
+const styles = StyleSheet.create(theme => ({
+	field: {
+		gap: theme.spacing.xs,
+		paddingLeft: theme.spacing.sm,
+		borderLeftWidth: MARKER_WIDTH,
+		variants: {
+			invalid: {
+				true: { borderLeftColor: theme.tone.accent.fg },
+				false: { borderLeftColor: 'transparent' },
 			},
 		},
-		label: {
-			...theme.typography.caption,
-			color: theme.appColor.textMuted,
-		},
-		error: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
-		},
-	};
-});
+	},
+	label: theme.text.caption,
+	error: {
+		...theme.typography.label,
+		color: theme.tone.accent.fg,
+	},
+}));

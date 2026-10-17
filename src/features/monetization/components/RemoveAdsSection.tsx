@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { useMonetization } from '../../../app/providers/MonetizationProvider';
 import { ActionRow } from '../../../components/ActionRow';
@@ -9,8 +10,7 @@ import { Skeleton, SkeletonGroup } from '../../../components/Skeleton';
 import { Text } from '../../../components/Text';
 import { removeAdsSectionState, type PrivacyOptionsOutcome } from '../../../domain/monetization';
 import { useT } from '../../../i18n/useT';
-import { appTheme } from '../../../theme/theme';
-import { BAR_HEIGHT, TAP_TARGET_MIN } from '../../../theme/tokens';
+import { BAR_HEIGHT } from '../../../theme/tokens';
 
 const OWNED_GLYPH = '✓';
 /** Width of the stand-in for the row title while the purchase is checked. */
@@ -129,67 +129,48 @@ function PrivacyOptionsRow({ open }: { readonly open: () => Promise<PrivacyOptio
 	);
 }
 
-const styles = StyleSheet.create(raw => {
-	const theme = appTheme(raw);
-	return {
-		sectionTitle: {
-			...theme.typography.caption,
-			color: theme.appColor.textMuted,
-		},
-		block: {
-			gap: theme.spacing.xs,
-			paddingVertical: theme.appSpacing.gap12,
-			borderTopWidth: 1,
-			borderBottomWidth: 1,
-			borderColor: theme.color.border,
-		},
-		row: {
-			minHeight: BAR_HEIGHT.action,
-			justifyContent: 'center',
-			gap: theme.spacing.xs,
-			paddingVertical: theme.spacing.sm,
-			borderBottomWidth: 1,
-			borderBottomColor: theme.color.border,
-		},
-		rowFirst: {
-			borderTopWidth: 1,
-			borderTopColor: theme.color.border,
-		},
-		rowInline: {
-			flexDirection: 'row',
-			alignItems: 'center',
-			gap: theme.appSpacing.gap12,
-		},
-		rowText: {
-			flex: 1,
-			gap: theme.spacing.xs,
-		},
-		rowLabel: {
-			...theme.typography.body,
-			color: theme.color.onBackground,
-		},
-		hint: {
-			...theme.typography.label,
-			color: theme.appColor.textMuted,
-		},
-		pendingTag: {
-			...theme.typography.caption,
-			alignSelf: 'flex-start',
-			paddingHorizontal: theme.spacing.xs,
-			color: theme.appColor.accentInk,
-			backgroundColor: theme.appColor.accentSoft,
-		},
-		ownedMark: {
-			width: TAP_TARGET_MIN / 2,
-			height: TAP_TARGET_MIN / 2,
-			alignItems: 'center',
-			justifyContent: 'center',
-			backgroundColor: theme.color.success,
-		},
-		ownedGlyph: {
-			...theme.typography.caption,
-			fontWeight: '800',
-			color: theme.appColor.onAccent,
-		},
-	};
-});
+const styles = StyleSheet.create(theme => ({
+	sectionTitle: theme.text.caption,
+	block: {
+		...theme.border.top,
+		...theme.border.bottom,
+		gap: theme.spacing.xs,
+		paddingVertical: theme.spacing.smPlus,
+	},
+	row: {
+		...theme.border.bottom,
+		minHeight: BAR_HEIGHT.action,
+		justifyContent: 'center',
+		gap: theme.spacing.xs,
+		paddingVertical: theme.spacing.sm,
+	},
+	rowFirst: theme.border.top,
+	rowInline: {
+		...layout.rowCenter,
+		gap: theme.spacing.smPlus,
+	},
+	rowText: {
+		...layout.fill,
+		gap: theme.spacing.xs,
+	},
+	rowLabel: theme.text.body,
+	hint: theme.text.labelMuted,
+	pendingTag: {
+		...theme.typography.caption,
+		...layout.selfStart,
+		paddingHorizontal: theme.spacing.xs,
+		color: theme.tone.accent.onContainer,
+		backgroundColor: theme.tone.accent.container,
+	},
+	ownedMark: {
+		...layout.center,
+		width: theme.size.touchTarget / 2,
+		height: theme.size.touchTarget / 2,
+		backgroundColor: theme.color.success,
+	},
+	ownedGlyph: {
+		...theme.typography.caption,
+		...theme.font.heavy,
+		color: theme.color.onSuccess,
+	},
+}));
