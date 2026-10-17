@@ -37,6 +37,23 @@ describe.each(SCHEMES)('%s theme', scheme => {
 	])('keeps %s readable on the raised surface', (_, foreground, minimum) => {
 		expect(contrastRatio(foreground, raised)).toBeGreaterThanOrEqual(minimum);
 	});
+
+	/**
+	 * Pairs the app draws that the package does not pair: the switch and the
+	 * text caret used to take the OS's colours, and the repeat list's radio
+	 * sits on the selected row's tint.
+	 */
+	const accent = theme.tone.accent;
+	it.each([
+		['switch thumb, on', accent.fill, theme.color.background, NON_TEXT_MIN],
+		['switch thumb, off', theme.color.outline, theme.color.background, NON_TEXT_MIN],
+		['radio mark on a selected row', accent.fg, accent.container, NON_TEXT_MIN],
+		['text over the Android selection', theme.color.onSurface, accent.container, TEXT_MIN],
+	])('keeps the %s visible', (_, foreground, background, minimum) => {
+		expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(
+			minimum,
+		);
+	});
 });
 
 describe('contrast enforcement', () => {

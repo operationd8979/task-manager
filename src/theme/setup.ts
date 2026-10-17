@@ -10,9 +10,10 @@ import { themeConfig } from './config';
 
 const unistylesConfig = createUnistylesConfig(
 	themeConfig,
-	// Boot in "auto"; a stored Sáng/Tối preference is applied with
-	// `applyThemeMode` once settings have been read. `adaptiveThemes` and
-	// `initialTheme` cannot be combined — the package rejects that.
+	// Boot following the system; the stored preference, "Tự động" included, is
+	// applied with `applyDisplayMode` (theme/mode.ts) once settings have been
+	// read. `adaptiveThemes` and `initialTheme` cannot be combined — the
+	// package rejects that.
 	{ adaptiveThemes: true },
 );
 

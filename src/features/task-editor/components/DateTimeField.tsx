@@ -3,7 +3,7 @@ import { Keyboard, Platform, Pressable } from 'react-native';
 import DateTimePicker, {
 	type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { Text } from '../../../components/Text';
 import {
@@ -44,6 +44,7 @@ export type DateTimeFieldProps = DateFieldProps | TimeFieldProps;
  */
 export function DateTimeField(props: DateTimeFieldProps) {
 	const [open, setOpen] = useState(false);
+	const { theme } = useUnistyles();
 
 	const current =
 		props.mode === 'date'
@@ -87,6 +88,10 @@ export function DateTimeField(props: DateTimeFieldProps) {
 					value={current}
 					mode={props.mode}
 					onChange={handleChange}
+					// iOS only. The Android dialogs take theirs from the native theme
+					// (android/app/src/main/res/values/styles.xml, AppPickerDialog);
+					// light/dark on both follows Hiển thị (theme/mode.ts).
+					accentColor={theme.tone.accent.fg}
 				/>
 			) : null}
 		</>

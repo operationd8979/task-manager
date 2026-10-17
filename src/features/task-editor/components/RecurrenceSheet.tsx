@@ -22,6 +22,7 @@ import type { AppI18nKey } from '../../../i18n';
 import { useT } from '../../../i18n/useT';
 import { monthList, repeatPatternLabel, weekdayShort } from '../../../lib/format';
 import { BAR_HEIGHT } from '../../../theme/tokens';
+import { ChoiceList } from './ChoiceList';
 import { DateTimeField } from './DateTimeField';
 import { Field } from './Field';
 
@@ -188,12 +189,11 @@ export function RecurrenceSheet({
 					<Text style={styles.primaryLabel}>{t('common.done')}</Text>
 				</Pressable>
 			}>
-			{/* Two columns: four of these labels in one row wrap to three lines
-          each before the OS text size is turned up at all. */}
-			<Segmented<RepeatMode>
+			{/* A list, not a segmented grid: four labels need a sentence each to
+          be told apart, and a sentence does not fit in a segment. */}
+			<ChoiceList<RepeatMode>
 				accessibilityLabel={t('repeat.title')}
 				value={mode}
-				columns={2}
 				onChange={next => {
 					// Turning the repeat back on after clearing every chip lands on
 					// daily again rather than on the empty-selection error.
@@ -205,11 +205,27 @@ export function RecurrenceSheet({
 					}
 					setMode(next);
 				}}
-				options={[
-					{ value: 'none', label: t('repeat.none') },
-					{ value: 'weekly', label: t('repeat.byWeekday') },
-					{ value: 'monthlyByDay', label: t('repeat.byMonthDay') },
-					{ value: 'monthlyLastDay', label: t('repeat.byLastDay') },
+				choices={[
+					{
+						value: 'none',
+						label: t('repeat.none'),
+						description: t('repeat.noneDescription'),
+					},
+					{
+						value: 'weekly',
+						label: t('repeat.byWeekday'),
+						description: t('repeat.byWeekdayDescription'),
+					},
+					{
+						value: 'monthlyByDay',
+						label: t('repeat.byMonthDay'),
+						description: t('repeat.byMonthDayDescription'),
+					},
+					{
+						value: 'monthlyLastDay',
+						label: t('repeat.byLastDay'),
+						description: t('repeat.byLastDayDescription'),
+					},
 				]}
 			/>
 

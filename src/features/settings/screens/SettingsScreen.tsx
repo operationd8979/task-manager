@@ -3,7 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useLocale } from '@chipmobilesdk/rn-i18n';
-import { applyThemeMode, layout, presets } from '@chipmobilesdk/rn-theme';
+import { layout, presets } from '@chipmobilesdk/rn-theme';
 
 import { useMonetization } from '../../../app/providers/MonetizationProvider';
 import { useReminders } from '../../../app/providers/ReminderProvider';
@@ -18,7 +18,7 @@ import { COUNTDOWN_OFFSETS } from '../../../domain/countdown';
 import type { DisplayMode } from '../../../domain/settings';
 import { useT } from '../../../i18n/useT';
 import type { Weekday } from '../../../lib/date';
-import { toThemeMode } from '../../../theme/mode';
+import { applyDisplayMode } from '../../../theme/mode';
 import {
 	BAR_HEIGHT,
 	DAY_ICON_SIZE,
@@ -141,7 +141,7 @@ export function SettingsScreen() {
 							onChange={next => {
 								// Applied immediately, before the write confirms — the theme is
 								// presentation, and waiting on storage would feel broken.
-								applyThemeMode(toThemeMode(next));
+								applyDisplayMode(next);
 								settings.update('displayMode', next).catch(() => undefined);
 							}}
 							options={[

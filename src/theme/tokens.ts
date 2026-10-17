@@ -45,6 +45,13 @@ export const SHEET_CHEVRON_SIZE = 12;
 /** Row heights from the design; content may push them taller, never shorter. */
 export const ROW_MIN_HEIGHT = { oneLabel: 76, threeLabels: 92 } as const;
 
+/**
+ * The note field: three lines when empty, growing as it is typed into, up to
+ * about seven — small enough to fit above the keyboard with its label on a
+ * short phone, after which it scrolls inside itself.
+ */
+export const NOTE_FIELD_HEIGHT = { min: 72, max: 144 } as const;
+
 /** Fixed chrome heights. */
 export const BAR_HEIGHT = { day: 56, action: 56, sheetHeader: 52 } as const;
 

@@ -17,42 +17,32 @@ export interface SegmentedProps<T extends string> {
 	value: T;
 	onChange: (value: T) => void;
 	accessibilityLabel: string;
-	/**
-	 * Wrap onto two columns instead of one row.
-	 *
-	 * Four segments in a single row leave about 66pt for a label like "Lặp cuối
-	 * tháng", which breaks it across three lines before the OS text size is
-	 * touched. Opt-in rather than automatic: the existing two- and three-way
-	 * choices are still one row, and nothing about them changes.
-	 */
-	columns?: 2;
 }
 
 /**
- * Two- to four-way exclusive choice. Same rule as Chip: selection is never
- * carried by colour alone.
+ * Two- or three-way exclusive choice with short labels. Same rule as Chip:
+ * selection is never carried by colour alone. Options that need a sentence to
+ * tell apart belong in a list instead (task-editor's ChoiceList).
  */
 export function Segmented<T extends string>({
 	options,
 	value,
 	onChange,
 	accessibilityLabel,
-	columns,
 }: SegmentedProps<T>) {
-	const grid = columns === 2;
 	return (
 		<View
 			accessibilityRole="radiogroup"
 			accessibilityLabel={accessibilityLabel}
-			style={grid ? styles.gridContainer : styles.container}>
-			{options.map(option => {
+			style={styles.container}>
+			{options.map((option, index) => {
 				const selected = option.value === value;
 				return (
 					<SegmentedItem
 						key={option.value}
 						option={option}
 						selected={selected}
-						grid={grid}
+						divided={index > 0}
 						// Same reason as Chip: choosing a segment means typing is over.
 						onPress={() => {
 							Keyboard.dismiss();
@@ -68,15 +58,16 @@ export function Segmented<T extends string>({
 function SegmentedItem<T extends string>({
 	option,
 	selected,
-	grid,
+	divided,
 	onPress,
 }: {
 	option: SegmentedOption<T>;
 	selected: boolean;
-	grid: boolean;
+	/** Every segment after the first draws the line between it and the last. */
+	divided: boolean;
 	onPress: () => void;
 }) {
-	styles.useVariants({ selected, width: grid ? 'half' : 'share' });
+	styles.useVariants({ selected, divided });
 	return (
 		<Pressable
 			accessibilityRole="radio"
@@ -99,15 +90,10 @@ const styles = StyleSheet.create(theme => ({
 		borderColor: theme.color.outline,
 		borderRadius: theme.radius.sm,
 	},
-	gridContainer: {
-		...layout.wrap,
-		borderWidth: theme.borderWidth.thick,
-		borderColor: theme.color.outline,
-		borderRadius: theme.radius.sm,
-	},
 	item: {
 		...theme.box.touchTarget,
 		...layout.center,
+		...layout.fill,
 		paddingVertical: theme.spacing.xs,
 		paddingHorizontal: theme.spacing.sm,
 		variants: {
@@ -115,11 +101,13 @@ const styles = StyleSheet.create(theme => ({
 				true: { backgroundColor: theme.tone.accent.fill },
 				false: { backgroundColor: 'transparent' },
 			},
-			width: {
-				// Exactly two per line, so the wrap lands where it is meant to
-				// rather than wherever the longest label happens to push it.
-				half: { flexGrow: 0, flexShrink: 1, flexBasis: '50%' },
-				share: layout.fill,
+			// Without it two unselected segments run together into one stretch
+			// of text, and only the filled one reads as something to tap.
+			divided: {
+				true: {
+					borderLeftWidth: theme.borderWidth.thick,
+					borderLeftColor: theme.color.outline,
+				},
 			},
 		},
 	},

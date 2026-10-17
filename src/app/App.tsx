@@ -5,7 +5,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
 import { I18nProvider } from '@chipmobilesdk/rn-i18n';
-import { applyThemeMode, layout } from '@chipmobilesdk/rn-theme';
+import { layout } from '@chipmobilesdk/rn-theme';
 
 import { ErrorState } from '../components/ErrorState';
 import { RemoveAdsSheetHost } from '../features/monetization';
@@ -16,9 +16,10 @@ import { DataError } from '../services/db/errors';
 import { openGateway, type DatabaseGateway } from '../services/db/gateway';
 import { createSettingsRepository } from '../services/db/settingsRepository';
 import { createTaskRepository } from '../services/db/taskRepository';
-import { toThemeMode } from '../theme/mode';
+import { applyDisplayMode } from '../theme/mode';
 import { RootStack } from './navigation/RootStack';
 import { ThemedNavigationContainer } from './navigation/ThemedNavigationContainer';
+import { ThemedStatusBar } from './ThemedStatusBar';
 import { BottomInsetProvider } from './providers/BottomInsetProvider';
 import { DatabaseProvider } from './providers/DatabaseProvider';
 import { InterruptionProvider } from './providers/InterruptionProvider';
@@ -111,7 +112,7 @@ export default function App() {
 				const settings = await createSettingsRepository(
 					gateway.handle,
 				).getAll();
-				applyThemeMode(toThemeMode(settings.displayMode));
+				applyDisplayMode(settings.displayMode);
 
 				// Anything still soft-deleted belongs to an undo window that never
 				// closed because the app was killed. FR-011a's edge case says that
@@ -169,6 +170,9 @@ export default function App() {
 		<I18nProvider i18n={i18n}>
 			<GestureHandlerRootView style={rootStyle.fill}>
 				<SafeAreaProvider>
+					{/* Above the boot branch: the loading and failure screens have a
+              status bar too. */}
+					<ThemedStatusBar />
 					{/* Outside the boot branch: a wipe reboots everything below,
               and neither a pending wait nor the banner inset may reset with it
               (specs/002-ads-and-remove-ads plan D-1). */}

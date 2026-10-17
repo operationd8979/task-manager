@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Keyboard, Pressable, Switch, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, View } from 'react-native';
 import type { BottomSheetScrollViewMethods } from '@gorhom/bottom-sheet';
 import { StyleSheet } from 'react-native-unistyles';
 import { layout } from '@chipmobilesdk/rn-theme';
@@ -9,7 +9,9 @@ import { Chip, ChipRow } from '../../../components/Chip';
 import { ErrorState } from '../../../components/ErrorState';
 import { Notice } from '../../../components/Notice';
 import { Sheet } from '../../../components/Sheet';
+import { SheetTextInput } from '../../../components/SheetTextInput';
 import { Text } from '../../../components/Text';
+import { Toggle } from '../../../components/Toggle';
 import {
 	isInPast,
 	notificationPlan,
@@ -22,7 +24,7 @@ import type { AppI18nKey, Translate } from '../../../i18n';
 import { useT } from '../../../i18n/useT';
 import { minutesOf, timeFromMinutes, type LocalDate } from '../../../lib/date';
 import { repeatPatternLabel } from '../../../lib/format';
-import { BAR_HEIGHT } from '../../../theme/tokens';
+import { BAR_HEIGHT, NOTE_FIELD_HEIGHT } from '../../../theme/tokens';
 import { DateTimeField } from '../components/DateTimeField';
 import { Field } from '../components/Field';
 import {
@@ -226,9 +228,9 @@ export function TaskFormSheet({
 					<Field
 						label={t('form.name')}
 						error={message(form.errorFor('title')?.messageKey)}>
-						<TextInput
+						<SheetTextInput
 							accessibilityLabel={t('form.name')}
-							value={form.values.title}
+							initialValue={form.values.title}
 							onChangeText={next => form.setField('title', next)}
 							style={styles.input}
 							autoFocus={task === undefined && !series}
@@ -360,7 +362,7 @@ export function TaskFormSheet({
 									? t('form.reminderOn')
 									: t('form.reminderOff')}
 							</Text>
-							<Switch
+							<Toggle
 								accessibilityLabel={t('form.reminder')}
 								value={form.values.reminderEnabled}
 								onValueChange={setReminderEnabled}
@@ -421,9 +423,9 @@ export function TaskFormSheet({
 					</Field>
 
 					<Field label={t('form.note')}>
-						<TextInput
+						<SheetTextInput
 							accessibilityLabel={t('form.note')}
-							value={form.values.note}
+							initialValue={form.values.note}
 							onChangeText={next => form.setField('note', next)}
 							multiline
 							style={styles.textarea}
@@ -528,7 +530,10 @@ const styles = StyleSheet.create(theme => ({
 	},
 	textarea: {
 		...theme.typography.label,
-		minHeight: 72,
+		minHeight: NOTE_FIELD_HEIGHT.min,
+		// Past this it scrolls inside itself, so the whole field — and the line
+		// being typed — always fits in the gap above the keyboard.
+		maxHeight: NOTE_FIELD_HEIGHT.max,
 		borderWidth: theme.borderWidth.thin,
 		borderColor: theme.color.outline,
 		backgroundColor: theme.color.surfaceContainerHigh,
