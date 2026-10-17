@@ -1,6 +1,6 @@
 ---
-rev: 6
-spec_rev: 1
+rev: 7
+spec_rev: 2
 design_rev: 1
 ---
 # Plan: Ads and Remove-ads purchase
@@ -65,6 +65,16 @@ design_rev: 1
     notification MMKV;
   - no `react-native.config.js`.
 - **Build**: `scripts/build-android.ps1`, with `npm run build:apk` and `npm run build:aab`.
+  `versionCode 1` / `versionName "1.0"` are literals in `android/app/build.gradle`, and only
+  `APP_ENV=production` refuses the debug key, so a test AAB signed with it builds and is
+  then rejected by Play.
+- **Play requirements checked 2026-10-13**: target SDK 36 is required since 31/8/2026 (met);
+  Play Billing Library ≥ 8 (the bridge resolves `billing:9.1.0`, met); 16 KB page-size
+  support for apps targeting API 35+ is not yet verified on a build with the ad and billing
+  native libraries.
+- **Settings rows**: `PrivacyOptionsRow` in `RemoveAdsSection` is the only tappable row with
+  a hint, an inline failure line and a chevron; the DỮ LIỆU section holds the data
+  statement. The DB gateway (`useDatabase()`) exposes `errorLog` to any screen under it.
 - **Shared UI to reuse**: `Sheet`, `SkeletonGroup`/`Skeleton`, `EmptyState`, `ErrorState`,
   `Chevron` and `Toast` in `src/components/`. The warning notice (`accentSoft` fill, 1px
   `accentInk` border) is styled locally in `TaskFormSheet` (`reminderWarning`).
@@ -219,6 +229,40 @@ and owned states. The build environment is chosen when the bundle is built. All 
   (bought on another device). Before the guard, Google's form appeared over an owner's
   timeline, against AC-6.5. Rejected: delaying the flow until the first sync, which would
   hold every free user's consent, and so their first ad, behind a network call.
+- D-23 The privacy policy entry (US-10) is a row in DỮ LIỆU, right under the data
+  statement it expands on, on every platform. It opens
+  `<site>/task-manager/privacy/<vi|en|ja>/` in the browser via `Linking.openURL`; a failure
+  shows a line under the row with the address and logs `legal.privacy_policy_open_failed`
+  (AC-10.3). The site is one constant, `PRIVACY_POLICY_SITE` =
+  `https://operationd8979.github.io`, the developer's shared site for all their apps
+  (owner's choice, 2026-10-14). Alternatives rejected:
+  - an in-app WebView: a new native dependency for one page, and Play only asks for a link;
+  - inside the Ads section: the policy covers task data too, and iOS has no Ads section.
+- D-24 Extract `src/components/ActionRow.tsx` (label, hint, optional failure line, chevron,
+  bordered like the Ads rows) and move `PrivacyOptionsRow` and the Restore row onto it. The
+  privacy policy row is the second copy of that pattern (standards II). Styling it locally
+  was rejected for the same reason as D-17.
+- D-25 "Release candidate" (AC-7.5) means an AAB of any environment, or any production
+  build. The guard is in two places:
+  - `android/app/build.gradle` refuses a `bundle*` task without the upload key, whatever
+    the environment, so even a hand-run `gradlew bundleRelease` cannot sign with the debug
+    key;
+  - `check-release-config` takes `--format`, and refuses an AAB of `test`/`production` whose
+    `PRIVACY_POLICY_SITE` is not an `https://` address.
+
+  A local release APK, signed with the debug key for device checks, stays allowed.
+  Refusing every release build was rejected: it blocks device checks until the key exists.
+- D-26 `versionCode`/`versionName` come from `TM_VERSION_CODE`/`TM_VERSION_NAME` (Gradle
+  property or environment, defaults 1 / `1.0`), set by `build-android.ps1 -VersionCode
+  -VersionName`. An AAB requires `-VersionCode` explicitly, since Play refuses a reused code.
+  `APP_ENV=test` appends `-test` to the name, so a test upload is visible as one in Play
+  Console. A version file in the repo was rejected: it is bumped by hand anyway, and a
+  forgotten bump only surfaces at upload.
+- D-27 `scripts/check-elf-alignment.mjs <apk|aab>` reads the archive with Node's zlib (no new
+  dependency) and fails when a 64-bit library (`arm64-v8a`, `x86_64`) has a `PT_LOAD`
+  segment aligned below 16 KB. The build runs it after every AAB. The ELF and zip parsing
+  lives in `scripts/elf-alignment.cjs` and is unit-tested. Alternatives rejected: the
+  shell-only `check_elf_alignment.sh` (no Windows) and `bundletool` (a new tool to install).
 
 ## Changes
 
@@ -377,6 +421,29 @@ and owned states. The build environment is chosen when the bundle is built. All 
   `removeAds.*` keys, via `npm run i18n:sync`. The vi-VN text is the design's *Copy* table;
   en-US and ja-JP are translated from it.
 
+**Release readiness** (SL-8, SL-9)
+- `src/domain/privacyPolicy.ts` (add): `PRIVACY_POLICY_SITE`, `privacyPolicyUrl(locale,
+  site)` and `PRIVACY_POLICY_OPEN_FAILED_CODE` (D-23).
+- `src/components/ActionRow.tsx` (add, D-24); `RemoveAdsSection` moves `PrivacyOptionsRow`
+  and Restore onto it with no visual change.
+- `src/features/settings/hooks/usePrivacyPolicy.ts` (add): the URL for the current locale,
+  `open()`, `failed`, and the error-log entry.
+- `src/features/settings/components/PrivacyPolicyRow.tsx` (add) and `SettingsScreen.tsx`:
+  the row under the data statement.
+- Locales: `settings.privacyPolicy`, `…Hint`, `…Failed` (with `{{url}}`) in vi/en/ja.
+- `scripts/release-config-rules.cjs`, `check-release-config.mjs`: `--format apk|aab`; the
+  D-25 privacy-site and AAB rules; reads `src/domain/privacyPolicy.ts`.
+- `android/app/build.gradle`: the `bundle*` guard (D-25) and version properties (D-26).
+- `scripts/build-android.ps1`: `-VersionCode`, `-VersionName`, passes `--format` to the
+  check, and runs the alignment check after an AAB (D-27).
+- `scripts/elf-alignment.cjs`, `scripts/check-elf-alignment.mjs` (add, D-27).
+- `android/app/src/release/AndroidManifest.xml` (remove): it stripped INTERNET and
+  ACCESS_NETWORK_STATE from every release build, from 001's offline-only days, so no
+  release build could load an ad (see Notes).
+- `docs/release/` (add, SL-9): the GitHub Pages site (`site/app-ads.txt` template,
+  `site/task-manager/privacy/{index,vi,en,ja}`), `data-safety.md` (the Play form's answers,
+  sourced) and `store-listing.md` (vi/en/ja texts).
+
 **Tests**
 - `src/domain/__tests__/monetization.test.ts`: mapping, latch, counter, gate, and the outcome
   views.
@@ -430,6 +497,15 @@ and owned states. The build environment is chosen when the bundle is built. All 
     `payment.pending_cancelled` / `payment.pending_expired` (a pending payment that ended
     unpaid, D-20);
   - `monetization.store_memory_only` when MMKV is unavailable.
+  - Operation `settings`: `legal.privacy_policy_open_failed` (AC-10.3).
+- **Privacy policy** (D-23): `PRIVACY_POLICY_SITE: string | null` (`https://` origin, no
+  trailing slash; `null` until published). `privacyPolicyUrl(locale: string, site =
+  PRIVACY_POLICY_SITE): string | null` → `<site>/task-manager/privacy/<lang>/`, with `lang`
+  `vi` | `en` | `ja` from the locale's language and `vi` for anything else (the primary
+  locale).
+- **Build parameters** (D-26): `TM_VERSION_CODE` (integer ≥ 1), `TM_VERSION_NAME` (string);
+  `build-android.ps1 -VersionCode <n> -VersionName <s>`;
+  `check-release-config.mjs --env <env> [--format apk|aab]` (default `apk`).
 
 ## Standards
 
@@ -465,7 +541,9 @@ and owned states. The build environment is chosen when the bundle is built. All 
   scale.
 - **II reusable components**: the warning notice becomes a shared `Notice` on its second use
   (D-17). The sheet's empty and error states reuse `EmptyState` and `ErrorState` rather
-  than new markup.
+  than new markup. The action row becomes `ActionRow` on its second use (D-24).
+- **IV no silent failure**: a privacy policy page that cannot open says so under the row,
+  with the address, and is logged (AC-10.3).
 
 ## Slices
 
@@ -562,10 +640,44 @@ and owned states. The build environment is chosen when the bundle is built. All 
     works (`RemoveAdsSection.test`).
   - On device with `debugGeography: 'eea'`: moved to SL-6 — no device was attached, and
     the app has no debug-geography switch outside the temporary SL-2 harness.
+- [x] SL-8 Privacy policy entry and release-build hardening (D-23 to D-27). Covers US-10
+  (AC-10.1–AC-10.3), AC-7.5, FR-20 (new strings, a11y of the row) and FR-24 (the in-app
+  link half).
+  Verify:
+  - `privacyPolicy.test` maps vi-VN/en-US/ja-JP and an unknown locale, and returns `null`
+    while the site is unset.
+  - `PrivacyPolicyRow.test`: present for any purchase status; a tap opens the locale's URL;
+    a rejected open shows the failure line with the address and logs the code.
+  - `RemoveAdsSection.test` stays green on `ActionRow` (D-24).
+  - `release-config-rules.test`: an AAB of `test` with `PRIVACY_POLICY_SITE = null` fails, a
+    real `https://` site passes, an APK of `test` with `null` passes; production still fails
+    on the debug key.
+  - `elf-alignment.test`: 4 KB and 16 KB `PT_LOAD` fixtures, stored and deflated entries,
+    32-bit libraries ignored.
+  - `gradlew bundleRelease` without the upload key fails with the D-25 message;
+    `npm run build:apk` (test, debug key) still builds; its `versionName` ends in `-test`.
+  - `node scripts/check-elf-alignment.mjs <test APK>` reports every 64-bit library; any
+    unaligned one is fixed or recorded under Notes with its owner.
+  - The **release** merged manifest holds INTERNET and ACCESS_NETWORK_STATE, the rn-ads
+    permission table and BILLING.
+- [x] SL-9 Release materials in `docs/release/`. Covers FR-24 (the documents behind the
+  Data safety, policy, listing and `app-ads.txt` gates) and FR-14 (the policy says what the
+  ads receive).
+  Verify:
+  - The policy pages state, in vi/en/ja: tasks stay on the device; AdMob receives the
+    advertising ID, IP-derived approximate location, app interactions and diagnostics;
+    consent in the EEA/UK/Switzerland and how to change it; Play Billing; no account and
+    no analytics; contact. Each page names the app and is titled "privacy policy".
+  - `data-safety.md` answers every Play form question and cites Google's AdMob disclosure.
+  - Listing texts fit Play's limits (name 30, short description 80, full 4000 characters).
 - [ ] SL-6 Release readiness (needs the Play Console and AdMob setup). Covers AC-7.3, FR-24,
   FR-21 (startup, size and the 5,000-task perf check), FR-20 (final sweep), and on a device
-  AC-4.1, AC-4.5, AC-4.6, AC-7.1 and AC-2.8 (offline).
+  AC-4.1, AC-4.5, AC-4.6, AC-7.1 and AC-2.8 (offline). The owner's account steps are tracked
+  in the release checklist doc (see Notes).
   Verify:
+  - FR-24 r2 gates: the policy is entered in Play Console and opened by the in-app entry;
+    target audience 18+; the AdMob European regulations message is published and shows on
+    a consent-region device; `app-ads.txt` is verified and the app is Ready in AdMob.
   - A release-configured `-Environment test` AAB on a Play testing track; a licence tester
     buys without a charge, the payment adapter is confirmed against `react-native-iap`
     16.7.3, a slow-payment pending purchase settles, and uninstall/reinstall restores it.
@@ -590,7 +702,9 @@ and owned states. The build environment is chosen when the bundle is built. All 
     - offline collapse on a bundled release build;
     - a debug build's Buy blocked on a Play Store device (AC-7.1);
     - an owner wipes data and stays ad-free (AC-4.5);
-    - the remaining language × theme × auto screenshots of SCR-2 and SCR-3.
+    - the remaining language × theme × auto screenshots of SCR-2 and SCR-3;
+    - from the 001 fixes: a light ↔ dark switch re-themes the timeline at once (001
+      L-12), and Japanese chosen survives a restart (001 L-11).
 
 ## Verification
 
@@ -680,6 +794,9 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - AC-7.3 — pending SL-6
   - AC-7.4 — `release-config-rules.test` (7 cases); CLI fails production, passes
     test/development ✓
+  - AC-7.5 — `release-config-rules.test` "release candidates" (10 cases); CLI: `--env test
+    --format aab` fails on the debug key and the unpublished site, `--format apk` passes;
+    `gradlew :app:bundleRelease` without the key fails with the D-25 message ✓ (SL-8)
   - AC-8.1 — `useInterstitial.test`; device: Ad3 visible, then the test interstitial ✓
   - AC-8.2 — `interstitial.test` restart; device: count survived a restart (preload at 2) ✓
   - AC-8.3 — `useTaskForm` reports `created: true` once for a new series ✓ (code path)
@@ -691,6 +808,11 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - AC-8.9 — `useInterstitial.test` "never shows at launch" ✓
   - AC-9.1, AC-9.2, AC-9.3 — `wiring.test` refund on next cold start, latch mid-session,
     stale → held ✓
+  - AC-10.1 — `PrivacyPolicyRow.test` link role, label and hint, no purchase state read ✓
+  - AC-10.2 — `privacyPolicy.test` vi/en/ja/fallback URLs; `PrivacyPolicyRow.test` opens
+    the vi page ✓ (browser on a device: SL-6, once the site is published)
+  - AC-10.3 — `PrivacyPolicyRow.test` rejected open → line with the address, no raw error,
+    `legal.privacy_policy_open_failed` logged; retry clears it ✓
 
 ## Notes
 
@@ -716,13 +838,12 @@ and owned states. The build environment is chosen when the bundle is built. All 
 - Device-check harness: on the emulator only, `runtime.ts` used
   `rn-payment/testing`'s fake store and logged ad events. It was removed before the full
   checks, and no test double is imported by app code.
-- Pre-existing, outside this feature (reported, not fixed):
-  - `src/i18n/storage.ts` has the same `new MMKV` bug, so the chosen language is not
-    persisted across restarts (001 FR-058b). Seen on device: Japanese chosen, English after
-    a restart.
-  - Switching light/dark in Settings re-themes the timeline only partly (it keeps the old
-    background and loses its chevrons) until restart (001 FR-052c). Reproduced with this
-    feature's changes stashed.
+- Pre-existing, outside this feature — fixed 2026-10-13 under 001 (its plan, L-11 and L-12):
+  - `src/i18n/storage.ts` had the same `new MMKV` bug, so the chosen language was not
+    persisted across restarts (001 FR-058b). Now `createMMKV`, pinned by a v4-shaped test.
+  - Switching light/dark re-themed the timeline only partly (old background, chevrons lost)
+    until restart (001 FR-052c): its `SafeAreaView` is outside Unistyles' reach. Now
+    `ThemedSafeAreaView`; the device check is part of SL-6.
   - Editing a module imported by `App.tsx` while the app runs can trigger Fast Refresh
     "handle is closed" or a blank reload. Dev only.
 - SL-7 (r4): rn-payment 0.2.0 replaced the D-18 marker with the SDK's pending set (D-20).
@@ -753,8 +874,24 @@ and owned states. The build environment is chosen when the bundle is built. All 
   - Turning the emulator's network off breaks the debug bundle's Metro connection, so
     "offline" was simulated at the store (connection refused), which is what the payment
     SDK sees.
+- SL-8, first release build with the ads and billing libraries (2026-10-13):
+  - 48 of 48 64-bit libraries are 16 KB aligned (`check-elf-alignment`); the universal
+    test APK is 119.2 MB.
+  - **Release builds had no network.** `android/app/src/release/AndroidManifest.xml`, from
+    001, removed INTERNET and ACCESS_NETWORK_STATE in release only; the debug source set
+    adds INTERNET back for Metro. Every SL-1 to SL-5 device check ran a debug build, so SL-1's
+    "merged manifest lists the rn-ads table plus BILLING" held for debug and not for
+    release, where no ad could ever load. The file is removed; SL-1's manifest check now
+    reads the release merged manifest (SL-8 Verify).
+- r7 (spec r2): FR-2 now states the 7-day ceiling that D-10 already implements, so SL-1
+  stays done; AC-7.4 is unchanged and AC-7.5 is new in SL-8. The design (r1, `spec_rev: 1`)
+  predates US-10, so the privacy policy row has no artboard; D-23/D-24 place it with
+  existing patterns. `/sdd-design` can draw it if wanted.
+- The owner's Play Console, AdMob, website and payout steps are tracked in the release
+  checklist doc: https://claude.ai/code/artifact/5a6f7329-aff2-4015-b1b7-173eb88c5bd0
 - Choices worth a glance:
-  - `maxAdContentRating: 'PG'` — confirm against the content-rating gate (FR-24).
+  - `maxAdContentRating: 'PG'` — confirm against the content-rating gate (FR-24). With the
+    18+ audience (spec r2 Assumptions) it is conservative, not required.
   - In landscape the bottom chrome (bar + strip + banner) takes nearly half the screen; a
     design follow-up.
   - The dev environment uses Google's test units directly, so no substitution event fires;
@@ -786,3 +923,8 @@ and owned states. The build environment is chosen when the bundle is built. All 
 - r6 (2026-10-13): rn-payment and rn-notification bumped to the published 0.2.1 (MMKV v4
   fix). AC-1.7 and AC-5.2 device evidence no longer conditional. D-11's pointer to the
   retired SDK raw note now names the rn-ads CHANGELOG and README instead.
+- r7 (2026-10-13): reconciled to spec r2. Added D-23 (privacy policy row), D-24
+  (`ActionRow`), D-25 (release-candidate guard), D-26 (version parameters), D-27 (16 KB
+  check); slices SL-8 (US-10, AC-7.5) and SL-9 (release materials); SL-6 verifies the new
+  FR-24 gates. Context records the Play requirements checked and the 0.3.0 docs-only bump
+  of rn-payment already listed there.

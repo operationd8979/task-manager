@@ -8,6 +8,11 @@ module.exports = {
       env: {jest: true},
     },
     {
+      // Build tooling runs on Node (Buffer, BigInt), never in the app bundle.
+      files: ['scripts/**/*.js'],
+      env: {node: true, es2020: true},
+    },
+    {
       // FR-058a: every display string comes from src/lib/strings.ts. Without a
       // rule that fails the build, "no hardcoded strings" is only a promise.
       files: ['src/features/**/*.tsx', 'src/components/**/*.tsx'],

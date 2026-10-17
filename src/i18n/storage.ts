@@ -18,10 +18,11 @@ import type { LocaleStorageAdapter } from '@chipmobilesdk/rn-i18n';
  */
 const INSTANCE_ID = 'taskmanager.i18n';
 
+/** The three MMKV calls this store makes (react-native-mmkv v4 names). */
 interface MmkvLike {
 	getString(key: string): string | undefined;
 	set(key: string, value: string): void;
-	delete(key: string): void;
+	remove(key: string): void;
 }
 
 /**
@@ -29,14 +30,17 @@ interface MmkvLike {
  * any build where MMKV failed to link. A language choice that does not survive
  * a restart is a degradation; a crash on the first render is not one worth
  * trading for it.
+ *
+ * v4 instances come from `createMMKV`; `MMKV` is only a type there. The v3
+ * `new MMKV()` this used to call threw on every device, so the fallback below
+ * silently held the language in memory and FR-058b broke (specs/002 plan Notes).
+ * src/i18n/__tests__/storage.test.ts pins the v4 call.
  */
 function createBackend(): MmkvLike {
 	try {
 		// Required lazily so this module loads where the native module does not.
-		const { MMKV } = require('react-native-mmkv') as {
-			MMKV: new (config: { id: string; path?: string }) => MmkvLike;
-		};
-		return new MMKV({
+		const { createMMKV } = require('react-native-mmkv') as typeof import('react-native-mmkv');
+		return createMMKV({
 			id: INSTANCE_ID,
 			// Library/Caches is excluded from iCloud backup by platform design, and
 			// a language preference is cheap to rebuild from the device locale if
@@ -51,7 +55,7 @@ function createBackend(): MmkvLike {
 			set: (key, value) => {
 				memory.set(key, value);
 			},
-			delete: key => {
+			remove: key => {
 				memory.delete(key);
 			},
 		};
@@ -68,5 +72,5 @@ function store(): MmkvLike {
 export const localeStorage: LocaleStorageAdapter = {
 	getItem: key => Promise.resolve(store().getString(key) ?? null),
 	setItem: (key, value) => Promise.resolve(store().set(key, value)),
-	removeItem: key => Promise.resolve(store().delete(key)),
+	removeItem: key => Promise.resolve(store().remove(key)),
 };

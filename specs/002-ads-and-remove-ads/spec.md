@@ -1,6 +1,6 @@
 ---
 status: building
-rev: 1
+rev: 2
 ---
 # Ads and Remove-ads purchase
 
@@ -176,6 +176,9 @@ accident.
 - AC-7.4 Given a release candidate, when the release check runs, then it fails if a
   production build contains test ad units or the development purchase block, or if a
   non-production build contains production ad units.
+- AC-7.5 Given a test or production release candidate, when the release check runs, then it
+  fails if the privacy policy address is still a placeholder, or if the build would be
+  signed with the debug key.
 
 ### US-8 Full-screen ad every 3 new items (P2)
 
@@ -216,14 +219,29 @@ As the app owner, I want ads to return for someone whose purchase was refunded.
   then the last known owned status holds, and the app re-checks at every launch and
   foreground until a sync succeeds.
 
+### US-10 Privacy policy inside the app (P1)
+
+As a user, I want to read the app's privacy policy from inside the app, in my language, so
+that I know what the ads and the store receive before I rely on the app.
+
+- AC-10.1 Given any platform and any purchase status, when the user opens Settings, then a
+  "Privacy policy" entry is present, labelled as opening an external page.
+- AC-10.2 Given the app language is vi-VN, en-US or ja-JP, when the user taps the entry, then
+  the published policy opens in the device browser in that language.
+- AC-10.3 Given no app on the device can open the page, when the user taps the entry, then
+  an actionable message says the page could not be opened and shows its address, never a
+  raw error, and the failure is logged.
+
 ## Requirements
 
 - FR-1 Purchase status has three states: unknown, owned, not owned. Unknown is never treated
   as not owned, and no timeout turns it into not owned: it lasts until the store answers.
   Ads are on only when the status is not owned, consent permits, ads are enabled in the build
   (FR-19), and the platform is Android.
-- FR-2 The status from the last successful sync is available offline. The app syncs at every
-  launch and every return to the foreground. A failed sync keeps the last known status.
+- FR-2 The status from the last successful sync is available offline for up to 7 days. The
+  app syncs at every launch and every return to the foreground, and a failed sync keeps the
+  last known status within those 7 days. Past them the status is unknown (FR-1): no ads
+  show and Settings says the purchase is being checked, until a sync succeeds.
 - FR-3 Status changes in a running session apply immediately, without a restart. The one
   exception is owned → not owned, which applies from the next cold start (FR-1, US-9).
 - FR-4 A pending payment never grants ad removal.
@@ -297,10 +315,15 @@ As the app owner, I want ads to return for someone whose purchase was refunded.
   - the in-app product is active with a base price that Play converts per country;
   - ad units are created and linked to the app;
   - Data safety declares ads and the advertising ID, and "Contains ads" is declared;
-  - a privacy policy in vi/en/ja is published and linked;
-  - the content rating and target audience are updated;
+  - a privacy policy in vi/en/ja is published at a public, non-PDF address, entered in Play
+    Console, and opened by the in-app entry (US-10) — Play requires both places;
+  - the content rating is updated and the target audience is 18+ (Assumptions);
   - a build is on a testing track, and license testers are set up;
-  - there is evidence that development builds created no production transaction.
+  - there is evidence that development builds created no production transaction;
+  - the AdMob European regulations (consent) message is published for the app, so the
+    consent form and the Privacy options entry work in consent regions (US-6);
+  - `app-ads.txt` is published at the root of the developer website named in the Play
+    listing, and AdMob reports the app verified and ready.
 
 ## Non-goals
 
@@ -336,7 +359,19 @@ As the app owner, I want ads to return for someone whose purchase was refunded.
   baseline first.
 - Spec 001's assumption of Android + iOS is unchanged for task management. Only monetisation
   is Android-only; recording this in 001 is a separate refinement.
+- The Play target audience is 18+ and the app is not directed at children, so ads are
+  requested as not child-directed and not under the age of consent (confirmed by the owner
+  2026-10-14). Choosing an audience under 13 would bring in Play's Families policy and
+  change the ad configuration.
+- The privacy policy is hosted on the developer's one website for all their apps,
+  `https://operationd8979.github.io` (GitHub Pages, chosen 2026-10-14), one page per
+  language. The privacy policy entry is not monetisation, so it shows on iOS too (US-10).
 
 ## Changelog
 
 - r1 (2026-10-11): created.
+- r2 (2026-10-13): Play release readiness. Added US-10 (AC-10.1–AC-10.3, in-app privacy
+  policy entry) and AC-7.5 (placeholder policy address or debug key fails the release
+  check). FR-2 now states the 7-day ceiling (plan D-10). FR-24 gains the in-app policy
+  link, the 18+ target audience, the AdMob consent message and `app-ads.txt`. Assumptions
+  record the target audience and policy hosting.

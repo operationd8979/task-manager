@@ -12,7 +12,7 @@ import Animated, {
 	withTiming,
 } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { useDatabase } from '../../../app/providers/DatabaseProvider';
@@ -23,6 +23,7 @@ import { ErrorState } from '../../../components/ErrorState';
 import { EmptyState } from '../../../components/EmptyState';
 import { Skeleton, SkeletonGroup } from '../../../components/Skeleton';
 import { Text } from '../../../components/Text';
+import { ThemedSafeAreaView } from '../../../components/ThemedSafeAreaView';
 import { countdownOpensAt } from '../../../domain/countdown';
 import { DEFAULT_SETTINGS, type AppSettings } from '../../../domain/settings';
 import { withStartTime, type Task } from '../../../domain/task';
@@ -721,7 +722,7 @@ export function TimelineScreen() {
 	const createSwipe = useCreateSwipe({ onCreate: openCreate });
 
 	return (
-		<SafeAreaView style={styles.screen} edges={['top']}>
+		<ThemedSafeAreaView style={styles.screen} edges={['top']}>
 			<DayBar
 				date={date}
 				label={dayLabel(date)}
@@ -905,7 +906,7 @@ export function TimelineScreen() {
 					onClose={closeOverlay}
 				/>
 			) : null}
-		</SafeAreaView>
+		</ThemedSafeAreaView>
 	);
 }
 

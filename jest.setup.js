@@ -48,6 +48,8 @@ jest.mock('react-native-unistyles', () => {
 			setAdaptiveThemes: () => undefined,
 		},
 		useUnistyles: () => ({ theme }),
+		// The theme never changes under Jest, so the wrapped component is enough.
+		withUnistyles: Component => Component,
 		StyleSheet: {
 			configure: () => undefined,
 			create: sheet => {

@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { useMonetization } from '../../../app/providers/MonetizationProvider';
+import { ActionRow } from '../../../components/ActionRow';
 import { Chevron } from '../../../components/Chevron';
 import { Skeleton, SkeletonGroup } from '../../../components/Skeleton';
 import { Text } from '../../../components/Text';
@@ -88,14 +89,10 @@ export function RemoveAdsSection() {
 						</Pressable>
 					) : null}
 
-					<Pressable
-						accessibilityRole="button"
-						accessibilityLabel={t('settings.restore')}
+					<ActionRow
+						label={t('settings.restore')}
 						onPress={() => monetization.openRemoveAds({ mode: 'restore' })}
-						style={[styles.row, styles.rowInline]}>
-						<Text style={[styles.rowLabel, styles.rowText]}>{t('settings.restore')}</Text>
-						<Chevron direction="right" />
-					</Pressable>
+					/>
 
 					{monetization.privacyOptions ? (
 						<PrivacyOptionsRow open={monetization.openPrivacyOptions} />
@@ -123,23 +120,12 @@ function PrivacyOptionsRow({ open }: { readonly open: () => Promise<PrivacyOptio
 	}, [open]);
 
 	return (
-		<Pressable
-			accessibilityRole="button"
-			accessibilityLabel={t('settings.privacyOptions')}
-			accessibilityHint={t('settings.privacyOptionsHint')}
+		<ActionRow
+			label={t('settings.privacyOptions')}
+			hint={t('settings.privacyOptionsHint')}
+			failure={failed ? t('settings.privacyOptionsFailed') : null}
 			onPress={onPress}
-			style={[styles.row, styles.rowInline]}>
-			<View style={styles.rowText}>
-				<Text style={styles.rowLabel}>{t('settings.privacyOptions')}</Text>
-				<Text style={styles.hint}>{t('settings.privacyOptionsHint')}</Text>
-				{failed ? (
-					<Text style={styles.failed} accessibilityLiveRegion="polite">
-						{t('settings.privacyOptionsFailed')}
-					</Text>
-				) : null}
-			</View>
-			<Chevron direction="right" />
-		</Pressable>
+		/>
 	);
 }
 
@@ -185,10 +171,6 @@ const styles = StyleSheet.create(raw => {
 		hint: {
 			...theme.typography.label,
 			color: theme.appColor.textMuted,
-		},
-		failed: {
-			...theme.typography.label,
-			color: theme.appColor.accentInk,
 		},
 		pendingTag: {
 			...theme.typography.caption,

@@ -24,7 +24,7 @@
 		"@chipmobilesdk/rn-local-db": "0.1.2",
 		"@chipmobilesdk/rn-notification": "0.3.0",
 		"@chipmobilesdk/rn-payment": "0.3.0",
-		"@chipmobilesdk/rn-theme": "0.2.2",
+		"@chipmobilesdk/rn-theme": "1.0.0",
 		"@dr.pogodin/react-native-fs": "^2.39.2",
 		"@gorhom/bottom-sheet": "^5.2.14",
 		"@op-engineering/op-sqlite": "^17.1.3",

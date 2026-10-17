@@ -19,6 +19,15 @@ param(
     [ValidateSet("development", "test", "production")]
     [string]$Environment,
 
+    # Play refuses an upload that reuses a versionCode, so an AAB must name both
+    # (plan D-26). An APK left without them keeps Gradle's defaults (1 / 1.0).
+    # A test build's name gains "-test" in Gradle.
+    [ValidateRange(1, 2100000000)]
+    [int]$VersionCode,
+
+    [ValidatePattern("^[0-9][0-9A-Za-z.]*$")]
+    [string]$VersionName,
+
     [ValidateNotNullOrEmpty()]
     [string]$OutputDirectory = ".artifacts\android",
 
@@ -317,6 +326,17 @@ if ($null -ne $Architectures -and $Architectures.Count -gt 0) {
     $commonGradleArguments.Add("-PreactNativeArchitectures=$($Architectures -join ',')")
 }
 
+if ($Format -eq "aab" -and (-not $PSBoundParameters.ContainsKey("VersionCode") -or
+        -not $PSBoundParameters.ContainsKey("VersionName"))) {
+    throw "An AAB needs -VersionCode and -VersionName (Play refuses a reused versionCode), e.g. -VersionCode 2 -VersionName 1.0.1"
+}
+if ($PSBoundParameters.ContainsKey("VersionCode")) {
+    $commonGradleArguments.Add("-PTM_VERSION_CODE=$VersionCode")
+}
+if ($PSBoundParameters.ContainsKey("VersionName")) {
+    $commonGradleArguments.Add("-PTM_VERSION_NAME=$VersionName")
+}
+
 if ($null -ne $GradleArguments) {
     foreach ($argument in $GradleArguments) {
         if (-not [string]::IsNullOrWhiteSpace($argument)) {
@@ -342,9 +362,10 @@ if (-not $PSCmdlet.ShouldProcess($resolvedProjectRoot, "Run Gradle tasks ($Envir
 
 # Refuse before spending a build on it: production units, app id and upload key
 # must all be real, and no other environment may carry a real ad unit (AC-7.4).
+# An AAB also needs the upload key and the published privacy policy (AC-7.5).
 Push-Location $resolvedProjectRoot
 try {
-    & node scripts/check-release-config.mjs --env $Environment
+    & node scripts/check-release-config.mjs --env $Environment --format $Format
     if ($LASTEXITCODE -ne 0) {
         throw "Release configuration check failed for environment '$Environment'"
     }
@@ -416,23 +437,36 @@ if ($Format -eq "aab") {
 
     Assert-PathWithinRoot -Path $bundleFiles[0].FullName -Root $bundleOutputRoot -Description "bundle output"
 
-    # Version and applicationId come from the module's Gradle file, since the
-    # metadata document that would normally carry them is not written for
-    # bundles. Values only reach the artifact FILE NAME, so a miss degrades to
-    # "unknown" in the name rather than shipping something wrong.
+    # Play rejects 64-bit libraries that cannot load on 16 KB page devices
+    # (plan D-27). Checked on the artifact itself, since that is what Play sees.
+    Push-Location $resolvedProjectRoot
+    try {
+        & node scripts/check-elf-alignment.mjs $bundleFiles[0].FullName
+        if ($LASTEXITCODE -ne 0) {
+            throw "16 KB page-size alignment check failed for $($bundleFiles[0].FullName)"
+        }
+    }
+    finally {
+        Pop-Location
+    }
+
+    # applicationId comes from the module's Gradle file and the version from
+    # this run's parameters, since the metadata document that would normally
+    # carry them is not written for bundles. The "-test" suffix mirrors
+    # android/app/build.gradle (plan D-26). Values only reach the artifact FILE
+    # NAME, so a miss degrades to "unknown" rather than shipping something wrong.
     $gradleFileForMetadata = if (Test-Path -LiteralPath $moduleBuildFile -PathType Leaf) { $moduleBuildFile } else { $moduleBuildFileKts }
     $gradleText = Get-Content -LiteralPath $gradleFileForMetadata -Raw
     $applicationIdMatch = [regex]::Match($gradleText, 'applicationId\s*=?\s*["'']([^"'']+)["'']')
-    $versionNameMatch = [regex]::Match($gradleText, 'versionName\s*=?\s*["'']([^"'']+)["'']')
-    $versionCodeMatch = [regex]::Match($gradleText, 'versionCode\s*=?\s*(\d+)')
+    $bundleVersionName = if ($Environment -eq "test") { "$VersionName-test" } else { $VersionName }
 
     $artifacts = @([pscustomobject]@{
         SourcePath    = (Resolve-Path -LiteralPath $bundleFiles[0].FullName).Path
         SourceName    = $bundleFiles[0].BaseName
         ApplicationId = if ($applicationIdMatch.Success) { $applicationIdMatch.Groups[1].Value } else { "unknown" }
         Variant       = $Variant
-        VersionCode   = if ($versionCodeMatch.Success) { $versionCodeMatch.Groups[1].Value } else { "unknown" }
-        VersionName   = if ($versionNameMatch.Success) { $versionNameMatch.Groups[1].Value } else { "unknown" }
+        VersionCode   = [string]$VersionCode
+        VersionName   = $bundleVersionName
     })
 }
 else {

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
 import { useLocale } from '@chipmobilesdk/rn-i18n';
 
@@ -13,6 +12,7 @@ import { ErrorState } from '../../../components/ErrorState';
 import { Segmented } from '../../../components/Segmented';
 import { Skeleton, SkeletonGroup } from '../../../components/Skeleton';
 import { Text } from '../../../components/Text';
+import { ThemedSafeAreaView } from '../../../components/ThemedSafeAreaView';
 import { COUNTDOWN_OFFSETS } from '../../../domain/countdown';
 import type { DisplayMode } from '../../../domain/settings';
 import { useT } from '../../../i18n/useT';
@@ -27,6 +27,7 @@ import {
 	TAP_TARGET_MIN,
 } from '../../../theme/tokens';
 import { RemoveAdsSection } from '../../monetization';
+import { PrivacyPolicyRow } from '../components/PrivacyPolicyRow';
 import { useSettings } from '../hooks/useSettings';
 
 export function SettingsScreen() {
@@ -39,7 +40,7 @@ export function SettingsScreen() {
 	const [confirmDestroy, setConfirmDestroy] = useState(false);
 
 	return (
-		<SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+		<ThemedSafeAreaView style={styles.screen} edges={['top', 'bottom']}>
 			<View style={styles.bar}>
 				<Pressable
 					accessibilityRole="button"
@@ -226,6 +227,10 @@ export function SettingsScreen() {
 						</Text>
 					</View>
 
+					{/* Right under the statement it expands on, on every platform:
+              the policy covers task data as well as ads (specs/002 D-23). */}
+					<PrivacyPolicyRow />
+
 					{confirmDestroy ? (
 						<View accessibilityRole="alert" style={styles.destroyConfirm}>
 							<Text style={styles.destroyTitle}>
@@ -271,7 +276,7 @@ export function SettingsScreen() {
 					)}
 				</ScrollView>
 			) : null}
-		</SafeAreaView>
+		</ThemedSafeAreaView>
 	);
 }
 

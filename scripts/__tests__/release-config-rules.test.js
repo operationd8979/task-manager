@@ -47,11 +47,19 @@ const realProduction = envSource({
 const TEST_APP = { 'react-native-google-mobile-ads': { android_app_id: 'ca-app-pub-3940256099942544~3347511713' } };
 const REAL_APP = { 'react-native-google-mobile-ads': { android_app_id: 'ca-app-pub-1234567890123456~9999999999' } };
 
+const policySource = site =>
+	`export const PRIVACY_POLICY_SITE: string | null = ${site};\nexport const OTHER = 1;`;
+const PUBLISHED_POLICY = policySource("'https://owner.github.io'");
+const UNPUBLISHED_POLICY = policySource('null');
+const POLICY_PROBLEM = 'privacyPolicy.ts: PRIVACY_POLICY_SITE must be the published https:// origin';
+const AAB_KEY_PROBLEM = 'signing: an AAB needs TM_UPLOAD_STORE_FILE (Play refuses the debug key)';
+
 const run = overrides =>
 	checkReleaseConfig({
 		env: 'production',
 		envSources: { development, test, production: realProduction },
 		testUnitsSource: TEST_UNITS,
+		privacyPolicySource: PUBLISHED_POLICY,
 		appJson: REAL_APP,
 		hasUploadKey: true,
 		...overrides,
@@ -134,5 +142,48 @@ describe('checkReleaseConfig (AC-7.4)', () => {
 
 	it('rejects an unknown environment', () => {
 		expect(run({ env: 'staging' })).toEqual(["unknown environment 'staging'"]);
+	});
+});
+
+describe('checkReleaseConfig release candidates (AC-7.5, plan D-25)', () => {
+	const testBuild = { env: 'test', appJson: TEST_APP };
+
+	it('fails a test AAB with no published policy and no upload key', () => {
+		expect(
+			run({ ...testBuild, format: 'aab', privacyPolicySource: UNPUBLISHED_POLICY, hasUploadKey: false }),
+		).toEqual([AAB_KEY_PROBLEM, POLICY_PROBLEM]);
+	});
+
+	it('passes a test AAB with the published policy and the upload key', () => {
+		expect(run({ ...testBuild, format: 'aab' })).toEqual([]);
+	});
+
+	it('still lets a local test APK through on the debug key with no policy yet', () => {
+		expect(
+			run({ ...testBuild, format: 'apk', privacyPolicySource: UNPUBLISHED_POLICY, hasUploadKey: false }),
+		).toEqual([]);
+	});
+
+	it('fails any production build with no published policy', () => {
+		expect(run({ privacyPolicySource: UNPUBLISHED_POLICY })).toEqual([POLICY_PROBLEM]);
+	});
+
+	it.each([
+		["'http://owner.github.io'"],
+		["'https://owner.github.io/'"],
+		["'https://owner.github.io/task-manager'"],
+		["''"],
+	])('refuses %s as the policy site', site => {
+		expect(run({ privacyPolicySource: policySource(site) })).toEqual([POLICY_PROBLEM]);
+	});
+
+	it('asks a development AAB only for the upload key', () => {
+		expect(
+			run({ env: 'development', format: 'aab', privacyPolicySource: UNPUBLISHED_POLICY, hasUploadKey: false }),
+		).toEqual([AAB_KEY_PROBLEM]);
+	});
+
+	it('rejects an unknown format', () => {
+		expect(run({ format: 'ipa' })).toEqual(["unknown format 'ipa'"]);
 	});
 });
