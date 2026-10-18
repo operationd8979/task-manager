@@ -1,5 +1,5 @@
 ---
-status: building
+status: done
 rev: 2
 ---
 # Theme package 1.0 migration

@@ -156,7 +156,7 @@ every themed stylesheet.
   `npm test` green; `git grep -nE "appTheme\(|color\.border|as (AppTheme|StyleTheme)"`
   empty; emulator: switch Sáng ↔ Tối in Settings, go back — timeline, open each sheet, every
   surface follows at once in both directions.
-- [ ] SL-5 Records — covers FR-5, A-6 — verify: `docs/standards.md` names
+- [x] SL-5 Records — covers FR-5, A-6 — verify: `docs/standards.md` names
   `@chipmobilesdk/rn-theme@1.0.0`; `/sdd-design-build-system` re-synced and its link
   recorded; 001 design-system note present.
 
@@ -201,7 +201,12 @@ every themed stylesheet.
   - FR-1 — imports only from `@chipmobilesdk/rn-theme` root ✓ · FR-2 — US-3 tests ✓ ·
     FR-3 — no colour literal outside `src/theme/` (`git grep`) ✓ · FR-4 — ActionRow and Notice
     as required, presets across all stylesheets ✓ · FR-6 — `config.ts` overrides radius and
-    typography only ✓ · FR-7 — `strict: __DEV__` ✓ · FR-5 — see SL-5
+    typography only ✓ · FR-7 — `strict: __DEV__` ✓
+  - FR-5 — `docs/standards.md` names `@chipmobilesdk/rn-theme@1.0.0`; design system
+    https://claude.ai/artifact/3qkoos68veiV382pdKnXUK re-synced (version 6, from
+    `src/theme/`@06a76f1, 2026-10-18) and recorded ✓
+  - Full checks on master@06a76f1 (2026-10-18): `npx tsc --noEmit` 0 errors, `npm run lint`
+    clean, `npm test` 46 suites / 416 tests ✓
 
 ## Notes
 
@@ -213,10 +218,10 @@ every themed stylesheet.
   process with `NODE_ENV=development`; the test also asserts the plugin was active.
 - SL-2/SL-4: `SettingsScreen` reads `size.touchTarget` through `useUnistyles()` for its loading
   skeleton heights (the only token used outside a stylesheet).
-- SL-5 (open): `docs/standards.md` *Theming source* updated; 001 design-system note added.
-  The design-system re-sync is written (tokens.json: 98 colours × 2 themes, 28 type styles;
-  README; cover rebound to 1.0 names) but its publish is blocked: the session's Read
-  permission rule refuses `tokens.json` as a source file. *Design system* line waits for it.
+- SL-5: the design system was re-synced to rn-theme 1.0.0 from `2fb20c3` on 2026-10-17, then
+  to `06a76f1` on 2026-10-18 (`NOTE_FIELD_HEIGHT`, a Controls section, Android's native
+  colour copies). A publish whose `files` sources used the 8.3 short path `REMOTE~2` was
+  refused by the Read permission check; the long path `C:\Users\remotechip\…` passes.
 - Seen on the emulator, out of scope, not caused by this migration as far as checked:
   - Android renders `fontWeight: '600'` with `fontFamily: 'System'` as regular. 0.2.2 also put
     `fontFamily: 'System'` in every typography token (checked in its tarball), so this predates

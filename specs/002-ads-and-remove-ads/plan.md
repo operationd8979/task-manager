@@ -896,6 +896,13 @@ and owned states. The build environment is chosen when the bundle is built. All 
   existing patterns. `/sdd-design` can draw it if wanted.
 - The owner's Play Console, AdMob, website and payout steps are tracked in the release
   checklist doc: https://claude.ai/code/artifact/5a6f7329-aff2-4015-b1b7-173eb88c5bd0
+- 2026-10-18, FR-24 progress: Play app `io.github.operationd8979.taskmanager` created, test
+  AAB 1 (1.0-test) on internal testing. AdMob app and units exist (`timeline_footer`
+  banner, `task_break` interstitial, publisher `pub-3699716801502401`): `app.json` carries
+  the real app ID in every environment, `appEnv.production.ts` the real units,
+  `docs/release/site/app-ads.txt` the real line. `check:release production` passes for apk
+  and aab. Still open: the units linked to the published app (after production), the
+  consent message, `app-ads.txt` verified.
 - Choices worth a glance:
   - `maxAdContentRating: 'PG'` — confirm against the content-rating gate (FR-24). With the
     18+ audience (spec r2 Assumptions) it is conservative, not required.
@@ -937,4 +944,6 @@ and owned states. The build environment is chosen when the bundle is built. All 
   of rn-payment already listed there.
 - r8 (2026-10-18): reconciled to spec r3. Added D-28 (application ID
   `io.github.operationd8979.taskmanager`); `docs/release/` (privacy policy, site index, Data
-  safety) names the new ID. Release builds pack native debug symbols.
+  safety) names the new ID. Release builds pack native debug symbols. The privacy policy's
+  section 7 now says the app ships on Android only, with no iOS version (FR-15 still
+  governs the code on iOS).
