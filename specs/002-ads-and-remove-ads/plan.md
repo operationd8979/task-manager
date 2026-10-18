@@ -1,6 +1,6 @@
 ---
-rev: 7
-spec_rev: 2
+rev: 8
+spec_rev: 3
 design_rev: 1
 ---
 # Plan: Ads and Remove-ads purchase
@@ -263,6 +263,11 @@ and owned states. The build environment is chosen when the bundle is built. All 
   segment aligned below 16 KB. The build runs it after every AAB. The ELF and zip parsing
   lives in `scripts/elf-alignment.cjs` and is unit-tested. Alternatives rejected: the
   shell-only `check_elf_alignment.sh` (no Windows) and `bundletool` (a new tool to install).
+- D-28 The Play application ID is `io.github.operationd8979.taskmanager` (owner's choice,
+  2026-10-18), the reverse of the developer site the owner controls, so it cannot collide.
+  Only `applicationId` changes; `namespace` stays `com.taskmanager`, so no Kotlin source
+  moves. Play fixes the ID at the first upload. `com.taskmanager` was rejected: generic and
+  not owned, so a hidden or removed app may already hold it.
 
 ## Changes
 
@@ -282,7 +287,9 @@ and owned states. The build environment is chosen when the bundle is built. All 
 - `jest.config.js`: add `react-native-google-mobile-ads` and `react-native-iap` to
   `transformIgnorePatterns`.
 - `android/app/build.gradle`: release `signingConfig` from properties. Fail when
-  `APP_ENV=production` and no keystore is configured (D-14).
+  `APP_ENV=production` and no keystore is configured (D-14). `applicationId` per D-28.
+  Release builds pack native symbol tables (`debugSymbolLevel 'SYMBOL_TABLE'`) for Android
+  vitals.
 - `android/app/src/main/res/xml/data_extraction_rules.xml` and `backup_rules.xml`: exclude
   `mmkv/chipmobilesdk.payment` and `mmkv/taskmanager.monetization`.
 - `scripts/build-android.ps1`:
@@ -928,3 +935,6 @@ and owned states. The build environment is chosen when the bundle is built. All 
   check); slices SL-8 (US-10, AC-7.5) and SL-9 (release materials); SL-6 verifies the new
   FR-24 gates. Context records the Play requirements checked and the 0.3.0 docs-only bump
   of rn-payment already listed there.
+- r8 (2026-10-18): reconciled to spec r3. Added D-28 (application ID
+  `io.github.operationd8979.taskmanager`); `docs/release/` (privacy policy, site index, Data
+  safety) names the new ID. Release builds pack native debug symbols.

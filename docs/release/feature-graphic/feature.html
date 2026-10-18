@@ -1,0 +1,77 @@
+<!doctype html>
+<!--
+  Play feature graphic (1024x500), one per listing language. Reads the icon and
+  the timeline screenshot from .artifacts/store/. Render from the repo root:
+    chrome --headless=new --hide-scrollbars --allow-file-access-from-files --virtual-time-budget=8000 --window-size=1024,500 --screenshot=.artifacts/store/feature-graphic-vi.png "file:///<repo>/docs/release/feature-graphic/feature.html?lang=vi"
+  (lang = vi | en | ja)
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Feature graphic</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Noto+Sans+JP:wght@500;700&display=block" rel="stylesheet">
+<style>
+  :root {
+    --brand: #EC3013;
+    --brand-deep: #C9230B;
+    --ground: #F3F2F2;
+    --ink: #201E1D;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1024px; height: 500px; overflow: hidden; }
+  body {
+    background: radial-gradient(circle at 78% 40%, var(--brand) 0%, var(--brand) 35%, var(--brand-deep) 100%);
+    font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+    color: var(--ground);
+    position: relative;
+  }
+  body.ja { font-family: 'Noto Sans JP', 'Roboto', sans-serif; }
+
+  /* The icon's timeline glyph, drawn large and faint behind the text. */
+  .rail { position: absolute; left: 40px; top: 0; bottom: 0; width: 26px; opacity: .14; }
+  .rail::before { content: ''; position: absolute; left: 9px; top: 0; bottom: 0; width: 8px; background: var(--ground); }
+  .rail i { position: absolute; left: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--ground); }
+
+  .copy { position: absolute; left: 96px; top: 0; bottom: 0; width: 470px; display: flex; flex-direction: column; justify-content: center; }
+  .icon { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 6px 18px rgba(0,0,0,.22); margin-bottom: 26px; }
+  h1 { font-size: 60px; line-height: 1.05; font-weight: 700; letter-spacing: -.5px; }
+  .tagline { margin-top: 16px; font-size: 30px; line-height: 1.25; font-weight: 500; }
+  .features { margin-top: 22px; font-size: 21px; line-height: 1.4; opacity: .88; }
+  body.ja h1 { font-size: 56px; }
+  body.ja .tagline { font-size: 29px; }
+  body.ja .features { font-size: 19px; }
+
+  .phone {
+    position: absolute; right: 92px; top: 56px;
+    width: 300px; height: 548px;
+    background: #141212; border-radius: 40px; padding: 10px;
+    box-shadow: 0 24px 48px rgba(0,0,0,.35), 0 0 0 2px rgba(255,255,255,.08);
+    transform: rotate(-4deg);
+  }
+  .phone img { display: block; width: 280px; height: 498px; border-radius: 30px; object-fit: cover; object-position: top; }
+</style>
+</head>
+<body>
+  <div class="rail"><i style="top:70px"></i><i style="top:237px"></i><i style="top:404px"></i></div>
+  <div class="copy">
+    <img class="icon" src="../../../.artifacts/store/play-icon-512.png" alt="">
+    <h1>Task Manager</h1>
+    <p class="tagline" id="tagline"></p>
+    <p class="features" id="features"></p>
+  </div>
+  <div class="phone"><img id="shot" alt=""></div>
+<script>
+  const TEXT = {
+    vi: ['Lên kế hoạch từng giờ trong ngày', 'Việc lặp lại · Nhắc nhở đúng lúc<br>Không cần tài khoản, dữ liệu ở trên máy'],
+    en: ['Plan your day hour by hour', 'Repeating tasks · Reminders on time<br>No account needed, works offline'],
+    ja: ['1日を時間ごとに計画', '繰り返しタスク・時間どおりの通知<br>アカウント不要、データは端末内だけ'],
+  };
+  const lang = new URLSearchParams(location.search).get('lang') || 'vi';
+  document.body.classList.add(lang);
+  document.documentElement.lang = lang;
+  document.getElementById('tagline').textContent = TEXT[lang][0];
+  document.getElementById('features').innerHTML = TEXT[lang][1];
+  document.getElementById('shot').src = `../../../.artifacts/store/screenshots/${lang}/${lang}-1-timeline.png`;
+</script>
+</body>
+</html>

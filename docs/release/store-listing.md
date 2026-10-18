@@ -120,5 +120,11 @@ Task Manager は、その日のタスクをタイムラインに並べて表示�
 | Tài sản | Kích thước | Trạng thái |
 | --- | --- | --- |
 | App icon | 512×512 PNG | Có: `.artifacts/store/play-icon-512.png` |
-| Feature graphic | 1024×500 PNG/JPEG | Chưa có |
-| Ảnh chụp điện thoại | 2–8 ảnh, cạnh 320–3840 px | Chưa có; nên chụp timeline, form tạo việc, việc lặp lại, Cài đặt, ở cả sáng và tối |
+| Feature graphic | 1024×500 PNG/JPEG | Có: `.artifacts/store/feature-graphic-{vi,en,ja}.png`, dựng từ `docs/release/feature-graphic/feature.html` |
+| Ảnh chụp điện thoại | 2–8 ảnh, cạnh 320–3840 px | Có: `.artifacts/store/screenshots/{vi,en,ja}/`, 4 ảnh 1080×1920 mỗi ngôn ngữ (timeline, sửa việc, sửa việc lặp, giao diện tối) |
+
+Mỗi bản dịch trong Play Console nhận bộ ảnh và feature graphic của ngôn ngữ đó. Ảnh chụp
+trên emulator ở 1080×1920, vì Play từ chối ảnh có cạnh dài quá 2 lần cạnh ngắn (màn
+1080×2220 bị từ chối). Thanh trạng thái để ở demo mode, máy offline nên không có banner
+quảng cáo. Dữ liệu mẫu là mỗi ngôn ngữ một ngày (19, 20, 21/10/2026). Đổi giao diện thì
+chụp lại, rồi dựng lại feature graphic.

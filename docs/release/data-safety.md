@@ -1,6 +1,6 @@
 # Câu trả lời cho Play Console — App content
 
-Câu trả lời đề xuất cho các mục **Policy → App content** của Task Manager (`com.taskmanager`),
+Câu trả lời đề xuất cho các mục **Policy → App content** của Task Manager (`io.github.operationd8979.taskmanager`),
 dựa trên code ngày 13/10/2026 và [công bố Data safety của Google cho AdMob](https://developers.google.com/admob/android/privacy/play-data-disclosure).
 Tên mục để nguyên tiếng Anh như trong Play Console. Bạn là người chịu trách nhiệm cuối cùng
 về câu trả lời; nếu app thêm SDK hay tính năng gửi dữ liệu ra ngoài, phải sửa lại bảng này.

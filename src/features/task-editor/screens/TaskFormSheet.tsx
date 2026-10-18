@@ -40,6 +40,9 @@ const DURATION_CHIPS: ReadonlyArray<{ minutes: number; labelKey: AppI18nKey }> =
 	{ minutes: 60, labelKey: 'form.plus60' },
 ];
 
+/** dp at text size 100%: a `YYYY-MM-DD` value plus the field's padding and border. */
+const DATE_CELL_BASIS = 112;
+
 export interface TaskFormSheetProps {
 	task?: Task;
 	/** The series being edited. Mutually exclusive with `task`. */
@@ -238,7 +241,7 @@ export function TaskFormSheet({
 					</Field>
 
 					<View style={styles.row}>
-						<View style={styles.cell}>
+						<View style={styles.dateCell}>
 							{/* For a series this is the day the whole thing began, and it
                   is read-only: moving it would change which sessions ever
                   existed, which is a different series rather than an edit. */}
@@ -505,7 +508,7 @@ function saveLabel(t: Translate, saving: boolean, editing: boolean): string {
 	return editing ? t('form.saveEdit') : t('form.save');
 }
 
-const styles = StyleSheet.create(theme => ({
+const styles = StyleSheet.create((theme, rt) => ({
 	fields: {
 		gap: theme.spacing.md,
 		paddingBottom: theme.spacing.lg,
@@ -518,6 +521,13 @@ const styles = StyleSheet.create(theme => ({
 	cell: {
 		flexGrow: 1,
 		flexBasis: 96,
+	},
+	dateCell: {
+		flexGrow: 1,
+		// Room for a whole `YYYY-MM-DD` at the current text size. At the shared
+		// 96 the date broke in two inside its box on a 393 dp phone; this way a
+		// narrow screen or a large font moves it onto a line of its own instead.
+		flexBasis: DATE_CELL_BASIS * rt.fontScale,
 	},
 	input: {
 		...theme.typography.body,

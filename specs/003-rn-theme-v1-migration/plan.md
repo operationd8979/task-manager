@@ -225,7 +225,12 @@ every themed stylesheet.
   - Status-bar icons stay light on light screens; the app sets no status-bar style (unchanged
     code).
   - The task form's Date field wraps `2026-10-17` onto two lines at 393 dp width. Its style
-    values are unchanged; not compared against a 0.2.2 build.
+    values are unchanged; not compared against a 0.2.2 build. Fixed 2026-10-18 (002 store
+    screenshots): the date cell's basis is 112 dp × `rt.fontScale`, so a narrow screen or a
+    large font moves the date onto its own line instead of breaking it.
+- 2026-10-18, found while taking 002 store screenshots: with edge-to-edge on, a sheet's body
+  showed through the gesture-bar strip under its footer button (the footer is lifted by
+  `bottomInset`). `Sheet` now paints that strip with the background colour.
 
 ## Changelog
 

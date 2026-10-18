@@ -1,6 +1,6 @@
 ---
 status: building
-rev: 2
+rev: 3
 ---
 # Ads and Remove-ads purchase
 
@@ -310,8 +310,8 @@ that I know what the ads and the store receive before I rely on the app.
   every purchase and restore outcome.
 - FR-24 Release gates (named checks done outside the code; all required before the first
   production release):
-  - the Play app is created as `com.taskmanager` and signed with a real release key, not the
-    debug key;
+  - the Play app is created as `io.github.operationd8979.taskmanager` and signed with a real
+    release key, not the debug key;
   - the in-app product is active with a base price that Play converts per country;
   - ad units are created and linked to the app;
   - Data safety declares ads and the advertising ID, and "Contains ads" is declared;
@@ -375,3 +375,5 @@ that I know what the ads and the store receive before I rely on the app.
   check). FR-2 now states the 7-day ceiling (plan D-10). FR-24 gains the in-app policy
   link, the 18+ target audience, the AdMob consent message and `app-ads.txt`. Assumptions
   record the target audience and policy hosting.
+- r3 (2026-10-18): FR-24 names the Play application ID `io.github.operationd8979.taskmanager`
+  instead of `com.taskmanager` (owner's choice before the first upload; plan D-28).

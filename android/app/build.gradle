@@ -120,7 +120,7 @@ android {
 
     namespace "com.taskmanager"
     defaultConfig {
-        applicationId "com.taskmanager"
+        applicationId "io.github.operationd8979.taskmanager"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode
@@ -152,6 +152,11 @@ android {
             signingConfig hasUploadKey ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            // Packs native symbol tables into the AAB, so Android vitals shows
+            // native crash stacks with function names instead of bare addresses.
+            ndk {
+                debugSymbolLevel 'SYMBOL_TABLE'
+            }
         }
     }
 }

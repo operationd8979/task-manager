@@ -111,6 +111,19 @@ const styles = StyleSheet.create(theme => ({
 		minHeight: BAR_HEIGHT.action,
 		backgroundColor: theme.color.background,
 	},
+	/**
+	 * Covers the strip the footer is lifted off (the gesture bar's inset). The
+	 * body scrolls behind the footer, so without this its last fields showed
+	 * through underneath the action button.
+	 */
+	footerInset: (height: number) => ({
+		position: 'absolute',
+		top: '100%',
+		left: 0,
+		right: 0,
+		height,
+		backgroundColor: theme.color.background,
+	}),
 }));
 
 export function Sheet({
@@ -243,6 +256,7 @@ export function Sheet({
 				<View style={styles.footer} onLayout={measureFooter}>
 					{footer}
 				</View>
+				<View style={styles.footerInset(insets.bottom)} />
 			</BottomSheetFooter>
 		);
 	}, [footer, insets.bottom, measureFooter]);

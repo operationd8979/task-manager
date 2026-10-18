@@ -43,7 +43,7 @@ jest.mock('react-native-unistyles', () => {
 			configure: () => undefined,
 			create: sheet => {
 				const built =
-					typeof sheet === 'function' ? sheet(getTheme(), {}) : sheet;
+					typeof sheet === 'function' ? sheet(getTheme(), { fontScale: 1 }) : sheet;
 				// Components call styles.useVariants(...) before reading any style.
 				return { ...built, useVariants: () => undefined };
 			},
