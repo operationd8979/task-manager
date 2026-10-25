@@ -26,6 +26,7 @@ import { minutesOf, timeFromMinutes, type LocalDate } from '../../../lib/date';
 import { repeatPatternLabel } from '../../../lib/format';
 import { BAR_HEIGHT, NOTE_FIELD_HEIGHT } from '../../../theme/tokens';
 import { DateTimeField } from '../components/DateTimeField';
+import { durationMinutes } from '../duration';
 import { Field } from '../components/Field';
 import {
 	RecurrenceSheet,
@@ -150,6 +151,8 @@ export function TaskFormSheet({
 		},
 		[form],
 	);
+
+	const duration = durationMinutes(form.values.startTime, form.values.endTime);
 
 	const message = (
 		key: AppI18nKey | undefined,
@@ -303,7 +306,10 @@ export function TaskFormSheet({
 							<Chip
 								key={chip.labelKey}
 								label={t(chip.labelKey)}
-								selected={false}
+								// Lit while the end really is start + this duration, so the row
+								// answers "how long is it?" the way "No end time" already did.
+								// Moving either time by hand turns it off again.
+								selected={duration === chip.minutes}
 								onPress={() => setEndFromDuration(chip.minutes)}
 							/>
 						))}

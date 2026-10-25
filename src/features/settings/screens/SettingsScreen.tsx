@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -36,6 +36,7 @@ export function SettingsScreen() {
 	const reminders = useReminders();
 	const monetization = useMonetization();
 	const [confirmDestroy, setConfirmDestroy] = useState(false);
+	const scroll = useRef<ScrollView>(null);
 	// Skeleton rows take the height of the controls they stand in for.
 	const rowHeight = useUnistyles().theme.size.touchTarget;
 
@@ -72,7 +73,7 @@ export function SettingsScreen() {
 			) : null}
 
 			{settings.state.status === 'ready' ? (
-				<ScrollView contentContainerStyle={styles.content}>
+				<ScrollView ref={scroll} contentContainerStyle={styles.content}>
 					<Text style={styles.sectionTitle}>{t('settings.reminders')}</Text>
 
 					{/* Permission state is a WORD, never a coloured dot (Principle V). */}
@@ -232,7 +233,14 @@ export function SettingsScreen() {
 					<PrivacyPolicyRow />
 
 					{confirmDestroy ? (
-						<View accessibilityRole="alert" style={styles.destroyConfirm}>
+						<View
+							accessibilityRole="alert"
+							// The confirmation is taller than the button it replaces and is
+							// the last thing on the page, so its DELETE and CANCEL opened
+							// below the fold, behind the navigation bar. Brought fully into
+							// view as soon as it has a size.
+							onLayout={() => scroll.current?.scrollToEnd({ animated: true })}
+							style={styles.destroyConfirm}>
 							<Text style={styles.destroyTitle}>
 								{t('settings.destroyTitle')}
 							</Text>

@@ -407,6 +407,22 @@ không nói gì thì hoàn toàn không khác một công việc chưa từng đ
 
 ---
 
+## Phase 13: Vòng dùng thử trước phát hành (2026-10-25)
+
+**Mục tiêu**: ba lỗi người dùng gặp trên bản 1.0-test. Cả ba cùng một họ: app làm đúng việc
+nhưng không cho người dùng thấy nó vừa làm gì, hoặc thấy sai.
+
+- [X] T172 [US1] Chip `+30 min` / `+45 min` / `+1 hour` trong form tạo/sửa không bao giờ sáng: chúng được vẽ với `selected={false}`, trong khi chip "không giờ kết thúc" thì có. Chip giờ sáng khi giờ kết thúc **đúng bằng** giờ bắt đầu cộng thời lượng của nó, dù giờ kết thúc được đặt bằng cách nào (`src/features/task-editor/duration.ts`, `__tests__/duration.test.ts`)
+- [X] T173 [US1] Chạm ra ngoài form khi còn thay đổi chưa lưu thì sheet đóng, và sau đó nút tạo công việc không phản hồi nữa cho tới khi mở lại app. Scrim mặc định tự đóng sheet **trước** khi hỏi chủ sở hữu; form từ chối đóng để hiện cảnh báo (FR-013) nên vẫn mounted, màn hình vẫn tưởng sheet đang mở, và đặt "mở" lần nữa không đổi gì (L-13). Scrim giờ hỏi chủ sở hữu như nút × và nút back; sheet `blocking` vẫn trơ
+- [X] T174 [US1] Cùng lỗi qua cử chỉ vuốt xuống, thứ không chặn trước được: nếu chủ sở hữu vẫn giữ sheet sau `onDismiss`, `Sheet` gọi lại `present()` — cảnh báo hiện ra và nội dung đã gõ vẫn còn. `src/components/__tests__/Sheet.test.tsx`: scrim hỏi chủ, scrim của sheet chặn trơ, vuốt xuống bị từ chối thì hiện lại, được đồng ý thì đóng hẳn
+- [X] T175 [US7] Xóa toàn bộ dữ liệu mở hộp xác nhận ở dưới mép màn hình, phải tự kéo mới thấy hai nút. Hộp xác nhận cuộn trang tới cuối ngay khi dựng xong (`onLayout` → `scrollToEnd`), lần mở nào cũng vậy (FR-054)
+- [X] T176 Kiểm trên emulator, bản release x86_64: `+45 min` rồi `+1 hour` sáng và mang `selected` trong cây trợ năng; chạm scrim khi có thay đổi → cảnh báo, sheet ở lại; vuốt xuống → sheet hiện lại cùng cảnh báo và tên đã gõ; bỏ thay đổi → form mới mở được; form sạch thì chạm scrim, vuốt xuống, × đều đóng và mở lại được; sheet chọn ngày vẫn đóng khi chạm scrim; hộp xác nhận xóa hiện trọn cả hai lần mở
+- [ ] T177 Ba bản sửa chưa có trong AAB nào đã tải lên Play: cần một bản build mới, kiểm lại trên máy thật sau khi cài từ Play
+
+**Checkpoint**: Ba lỗi đã đóng trên emulator; còn chờ bản Play kế tiếp (T177)
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

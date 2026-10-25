@@ -5,6 +5,7 @@ import React, {
 	useEffect,
 	useMemo,
 	useRef,
+	useState,
 	type ComponentRef,
 } from 'react';
 import { BackHandler, Pressable, View, type LayoutChangeEvent } from 'react-native';
@@ -138,6 +139,9 @@ export function Sheet({
 	const sheet = useRef<BottomSheetModal>(null);
 	/** True once the owner has taken this sheet off screen. See `handleDismiss`. */
 	const removed = useRef(false);
+	/** Set when the library closed the sheet itself (a pan down). See `handleDismiss`. */
+	const closedByGesture = useRef(false);
+	const [dismissals, setDismissals] = useState(0);
 
 	/**
 	 * BottomSheetModal is an imperative component: it renders nothing at all
@@ -170,8 +174,26 @@ export function Sheet({
 		if (removed.current) {
 			return;
 		}
+		closedByGesture.current = true;
 		onClose?.();
+		// Re-checked after the owner has answered: see the effect below.
+		setDismissals(count => count + 1);
 	}, [onClose]);
+
+	/**
+	 * A pan down closes the sheet before anyone is asked. An owner that refuses —
+	 * the task form with unsaved edits shows its "save or discard" prompt instead
+	 * of closing — keeps us mounted, and a mounted sheet must be on screen: left
+	 * hidden, the owner still thought it open, so tapping New task changed
+	 * nothing and the button looked dead. An owner that agrees unmounts us, and
+	 * this never runs.
+	 */
+	useEffect(() => {
+		if (closedByGesture.current) {
+			closedByGesture.current = false;
+			sheet.current?.present();
+		}
+	}, [dismissals]);
 
 	/**
 	 * On Android, back is how a sheet is dismissed. Neither the sheet library nor
@@ -235,13 +257,19 @@ export function Sheet({
 				{...props}
 				appearsOnIndex={0}
 				disappearsOnIndex={-1}
-				pressBehavior={blocking ? 'none' : 'close'}
+				// A tap on the scrim asks the owner, exactly like × and back: the
+				// owner decides whether to close, or to ask about unsaved edits first.
+				// `'close'` would hide the sheet before anyone was asked. Snapping to
+				// the current position keeps the tap handler attached and moves
+				// nothing ('none' would detach it and drop `onPress`).
+				pressBehavior={blocking ? 'none' : 0}
+				onPress={blocking ? undefined : onClose}
 				// A plain object, not a Unistyles style: RN style arrays do not accept
 				// Unistyles' style objects, and the animated opacity must survive.
 				style={[props.style, { backgroundColor: scrim }]}
 			/>
 		),
-		[blocking, scrim],
+		[blocking, onClose, scrim],
 	);
 
 	const renderFooter = useMemo(() => {
