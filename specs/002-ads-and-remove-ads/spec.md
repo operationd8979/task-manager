@@ -1,6 +1,6 @@
 ---
 status: building
-rev: 3
+rev: 4
 ---
 # Ads and Remove-ads purchase
 
@@ -78,9 +78,9 @@ As a free user, I want to pay once to remove ads, with ads gone immediately and 
 needed.
 
 - AC-3.1 Given a free user opens the purchase screen, when product details are loading, then
-  a layout-matching skeleton shows. Once loaded, the price, title and description shown come
-  from the store, in the store's currency and format; the app's own text is in the app
-  language.
+  a layout-matching skeleton shows. Once loaded, the price comes from the store, in the
+  store's currency and format. Everything else, including what the product is, is the app's
+  own text in the app language.
 - AC-3.2 Given the product is shown, when the user taps Buy and completes payment, then the
   screen confirms success, the banner area disappears at once, and no full-screen ad appears
   afterwards, all without a restart.
@@ -251,8 +251,9 @@ that I know what the ads and the store receive before I rely on the app.
   counter.
 - FR-6 There is exactly one product: a one-time, permanent "Remove ads". It removes every ad
   format and unlocks nothing else.
-- FR-7 Price, product title and description always come from the store. The app never builds
-  a price string itself.
+- FR-7 The price always comes from the store; the app never builds a price string itself. The
+  store's product title and description are not shown: Play appends the app name to the
+  title and localizes both to the device language, not the app language.
 - FR-8 The only ad formats are a banner on the timeline screen and a full-screen ad. No
   banner appears on Settings, sheets or any other screen.
 - FR-9 The banner is pinned at the bottom of the timeline screen, outside the day-swipe and
@@ -377,3 +378,7 @@ that I know what the ads and the store receive before I rely on the app.
   record the target audience and policy hosting.
 - r3 (2026-10-18): FR-24 names the Play application ID `io.github.operationd8979.taskmanager`
   instead of `com.taskmanager` (owner's choice before the first upload; plan D-28).
+- r4 (2026-10-25): FR-7 and AC-3.1: only the price comes from the store; the store's title
+  and description are no longer shown. Seen on device: the title read "Remove ads
+  (io.github.operationd8979.taskmanager (unreviewed))" and both were English on a
+  Vietnamese app (owner's choice; plan D-29).

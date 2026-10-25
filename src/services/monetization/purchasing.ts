@@ -3,9 +3,13 @@ import { toPurchaseOutcome } from '../../domain/monetization';
 import { PRODUCT } from './catalog';
 import type { PaymentEngine } from './runtime';
 
-/** What the purchase sheet shows about the product — all of it from the store. */
+/**
+ * What the purchase sheet takes from the store: the price only. The store's title
+ * carries the app name and both it and the description follow the device
+ * language, so the sheet says what the product is in its own words (FR-7, D-29).
+ */
 export type ProductLookup =
-	| { status: 'ready'; title: string; description: string; formattedPrice: string }
+	| { status: 'ready'; formattedPrice: string }
 	| { status: 'unavailable' }
 	| { status: 'error' };
 
@@ -32,8 +36,6 @@ export function createPurchasing(payment: PaymentEngine): Purchasing {
 				if (product) {
 					return {
 						status: 'ready',
-						title: product.title,
-						description: product.description,
 						// Never built by the app: only the store knows the currency, its
 						// placement and the separators for this user (FR-7).
 						formattedPrice: product.formattedPrice,

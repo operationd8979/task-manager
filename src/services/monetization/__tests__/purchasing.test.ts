@@ -12,7 +12,7 @@ function engine(overrides: Record<string, jest.Mock>) {
 }
 
 describe('createPurchasing', () => {
-	it('shows the store price, title and description untouched (AC-3.1, FR-7)', async () => {
+	it('takes only the price from the store, untouched (AC-3.1, FR-7, D-29)', async () => {
 		const purchasing = createPurchasing(
 			engine({
 				getProducts: jest.fn().mockResolvedValue({
@@ -25,10 +25,10 @@ describe('createPurchasing', () => {
 				}),
 			}),
 		);
+		// The store's title would read "Remove ads (Task Manager…)" in the device
+		// language; it is not carried at all.
 		await expect(purchasing.lookupProduct()).resolves.toEqual({
 			status: 'ready',
-			title: 'Remove ads',
-			description: 'No more ads',
 			formattedPrice: '49.000 ₫',
 		});
 	});

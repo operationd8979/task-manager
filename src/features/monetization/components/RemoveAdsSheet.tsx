@@ -27,8 +27,8 @@ export interface RemoveAdsSheetProps {
 
 /**
  * Buy, restore and their outcomes in one sheet, opened from the banner link and
- * from Settings (SCR-2; plan D-4, D-16). Price, title and description come from
- * the store, never from the app (FR-7).
+ * from Settings (SCR-2; plan D-4, D-16). The price comes from the store, never
+ * from the app; what the product is, is the app's own text (FR-7, plan D-29).
  */
 export function RemoveAdsSheet({ mode, onClose }: RemoveAdsSheetProps) {
 	const t = useT();
@@ -100,9 +100,9 @@ function Loading() {
 	return (
 		<SkeletonGroup>
 			<View style={styles.stack} accessibilityLabel={t('removeAds.loading')}>
-				<Skeleton width="60%" height={24} />
-				<Skeleton width="80%" height={18} />
-				<Skeleton height={16} />
+				{/* The pitch is the app's own text, so only the price waits for the store. */}
+				<Text style={styles.body}>{t('removeAds.pitch')}</Text>
+				<Skeleton height={24} />
 				<Skeleton height={BAR_HEIGHT.action} />
 				<Text style={styles.muted}>{t('removeAds.loading')}</Text>
 			</View>
@@ -121,10 +121,6 @@ function Ready({
 	const blocked = view.note === 'devBlocked';
 	return (
 		<View style={styles.stack}>
-			<View style={styles.product}>
-				<Text style={styles.title}>{view.product.title}</Text>
-				<Text style={styles.muted}>{view.product.description}</Text>
-			</View>
 			<Text style={styles.body}>{t('removeAds.pitch')}</Text>
 			<View style={styles.priceRow}>
 				<Text style={styles.caption}>{t('removeAds.priceLabel')}</Text>
@@ -221,9 +217,6 @@ const PRIMARY_BOX = { ...layout.center, minHeight: BAR_HEIGHT.action };
 const styles = StyleSheet.create(theme => ({
 	stack: {
 		gap: theme.spacing.md,
-	},
-	product: {
-		gap: theme.spacing.xs,
 	},
 	title: theme.text.title,
 	body: theme.text.body,

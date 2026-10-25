@@ -1,6 +1,6 @@
 ---
-rev: 8
-spec_rev: 3
+rev: 9
+spec_rev: 4
 design_rev: 1
 ---
 # Plan: Ads and Remove-ads purchase
@@ -13,12 +13,14 @@ design_rev: 1
 - **SDKs** (installed, exact pins):
   - `@chipmobilesdk/rn-ads` 0.4.0: peer `react-native-google-mobile-ads >=16.0.3 <16.1.0`
     (unchanged). 0.4.0 adds the privacy options form and its requirement status (SL-5).
-  - `@chipmobilesdk/rn-payment` 0.3.0: peers `react-native-iap >=16.6.1 <17`,
+  - `@chipmobilesdk/rn-payment` 0.3.1: peers `react-native-iap >=16.7.3 <17`,
     `react-native-mmkv >=4` and `react-native-nitro-modules >=0.36.5` (both already present).
     0.2.0 added the pending set (D-20) and fixed its Android adapter, which granted a
     pending purchase on a device under `react-native-iap` 16.x. 0.2.1 makes its record
-    persist at all (MMKV v4, found on the emulator in r5). 0.3.0 is documentation only, so
-    the synced skill matches the code; no runtime change from 0.2.1.
+    persist at all (MMKV v4, found on the emulator in r5). 0.3.0 is documentation only.
+    0.3.1 makes a purchase possible at all on a device (16.7 request shape, event-based
+    outcome, `already-owned`, no launch timeout over the user's time in Play; found in
+    SL-6 on 2026-10-25, see Notes).
   - `@chipmobilesdk/rn-notification` 0.3.0 (owned by feature 001): the same MMKV v4 fix in
     0.2.1, then a documentation-only 0.3.0.
   - Facts that shape the plan:
@@ -268,6 +270,15 @@ and owned states. The build environment is chosen when the bundle is built. All 
   Only `applicationId` changes; `namespace` stays `com.taskmanager`, so no Kotlin source
   moves. Play fixes the ID at the first upload. `com.taskmanager` was rejected: generic and
   not owned, so a hidden or removed app may already hold it.
+- D-29 SCR-2 ready shows the store's `formattedPrice` only; what the product is comes from
+  the app's own pitch (`removeAds.pitch`), under the sheet title "Bỏ quảng cáo" (spec r4
+  FR-7, AC-3.1; owner's choice, 2026-10-25). On a device Play returned the title as "Remove
+  ads (io.github.operationd8979.taskmanager (unreviewed))" — Play appends the app name —
+  and the title and description in the device language (English) under a Vietnamese app,
+  repeating the pitch below them. Rejected: the SDK's product `name` field (no app suffix,
+  but still the device language, and an SDK change). The loading skeleton keeps the pitch
+  and reserves only the price row. Design artboard `SCR2-ready` still draws the store
+  block; it is not redrawn.
 
 ## Changes
 
@@ -275,8 +286,8 @@ and owned states. The build environment is chosen when the bundle is built. All 
 - `package.json`: add these, add `-Environment` variants of the `build:*` scripts, and add a
   `check:release` script:
   - `@chipmobilesdk/rn-ads@0.4.0` (was 0.3.0 until r4), `react-native-google-mobile-ads@16.0.3`;
-  - `@chipmobilesdk/rn-payment@0.3.0` (0.1.0 until r4, 0.2.0 until r6, then 0.2.1; 0.3.0 is
-    docs only), `react-native-iap@16.7.3`.
+  - `@chipmobilesdk/rn-payment@0.3.1` (0.1.0 until r4, 0.2.0 until r6, then 0.2.1; 0.3.0
+    docs only; 0.3.1 from r9), `react-native-iap@16.7.3`.
 
   Then run `npm run sync:skills` (it yields `sdk-rn-ads` and `sdk-rn-payment`).
 - `app.json`: `react-native-google-mobile-ads.android_app_id`. Use Google's test app ID until
@@ -378,7 +389,7 @@ and owned states. The build environment is chosen when the bundle is built. All 
 - `src/features/monetization/components/RemoveAdsSheet.tsx` (add), SCR-2. Built on `Sheet`,
   in mode `buy` or `restore` (D-16):
   - loading: `SkeletonGroup` plus "Đang lấy giá…";
-  - ready: store `formattedPrice`, title and description, MUA, KHÔI PHỤC GIAO DỊCH;
+  - ready: the app's pitch, store `formattedPrice` (D-29), MUA, KHÔI PHỤC GIAO DỊCH;
   - pending: `Notice` warning, with no MUA;
   - success: owned, plus already-owned and restored with their copy (design D-4);
   - nothing found: `Notice` neutral under Restore;
@@ -903,6 +914,41 @@ and owned states. The build environment is chosen when the bundle is built. All 
   `docs/release/site/app-ads.txt` the real line. `check:release production` passes for apk
   and aab. Still open: the units linked to the published app (after production), the
   consent message, `app-ads.txt` verified.
+- 2026-10-25, SL-6 on a Galaxy S25 Ultra (licence tester, build `1 (1.0-test)` from internal
+  testing): banner Test Ad ✓, price ₫39,000 from Play ✓. MUA failed with "Chưa kết nối
+  được cửa hàng"; logcat: `[RN-IAP] Failed to request purchase: Invalid request for
+  Android. The skus property must contain only non-empty strings.` Cause, in
+  `@chipmobilesdk/rn-payment` 0.3.0's adapter, written before `react-native-iap` was
+  installed and never run against it: the request used the pre-16.7 `android` key (16.7.3
+  reads `google`); on Android `requestPurchase` resolves empty and the outcome comes only
+  as an event, which the adapter did not wait for; `already-owned` was matched as
+  `item-already-owned`; and the engine's 30 s launch timeout covered the user's time in
+  Play (FR-035). All four fixed in the SDK repo as 0.3.1 (`c:\cms`, CHANGELOG). No order was
+  created. The owner published 0.3.1 the same day; the app pins it, and versionCode 2 (test)
+  carries it.
+- 2026-10-25, 0.3.1 checked before publishing, on the same phone, by overlaying it in
+  `node_modules` and sideloading a test-env release APK (upload-key signed): the request
+  now reaches Play (`ProxyBillingActivity` and Play's acquire UI open), and Play's answer
+  arrives as an event the app maps to "not available" — `responseCode: 4`
+  (`ITEM_UNAVAILABLE`), "The item you were attempting to purchase could not be found".
+  Not an app fault: for an app it did not install, Play bills the device's first account
+  (`Account from first account`), here not a tester, even with the installer set to
+  `com.android.vending`. The sheet showed only the pitch and ₫39,000 (D-29) ✓.
+  With that first account (`operationddd@gmail.com`) added as licence tester and internal
+  tester, the sideloaded 0.3.1 build passed on the phone (Play dialog "This is a test
+  order"): cancel → back on the sheet, no error (AC-3.3) ✓; slow card approving → pending,
+  no Buy, then ads gone while open (AC-5.1–5.3) ✓; owned: offline cold start no ads,
+  Settings "Ads removed" (AC-1.6, AC-1.7) ✓, Delete all data keeps it (AC-4.5) ✓, Restore →
+  "Purchase restored" (AC-4.2) ✓; refund with revoke (order GPA.3352-2324-9552-98904) →
+  ads back at the next cold start (AC-9.1) ✓; slow card declining → pending across a
+  restart, then Buy back with ads (AC-5.2, AC-5.5) ✓; always-approves card → "Ads removed",
+  banner gone at once, 3 new items with no full-screen ad (AC-3.2, AC-1.5) ✓. Both
+  purchases were acknowledged: the order log shows the refund 20 min after processing (a
+  missed acknowledgement is auto-refunded at 3 min), and the direct purchase was still
+  owned 5 min later. Left for the Play-installed versionCode 2: reinstall (AC-4.1),
+  pending completing while the app is closed (AC-5.4), the full-screen ad cadence (A2).
+  The Delete-all-data confirmation opens below the fold; it needs a scroll to reach DELETE
+  (minor, not a blocker).
 - Choices worth a glance:
   - `maxAdContentRating: 'PG'` — confirm against the content-rating gate (FR-24). With the
     18+ audience (spec r2 Assumptions) it is conservative, not required.
@@ -947,3 +993,8 @@ and owned states. The build environment is chosen when the bundle is built. All 
   safety) names the new ID. Release builds pack native debug symbols. The privacy policy's
   section 7 now says the app ships on Android only, with no iOS version (FR-15 still
   governs the code on iOS).
+- r9 (2026-10-25): reconciled to spec r4. Added D-29 (SCR-2 shows only the store price; the
+  pitch says what the product is). SL-6 on a device found that no purchase could complete
+  with `@chipmobilesdk/rn-payment` 0.3.0 (wrong `react-native-iap` 16.7 request key, outcome
+  read from an always-empty resolved value); fixed in the SDK as 0.3.1 (see Notes),
+  verified on the phone before publishing, published and pinned (Context, Changes).

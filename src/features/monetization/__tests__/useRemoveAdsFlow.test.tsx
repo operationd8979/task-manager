@@ -8,8 +8,6 @@ import { useRemoveAdsFlow, type RemoveAdsFlow } from '../hooks/useRemoveAdsFlow'
 
 const PRODUCT: ProductLookup = {
 	status: 'ready',
-	title: 'Remove ads',
-	description: 'No more ads',
 	formattedPrice: '49.000 ₫',
 };
 
