@@ -58,7 +58,16 @@ export function createMonetizationRuntime(deps: RuntimeDeps): MonetizationRuntim
 	if (deps.env.adsEnabled) {
 		try {
 			const ads = deps.loadAds();
-			runtime.ads = ads.createAds(buildAdsConfig(deps.env), deps.adsOptions);
+			// rn-ads resolves ad units per platform from 0.5.0, and takes the
+			// platform from here rather than detecting it a second time. Passing it
+			// is not optional in practice: left to detection, this app's own Jest run
+			// resolves iOS units — the React Native preset reports `Platform.OS` as
+			// `ios` — and every placement comes back `unavailable` with no error.
+			// `deps.adsOptions` still wins, so a test can drive the other platform.
+			runtime.ads = ads.createAds(buildAdsConfig(deps.env), {
+				platform: 'android',
+				...deps.adsOptions,
+			});
 			runtime.AdsProvider = ads.AdsProvider;
 			runtime.AdsBanner = ads.AdsBanner;
 		} catch {
